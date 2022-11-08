@@ -80,6 +80,7 @@ class _DRC_block_ENAS(nn.Module):
 
         return out_val
 
+
 # This will be the branch that is fixed depending on the architecture.
 class _DCR_block_Fixed(nn.Module):
     def __init__(self,
@@ -116,7 +117,6 @@ class _DCR_block_Fixed(nn.Module):
                         nn.PReLU()
                     )
                 )
-
 
     def forward(self, x, array):
         residual = x
