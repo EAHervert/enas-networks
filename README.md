@@ -10,7 +10,7 @@ The goal of this repository is to be able to take the following 3 models:
 * DIDN
 * GRDN
 
-and perturbe their network hyperparameters in a "intellingent" way.
+and perturb their network hyperparameters in a "intelligent" way.
 
 This repository will contain the following modules:
 * utils - module containing helper functions
