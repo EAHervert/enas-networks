@@ -41,8 +41,8 @@ class SharedDHDN(nn.Module):
             # First the encoder:
             if i < (self.network_size // 2 + 1):
                 if architecture is None:
-                    layer1 = _DCR_block_ENAS(self.channels * (2 ** i))
-                    layer2 = _DCR_block_ENAS(self.channels * (2 ** i))
+                    layer1 = _DRC_block_ENAS(self.channels * (2 ** i))
+                    layer2 = _DRC_block_ENAS(self.channels * (2 ** i))
                     down_layer = _down_ENAS(self.channels * (2 ** i))
 
                 else:
@@ -80,8 +80,8 @@ class SharedDHDN(nn.Module):
             if i >= (self.network_size // 2 + 1):
                 if architecture is None:
                     up_layer = _up_ENAS(self.channels * 2 * (2 ** (self.network_size - i)))
-                    layer1 = _DCR_block_ENAS(self.channels * (2 ** (self.network_size - i)))
-                    layer2 = _DCR_block_ENAS(self.channels * (2 ** (self.network_size - i)))
+                    layer1 = _DRC_block_ENAS(self.channels * (2 ** (self.network_size - i)))
+                    layer2 = _DRC_block_ENAS(self.channels * (2 ** (self.network_size - i)))
 
                 else:
                     up_layer = _up_Fixed(self.channels * 2 * (2 ** (self.network_size - i)), self.architecture[k])
