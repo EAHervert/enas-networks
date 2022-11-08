@@ -1,4 +1,3 @@
-## Resampling Blocks
 import torch.nn as nn
 
 

@@ -2,7 +2,7 @@
 import torch
 import torch.nn as nn
 from ENAS_DHDN.RESAMPLING import _down_ENAS, _down_Fixed, _up_ENAS, _up_Fixed
-from ENAS_DHDN.DRC import _DCR_block_ENAS, _DCR_block_Fixed
+from ENAS_DHDN.DRC import _DRC_block_ENAS, _DCR_block_Fixed
 
 
 # Now, here comes the full network.
