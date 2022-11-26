@@ -14,6 +14,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
+# Crop Class for local analysis
 class Crops:
     def __init__(self,
                  path='/Users/esauhervert/PycharmProjects/enas-networks/Image-Processor/images/SIDD_Medium_Srgb'):
@@ -23,6 +24,7 @@ class Crops:
         self.ground_truth_file = None
         self.noisy_file = None
         self.crops = []
+        self.dataset = []
 
     def set_random_images(self):
         # Select a random folder
@@ -57,28 +59,49 @@ class Crops:
             for y_i in y:
                 self.crops.append([image_noisy[x_i: x_i + size, y_i: y_i + size, :],
                                    image_gt[x_i: x_i + size, y_i: y_i + size, :]])
-    #TODO: Edit code to show all the crops.
 
-    # def plot_crops(self, ):
-    #     fig = plt.figure(figsize=(20, 50))
-    #     ax = []
-    #     for i in range(5):
-    #         ax[i] = [fig.add_subplot(2, 2, i)]
-    #         ax[i][0].imshow(self.crops[i][0])
-    #         axs[i, 1].imshow(self.crops[i][1])
-    #
-    #         axs[i, 0].title.set_text('Noisy Crop ' + str(i))
-    #         axs[i, 1].title.set_text('Ground Truth ' + str(i))
-    #
-    #     plt.show()
+    def set_tensors(self):
 
-    # def plot_image(self, option='Noisy'):
-    #     if option == 'Noisy':
-    #         file = self.noisy_file
-    #     elif option == 'GT':
-    #         file = self.ground_truth_file
-    #
-    #     image = io.imread(self.path + '/' + self.folder + '/' + file)
-    #
-    #     plt.imshow(image)
-    #     plt.show()
+        for i, j in self.crops:
+            i_ = torch.from_numpy(i).float() / 255
+            j_ = torch.from_numpy(j).float() / 255
+            self.dataset.append({'Noisy': i_.permute(2, 0, 1),
+                                 'GT': j_.permute(2, 0, 1)})
+
+    def plot_crops(self, ):
+
+        noisy = [crop[0] for crop in self.crops]
+        gt = [crop[1] for crop in self.crops]
+
+        _, axs = plt.subplots(2, 5, figsize=(10, 25))
+        axs = axs.flatten()
+        for index, ax in enumerate(axs):
+
+            if index < 5:
+                ax.imshow(noisy[index])
+                ax.set_title('NOISY ' + str(index))
+            else:
+                ax.imshow(gt[index - 5])
+                ax.set_title('GT ' + str(index - 5))
+
+        plt.show()
+
+    def plot_tensors(self):
+
+        noisy = [crop['Noisy'] for crop in self.dataset]
+        gt = [crop['GT'] for crop in self.dataset]
+
+        _, axs = plt.subplots(2, 5, figsize=(10, 25))
+        axs = axs.flatten()
+        for index, ax in enumerate(axs):
+
+            if index < 5:
+                ax.imshow(noisy[index].permute(1, 2, 0))
+                ax.set_title('NOISY ' + str(index))
+            else:
+                ax.imshow(gt[index - 5].permute(1, 2, 0))
+                ax.set_title('GT ' + str(index - 5))
+
+        plt.show()
+
+

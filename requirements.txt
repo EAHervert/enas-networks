@@ -1,2 +1,7 @@
 torch
 matplotlib~=3.4.2
+numpy~=1.20.3
+torchvision~=0.10.1
+dhdn~=1.0.8
+utilities~=1.2.0
+scikit-image~=0.16.2
