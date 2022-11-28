@@ -12,72 +12,59 @@ class SIDD_Medium_Dataset_Images(Dataset):
         self.size_crop = size_crop
         self.number_crop = number_crops
         self.transform = transform
-        self.dataset = []
 
-        self.folders = [i for i in self.image_instances]
+        self.paths_lists = [{'INPUT': instance['INPUT'],
+                             'TARGET': instance['TARGET']} for instance in self.image_instances]
 
-        for path in self.image_instances:
-            self.dataset.extend(self.crops(path, self.size_crop, self.number_crop))
+        self.dataset_crops = []
+        index = 1
+        for paths in self.paths_lists:
+            # print('Loading Image Pairs', index, 'out of', len(self.paths_lists))
+            self.dataset_crops.extend(self.crops(paths, self.size_crop, self.number_crop))
+            index += 1
 
     def __len__(self):
-        return len(self.dataset)
+        return len(self.dataset_crops)
 
     def __getitem__(self, item):
-        return self.dataset[item]
+        return self.dataset_crops[item]['INPUT'], self.dataset_crops[item]['TARGET']
 
     @staticmethod
     # Method for generating crops for dataloader purposes
-    def crops(path, size_crop, number_crop):
+    def crops(paths, size_crop, number_crop):
 
         # Load Images as np arrays
-        png_path_noisy, png_path_gt = select_paths(path)
-        image_noisy = io.imread(png_path_noisy)
-        image_gt = io.imread(png_path_gt)
+        image_noisy = io.read_image(paths['INPUT'])
+        image_gt = io.read_image(paths['TARGET'])
 
-        x_dim, y_dim, _ = image_noisy.shape
+        x_dim, y_dim, z_dim = image_noisy.shape
 
-        x = random.sample(range(x_dim - size_crop - 1), number_crop)
         y = random.sample(range(y_dim - size_crop - 1), number_crop)
+        z = random.sample(range(z_dim - size_crop - 1), number_crop)
 
         image_crops = []
-        for x_i in x:
-            for y_i in y:
-                image_crops.append([image_noisy[x_i: x_i + size_crop, y_i: y_i + size_crop, :],
-                                    image_gt[x_i: x_i + size_crop, y_i: y_i + size_crop, :]])
+        for y_i, z_i in zip(y, z):
+            image_crops.append([image_noisy[:, y_i: y_i + size_crop, z_i: z_i + size_crop],
+                                image_gt[:, y_i: y_i + size_crop, z_i: z_i + size_crop]])
 
         dataset = []
         # Transform to torch tensors with correct entries and shape
         for i, j in image_crops:
-            i_ = torch.from_numpy(i).float() / 255
-            j_ = torch.from_numpy(j).float() / 255
-            dataset.append({'Noisy': i_.permute(2, 0, 1),
-                            'GT': j_.permute(2, 0, 1)})
+            dataset.append({'INPUT': i.float() / 255,
+                            'TARGET': j.float() / 255})
+
+        return dataset
 
 
-def select_paths(path):
-    files = os.listdir(path)
+def load_dataset_images(
+        instances,
+        batch_size=64,
+        size_crop=64,
+        number_crops=25
+):
+    dataset = SIDD_Medium_Dataset_Images(instances, size_crop, number_crops)
 
-    set_1 = []
-    set_2 = []
-    for file in files:
-        if '_010.' in files:
-            set_1.append(file)
-        else:
-            set_2.append(file)
+    # Create Dataloader:
+    data_loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)
 
-    randint = random.randint(1)
-
-    if randint:
-        for file in set_1:
-            if 'NOISY' in file:
-                png_path_noisy = file
-            else:
-                png_path_gt = file
-    else:
-        for file in set_2:
-            if 'NOISY' in file:
-                png_path_noisy = file
-            else:
-                png_path_gt = file
-
-    return png_path_noisy, png_path_gt
+    return data_loader
