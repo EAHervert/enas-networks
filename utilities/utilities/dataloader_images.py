@@ -5,6 +5,9 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import io
 
+# To allow opening the files I need to open.
+torch.multiprocessing.set_sharing_strategy('file_system')
+
 
 class SIDD_Medium_Dataset_Images(Dataset):
     def __init__(self, image_instances, size_crop, number_crops, transform=None):

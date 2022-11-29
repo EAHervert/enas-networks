@@ -9,7 +9,7 @@
   "Training": {
     "Train_Percentage": 0.8,
     "Train_Image_Batch": 100,
-    "Validation_Image_Batch": 100,
+    "Validation_Image_Batch": 25,
     "Batch_Size": 16,
     "Partition": 10,
     "Train_Size": 5,
