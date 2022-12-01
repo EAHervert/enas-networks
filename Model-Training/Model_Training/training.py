@@ -1,6 +1,6 @@
 import torch
 from utilities.functions import list_instances, display_time, create_batches, rand_mod, SSIM, PSNR
-from utilities.dataloader_sidd_medium import load_dataset_images
+from utilities.dataloader_images import load_dataset_images
 from utilities.utils import AverageMeter
 import time
 
@@ -44,9 +44,9 @@ def generate_loggers():
 # Loop through the training batches:
 # noinspection PyPep8Naming
 def train_loop(epoch, config, batches, model, architecture, device, Loss, MSE, loss_meter, loss_meter_original,
-               ssim_meter, ssim_meter_original, psnr_meter, psnr_meter__oiginal, loss_meter_batch,
+               ssim_meter, ssim_meter_original, psnr_meter, psnr_meter_original, loss_meter_batch,
                loss_meter_original_batch, ssim_meter_batch, ssim_meter_original_batch, psnr_meter_batch,
-               psnr_meter__oiginal_batch, backpropagate=False, optimizer=None, mode='Training'):
+               psnr_meter_original_batch, backpropagate=False, optimizer=None, mode='Training'):
 
     index = 0
 
@@ -102,7 +102,7 @@ def train_loop(epoch, config, batches, model, architecture, device, Loss, MSE, l
             PSNR_original = PSNR(MSE_original)
 
             psnr_meter.update(PSNR_train.item())
-            psnr_meter__oiginal.update(PSNR_original.item())
+            psnr_meter_original.update(PSNR_original.item())
 
             if backpropagate:
                 # Back-Propagate through the batch:
@@ -116,7 +116,7 @@ def train_loop(epoch, config, batches, model, architecture, device, Loss, MSE, l
             ssim_meter_batch.update(SSIM_train.item())
             ssim_meter_original_batch.update(SSIM_original.item())
             psnr_meter_batch.update(PSNR_train.item())
-            psnr_meter__oiginal_batch.update(PSNR_original.item())
+            psnr_meter_original_batch.update(PSNR_original.item())
 
         t1 = time.time()
 
@@ -128,7 +128,7 @@ def train_loop(epoch, config, batches, model, architecture, device, Loss, MSE, l
             Display_SSIM = "SSIM_DHDN: %.6f" % ssim_meter_batch.avg + \
                            "\tSSIM_Original: %.6f" % ssim_meter_original_batch.avg
             Display_PSNR = "PSNR_DHDN: %.6f" % psnr_meter_batch.avg + \
-                           "\tPSNR_Original: %.6f" % psnr_meter__oiginal_batch.avg
+                           "\tPSNR_Original: %.6f" % psnr_meter_original_batch.avg
 
             print(Display_Loss)
             print(Display_SSIM)
@@ -141,4 +141,4 @@ def train_loop(epoch, config, batches, model, architecture, device, Loss, MSE, l
         ssim_meter_batch.reset()
         ssim_meter_original_batch.reset()
         psnr_meter_batch.reset()
-        psnr_meter__oiginal_batch.reset()
+        psnr_meter_original_batch.reset()
