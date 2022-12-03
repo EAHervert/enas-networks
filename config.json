@@ -18,7 +18,7 @@
     "Learning_Rate": 1e-4
   },
   "CUDA": {
-    "Device": "cuda:0",
+    "Device": null,
     "DataParallel": 0
   }
 }

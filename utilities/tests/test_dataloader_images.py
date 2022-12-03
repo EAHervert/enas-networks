@@ -1,4 +1,4 @@
-import utilities.dataset_helper_functions as functions
+import utilities.functions as functions
 import utilities.dataloader_images as dataloader_
 
 test = functions.image_csv()

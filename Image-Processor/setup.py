@@ -2,7 +2,7 @@
 
 from distutils.core import setup
 
-setup(name='Image_Processor',
+setup(name='image_processor',
       version='0.2.0',
       description='methods and transforms for image processing and analysis',
       author='Esau Hervert Hernandez',

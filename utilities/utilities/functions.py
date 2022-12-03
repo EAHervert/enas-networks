@@ -6,7 +6,7 @@ import torch
 import numpy as np
 import random
 import csv
-from Pytorch_SSIM import ssim
+from utilities.Pytorch_SSIM import ssim
 
 
 class image_csv:
