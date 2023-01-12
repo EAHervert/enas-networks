@@ -4,6 +4,11 @@ import os
 import torch
 import visdom
 from utilities.functions import SSIM, PSNR
+import matplotlib.pyplot as plt
+from PIL import ImageDraw
+import torchvision.transforms as T
+
+
 
 class Validation:
     def __init__(self,
@@ -66,23 +71,51 @@ class Validation:
             subpage = self.page + "_image_set_{index}".format(index=str(index))
             self.vis_window[subpage] = None
 
-            image_list = []
+            image_batch = []
             for j in range(samples):
+                image_set = []
                 for arrays in [sample_NOISE, sample_GT, sample_output]:
-                    image_list.append(arrays[j, sample_crop[j], :, :, :].unsqueeze(0))
+                    image_set.append(arrays[j, sample_crop[j], :, :, :].unsqueeze(0))
 
-            image_batch = torch.cat(image_list)
+                image_batch.append(torch.cat(image_set))
 
             for i in range(samples):
-                N_i = image_batch[3 * i]
-                G_i = image_batch[3 * i + 1]
-                T_i = image_batch[3 * i + 2]
+                N_i = image_batch[i][0]
+                G_i = image_batch[i][1]
+                T_i = image_batch[i][2]
+
+                # define a transform to convert a tensor to PIL image
+                transform = T.ToPILImage()
+
+                # convert the tensor to PIL image using above transform
+                image = transform(torch.ones_like(N_i))
+
+                I1 = ImageDraw.Draw(image)
+
                 mse_base = self.loss(N_i, G_i)
                 mse_targ = self.loss(T_i, G_i)
 
-                print(mse_base.item(), mse_targ.item())
+                psnr_base = PSNR(mse_base).item()
+                psnr_targ = PSNR(mse_targ).item()
 
-            self.vis_window[subpage] = self.vis.images(image_batch, nrow=samples, padding=1,
+                ssim_base = SSIM(N_i.unsqueeze(0), G_i.unsqueeze(0)).item()
+                ssim_targ = SSIM(T_i.unsqueeze(0), G_i.unsqueeze(0)).item()
+
+                text_noisy = "PSNR (Noisy Image): \t" + str(round(psnr_base, 4)) + \
+                             "\nSSIM (Noisy Image): \t" + str(round(ssim_base, 4))
+
+                text_output = "PSNR (Output Image): \t" + str(round(psnr_targ, 4)) + \
+                              "\nSSIM (Output Image): \t" + str(round(ssim_targ, 4))
+
+                text_out = text_noisy + '\n\n' + text_output
+
+                I1.text((10, 10), text_out, fill=(0, 0, 0))
+
+                plt.imshow(image)
+                plt.show()
+                exit()
+
+            self.vis_window[subpage] = self.vis.images(torch.cat(image_batch), nrow=samples, padding=1,
                                                        win=self.vis_window[subpage],
                                                        opts=dict(title='IMAGES {index}'.format(index=str(index)),
                                                                  xlabel='[Noisy, GT, Out]', ylabel='Image Index'))

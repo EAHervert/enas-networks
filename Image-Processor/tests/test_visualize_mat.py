@@ -14,4 +14,4 @@ def model(input_, alpha=0.01):
 
 mat_class.visdom_client_setup()
 mat_class.evaluate_model(model, True, index=0)
-mat_class.evaluate_model(model, True, index=1)
+# mat_class.evaluate_model(model, True, index=1)
