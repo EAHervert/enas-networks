@@ -235,16 +235,16 @@ def SSIM(images_x, images_y):
     #     images_x = image_reshuffle(images_x[:, 0, :, :, :])
     #     images_y = image_reshuffle(images_y[:, 0, :, :, :])
 
-    SSIM = ssim(images_x, images_y)
-    return SSIM
+    ssim_ = ssim(images_x, images_y)
+    return ssim_
 
 
 # PSNR:
 # The PSNR is given to us by the formula:
 # PSNR = 10 * log_10(1 / MSE)
 def PSNR(mse):
-    PSNR = 10 * torch.log10(1 / mse)
-    return PSNR
+    psnr = 10 * torch.log10(1 / mse)
+    return psnr
 
 
 def get_lr(optimizer):

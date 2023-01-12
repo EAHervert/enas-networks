@@ -3,14 +3,14 @@ import scipy.io
 import os
 import torch
 import visdom
-
+from utilities.functions import SSIM, PSNR
 
 class Validation:
     def __init__(self,
                  path='/Users/esauhervert/PycharmProjects/enas-networks/Image-Processor/images/validation/',
                  file_noise='ValidationNoisyBlocksSrgb.mat',
                  file_gt='ValidationGtBlocksSrgb.mat',
-                 page='Images'):
+                 page='Testing'):
 
         self.vis = None
         self.np_NOISY = None
@@ -32,6 +32,9 @@ class Validation:
             self.size = 0
 
         self.page = page
+        self.vis_window = {}
+
+        self.loss = torch.nn.MSELoss()
 
     def extract_np_arrays(self):
         self.np_NOISY = np.array(self.mat_NOISY['ValidationNoisyBlocksSrgb'])
@@ -50,7 +53,7 @@ class Validation:
             self.tensor_NOISY = self.np_to_tensor(self.np_NOISY)
             self.tensor_GT = self.np_to_tensor(self.np_GT)
 
-    def evaluate_model(self, model, visualize=False, samples=3):
+    def evaluate_model(self, model, visualize=False, samples=3, index=0):
         sample = torch.randint(0, self.size[0], (samples,))
         sample_crop = np.random.randint(0, self.size[1], samples)
 
@@ -60,7 +63,8 @@ class Validation:
         sample_output = model(sample_NOISE)
 
         if visualize:
-            self.visdom_client_setup()
+            subpage = self.page + "_image_set_{index}".format(index=str(index))
+            self.vis_window[subpage] = None
 
             image_list = []
             for j in range(samples):
@@ -68,7 +72,20 @@ class Validation:
                     image_list.append(arrays[j, sample_crop[j], :, :, :].unsqueeze(0))
 
             image_batch = torch.cat(image_list)
-            self.vis.images(image_batch, nrow=samples, padding=1)
+
+            for i in range(samples):
+                N_i = image_batch[3 * i]
+                G_i = image_batch[3 * i + 1]
+                T_i = image_batch[3 * i + 2]
+                mse_base = self.loss(N_i, G_i)
+                mse_targ = self.loss(T_i, G_i)
+
+                print(mse_base.item(), mse_targ.item())
+
+            self.vis_window[subpage] = self.vis.images(image_batch, nrow=samples, padding=1,
+                                                       win=self.vis_window[subpage],
+                                                       opts=dict(title='IMAGES {index}'.format(index=str(index)),
+                                                                 xlabel='[Noisy, GT, Out]', ylabel='Image Index'))
 
     def visdom_client_setup(self):
         self.vis = visdom.Visdom()
