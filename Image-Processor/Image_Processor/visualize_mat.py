@@ -3,11 +3,11 @@ import scipy.io
 import os
 import torch
 import visdom
+
 from utilities.functions import SSIM, PSNR
 import matplotlib.pyplot as plt
-from PIL import ImageDraw
+from PIL import ImageDraw, ImageFont
 import torchvision.transforms as T
-
 
 
 class Validation:
@@ -41,6 +41,13 @@ class Validation:
 
         self.loss = torch.nn.MSELoss()
 
+        # define a transform to convert a tensor to PIL image
+        self.transform = T.ToPILImage()
+        self.inverse_transform = T.PILToTensor()
+
+        # Todo: use relative path
+        self.font = ImageFont.truetype("/Users/esauhervert/PycharmProjects/enas-networks/Image-Processor/Image_Processor/fonts/arial.ttf", 15)
+
     def extract_np_arrays(self):
         self.np_NOISY = np.array(self.mat_NOISY['ValidationNoisyBlocksSrgb'])
         self.np_GT = np.array(self.mat_GT['ValidationGtBlocksSrgb'])
@@ -71,24 +78,22 @@ class Validation:
             subpage = self.page + "_image_set_{index}".format(index=str(index))
             self.vis_window[subpage] = None
 
-            image_batch = []
+            image_batch_temp = []
             for j in range(samples):
                 image_set = []
                 for arrays in [sample_NOISE, sample_GT, sample_output]:
                     image_set.append(arrays[j, sample_crop[j], :, :, :].unsqueeze(0))
 
-                image_batch.append(torch.cat(image_set))
+                image_batch_temp.append(torch.cat(image_set))
 
-            for i in range(samples):
-                N_i = image_batch[i][0]
-                G_i = image_batch[i][1]
-                T_i = image_batch[i][2]
-
-                # define a transform to convert a tensor to PIL image
-                transform = T.ToPILImage()
+            image_batch = []
+            for image_set_ in image_batch_temp:
+                N_i = image_set_[0]
+                G_i = image_set_[1]
+                T_i = image_set_[2]
 
                 # convert the tensor to PIL image using above transform
-                image = transform(torch.ones_like(N_i))
+                image = self.transform(torch.ones_like(N_i))
 
                 I1 = ImageDraw.Draw(image)
 
@@ -101,21 +106,23 @@ class Validation:
                 ssim_base = SSIM(N_i.unsqueeze(0), G_i.unsqueeze(0)).item()
                 ssim_targ = SSIM(T_i.unsqueeze(0), G_i.unsqueeze(0)).item()
 
-                text_noisy = "PSNR (Noisy Image): \t" + str(round(psnr_base, 4)) + \
-                             "\nSSIM (Noisy Image): \t" + str(round(ssim_base, 4))
+                text_noisy = "PSNR (Noisy Image): " + str(round(psnr_base, 4)) + \
+                             "\nSSIM (Noisy Image): " + str(round(ssim_base, 4))
 
-                text_output = "PSNR (Output Image): \t" + str(round(psnr_targ, 4)) + \
-                              "\nSSIM (Output Image): \t" + str(round(ssim_targ, 4))
+                text_output = "PSNR (Output Image): " + str(round(psnr_targ, 4)) + \
+                              "\nSSIM (Output Image): " + str(round(ssim_targ, 4))
 
                 text_out = text_noisy + '\n\n' + text_output
 
-                I1.text((10, 10), text_out, fill=(0, 0, 0))
+                I1.text((15, 15), text_out, font=self.font, fill=(0, 0, 0))
+                image_tensor = self.inverse_transform(image) / 255.
+                image_batch_ = torch.cat([N_i.unsqueeze(0), G_i.unsqueeze(0), T_i.unsqueeze(0),
+                                          image_tensor.unsqueeze(0)])
+                image_batch.append(image_batch_)
 
-                plt.imshow(image)
-                plt.show()
-                exit()
+            image_batch_final = torch.cat(image_batch)
 
-            self.vis_window[subpage] = self.vis.images(torch.cat(image_batch), nrow=samples, padding=1,
+            self.vis_window[subpage] = self.vis.images(image_batch_final, nrow=samples + 1, padding=1,
                                                        win=self.vis_window[subpage],
                                                        opts=dict(title='IMAGES {index}'.format(index=str(index)),
                                                                  xlabel='[Noisy, GT, Out]', ylabel='Image Index'))
