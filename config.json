@@ -8,12 +8,12 @@
   },
   "Training": {
     "Train_Percentage": 0.8,
-    "Train_Image_Batch": 100,
-    "Validation_Image_Batch": 25,
-    "Batch_Size": 16,
+    "Train_Image_Batch": 12,
+    "Validation_Image_Batch": 5,
+    "Batch_Size": 4,
     "Partition": 10,
-    "Train_Size": 5,
-    "Validation_Size": 5,
+    "Train_Size": 2,
+    "Validation_Size": 2,
     "Num_Epochs": 2,
     "Learning_Rate": 1e-4
   },

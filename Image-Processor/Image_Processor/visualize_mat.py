@@ -65,14 +65,15 @@ class Validation:
             self.tensor_NOISY = self.np_to_tensor(self.np_NOISY)
             self.tensor_GT = self.np_to_tensor(self.np_GT)
 
-    def evaluate_model(self, model, visualize=False, samples=3, index=0):
+    def evaluate_model(self, model, architecture, visualize=False, samples=3, index=0):
         sample = torch.randint(0, self.size[0], (samples,))
         sample_crop = np.random.randint(0, self.size[1], samples)
 
         sample_NOISE = self.tensor_NOISY.index_select(0, sample)
         sample_GT = self.tensor_GT.index_select(0, sample)
 
-        sample_output = model(sample_NOISE)
+        # Todo: Transform images to inputs that model will take
+        sample_output = model(sample_NOISE, architecture=architecture)
 
         if visualize:
             subpage = self.page + "_image_set_{index}".format(index=str(index))
