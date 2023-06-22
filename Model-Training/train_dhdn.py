@@ -38,10 +38,8 @@ if config['CUDA']['Device'] != 'None':
     Device = torch.device(config['CUDA']['Device'])
 
 # Load the Models:
-
 # Architecture and Size parameters:
 architecture = np.zeros(3 * 7 - 1, dtype=int).tolist()
-
 DHDN = SharedDHDN(architecture=architecture)
 
 # Cast to GPU(s)

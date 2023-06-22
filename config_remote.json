@@ -1,0 +1,24 @@
+{
+  "Description": "Train_DHDN_Vanilla",
+  "Locations": {
+    "Dataset": "/scratch1/eah170630/Data/Images/SIDD_Medium_Srgb",
+    "Training": "/scratch1/eah170630/Data/Images/SIDD_Medium_Srgb_Crops/Instances_Crop_Batches_64.csv",
+    "Validation": "/scratch1/eah170630/Data/Images/SIDD_Medium_Srgb_Crops/Instances_Crop_Batches_256.csv",
+    "Output_File": "Train_DHDN_Vanilla"
+  },
+  "Training": {
+    "Train_Percentage": 0.8,
+    "Train_Image_Batch": 12,
+    "Validation_Image_Batch": 5,
+    "Batch_Size": 4,
+    "Partition": 10,
+    "Train_Size": 2,
+    "Validation_Size": 2,
+    "Num_Epochs": 2,
+    "Learning_Rate": 1e-4
+  },
+  "CUDA": {
+    "Device": 0,
+    "DataParallel": 0
+  }
+}

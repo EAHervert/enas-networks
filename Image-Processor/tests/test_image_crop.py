@@ -1,4 +1,5 @@
 from Image_Processor import image_crop
+import os
 
 
 def image_crops(path, size=64, sample_x=5, sample_y=5):
@@ -12,7 +13,10 @@ def image_crops(path, size=64, sample_x=5, sample_y=5):
 
 
 class TestCrops:
-    path = '/Users/esauhervert/Desktop/Research/PycharmProjects/enas-networks/Image-Processor/images/SIDD_Medium_Srgb'
+    dir_temp = os.getcwd()
+    dir_final = '/'.join(dir_temp.split('/')[0:-1])
+
+    path = dir_final + '/images/SIDD_Medium_Srgb'
 
     def test_64_5_5(self):
         vis = image_crops(path=self.path)
