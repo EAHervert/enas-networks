@@ -11,6 +11,7 @@ from utilities.Pytorch_SSIM import ssim
 
 class image_csv:
 
+    # TODO: refactor code so that it initialized with config already loaded
     def __init__(self,
                  config_path='/Users/esauhervert/PycharmProjects/enas-networks/config.json'):
 

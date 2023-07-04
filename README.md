@@ -18,3 +18,13 @@ This repository will contain the following modules:
 * DHDN
 * DIDN
 * GRDN
+
+# SIDD Dataset
+The SIDD Dataset is a dataset comprising cellphone pictures taken at different lighting levels with different cell
+phones. They are often in a folder detailing the device and lighting taken and come in two pairs of the following:
+* Ground Truth
+* Noisy
+The images vary in dimension but are at least of size 1080p. 
+
+# TODO: Explain what each parameter in Training section of config does.
+
