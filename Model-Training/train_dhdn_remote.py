@@ -8,8 +8,8 @@ import visdom
 
 
 from ENAS_DHDN.SHARED_DHDN import SharedDHDN
-from utilities.functions import list_instances
-from utilities.utils import CSVLogger, Logger, generate_loggers
+from utilities.functions import list_instances, generate_loggers
+from utilities.utils import CSVLogger, Logger
 
 # Load the config file
 config_path = '/scratch1/eah170630/enas-networks/config_remote.json'
