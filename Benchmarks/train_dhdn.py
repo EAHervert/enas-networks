@@ -4,7 +4,7 @@ import dhdn
 import time
 from torch.utils.data import DataLoader
 
-path = os.getcwd() + '/sidd_instances_064.csv'
+path = os.getcwd() + '/instances/sidd_instances_064.csv'
 
 SIDD = dataset.DatasetSIDD(csv_file=path, transform=dataset.RandomProcessing())
 dataloader_sidd = DataLoader(dataset=SIDD, batch_size=16, shuffle=True, num_workers=0)

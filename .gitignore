@@ -129,3 +129,4 @@ dmypy.json
 .pyre/
 /models_remote/
 /Image-Processor/development/
+/Benchmarks/instances/
