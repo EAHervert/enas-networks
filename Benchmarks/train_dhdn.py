@@ -20,16 +20,20 @@ else:
 net = dhdn.Net()
 net.to(device)
 
-optim = torch.optim.SGD(net.parameters(), lr=1e-2, momentum=0.9)
+optim = torch.optim.SGD(net.parameters(), lr=1e-3, momentum=0.9)
 loss = torch.nn.MSELoss()
 
-for _ in range(EPOCHS):
+for epoch in range(EPOCHS):
+    mse_epoch = 0
     for i_batch, sample_batch in enumerate(dataloader_sidd):
-        print(i_batch, sample_batch['NOISY'].size(), sample_batch['GT'].size())
         x = sample_batch['NOISY'].to(device)
         y = net(x)
         mse = loss(y, sample_batch['GT'].to(device))
-        print(mse.item())
+        print('EPOCH:', epoch, 'ITERATION', i_batch, 'MSE', mse.item())
 
+        index = i_batch + 1
+        mse_epoch = ((index - 1) * mse_epoch + mse.item()) / index
         mse.backward()
         optim.step()
+
+    print('EPOCH:', epoch, 'MSE', mse_epoch)
