@@ -24,16 +24,16 @@ optim = torch.optim.SGD(net.parameters(), lr=1e-3, momentum=0.9)
 loss = torch.nn.L1Loss()
 
 for epoch in range(EPOCHS):
-    mse_epoch = 0
+    loss_val_epoch = 0
     for i_batch, sample_batch in enumerate(dataloader_sidd):
         x = sample_batch['NOISY'].to(device)
         y = net(x)
-        mse = loss(y, sample_batch['GT'].to(device))
-        print('EPOCH:', epoch, 'ITERATION', i_batch, 'MSE', mse.item())
+        loss_val = loss(y, sample_batch['GT'].to(device))
+        print('EPOCH:', epoch, 'ITERATION', i_batch, 'Loss', loss_val.item())
 
         index = i_batch + 1
-        mse_epoch = ((index - 1) * mse_epoch + mse.item()) / index
-        mse.backward()
+        loss_val_epoch = ((index - 1) * loss_val_epoch + loss_val.item()) / index
+        loss_val.backward()
         optim.step()
 
-    print('EPOCH:', epoch, 'MSE', mse_epoch)
+    print('EPOCH:', epoch, 'MSE', loss_val_epoch)
