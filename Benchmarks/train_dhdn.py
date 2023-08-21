@@ -20,7 +20,7 @@ else:
 net = dhdn.Net()
 net.to(device)
 
-optim = torch.optim.SGD(net.parameters(), lr=1e-3, momentum=0.9)
+optim = torch.optim.Adam(net.parameters(), lr=1e-3)
 loss = torch.nn.L1Loss()
 
 for epoch in range(EPOCHS):
