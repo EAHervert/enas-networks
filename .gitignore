@@ -130,3 +130,4 @@ dmypy.json
 /models_remote/
 /Image-Processor/development/
 /Benchmarks/instances/
+/Benchmarks/models/

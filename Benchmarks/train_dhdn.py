@@ -20,7 +20,7 @@ else:
 net = dhdn.Net()
 net.to(device)
 
-optim = torch.optim.Adam(net.parameters())
+optim = torch.optim.Adam(net.parameters(), lr=0.001, eps=1e-3, amsgrad=True)
 loss = torch.nn.L1Loss()
 
 for epoch in range(EPOCHS):
@@ -38,3 +38,6 @@ for epoch in range(EPOCHS):
         optim.step()
 
     print('EPOCH:', epoch, 'MSE', loss_val_epoch)
+
+model_path = os.getcwd() + '/models/sidd_dhdn.pth'
+torch.save(net.state_dict(), model_path)
