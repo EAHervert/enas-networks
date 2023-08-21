@@ -13,7 +13,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 SIDD = dataset.DatasetSIDD(csv_file=path, transform=dataset.RandomProcessing())
 if torch.cuda.is_available():
-    dataloader_sidd = DataLoader(dataset=SIDD, batch_size=128, shuffle=True, num_workers=32)
+    dataloader_sidd = DataLoader(dataset=SIDD, batch_size=64, shuffle=True, num_workers=32)
 else:
     dataloader_sidd = DataLoader(dataset=SIDD, batch_size=16, shuffle=True, num_workers=0)
 
@@ -21,7 +21,7 @@ net = dhdn.Net()
 net.to(device)
 
 optim = torch.optim.SGD(net.parameters(), lr=1e-3, momentum=0.9)
-loss = torch.nn.MSELoss()
+loss = torch.nn.L1Loss()
 
 for epoch in range(EPOCHS):
     mse_epoch = 0
