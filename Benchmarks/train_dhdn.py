@@ -33,6 +33,7 @@ for epoch in range(EPOCHS):
 
         index = i_batch + 1
         loss_val_epoch = ((index - 1) * loss_val_epoch + loss_val.item()) / index
+        optim.zero_grad()
         loss_val.backward()
         optim.step()
 
