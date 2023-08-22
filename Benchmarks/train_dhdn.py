@@ -7,13 +7,13 @@ from torch.utils.data import DataLoader
 # Hyperparameters
 EPOCHS = 10
 
-path = os.getcwd() + '/instances/sidd_instances_064.csv'
+path = os.getcwd() + '/instances/instances_064.csv'
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 SIDD = dataset.DatasetSIDD(csv_file=path, transform=dataset.RandomProcessing())
 if torch.cuda.is_available():
-    dataloader_sidd = DataLoader(dataset=SIDD, batch_size=64, shuffle=True, num_workers=32)
+    dataloader_sidd = DataLoader(dataset=SIDD, batch_size=128, shuffle=True, num_workers=32)
 else:
     dataloader_sidd = DataLoader(dataset=SIDD, batch_size=16, shuffle=True, num_workers=0)
 

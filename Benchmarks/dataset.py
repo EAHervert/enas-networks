@@ -33,23 +33,15 @@ class DatasetSIDD(Dataset):
 
         # Noisy image
         noisy_name = self.csv_instances.iloc[idx, 0]
-        noisy = cv2.imread(noisy_name, cv2.IMREAD_COLOR)  # uint8 image
-        noisy = np.array(noisy, dtype=np.single) / 255  # float32
+        noisy = np.load(noisy_name) / 255.  # numpy array
 
         # GT image
         gt_name = self.csv_instances.iloc[idx, 1]
-        gt = cv2.imread(gt_name, cv2.IMREAD_COLOR)  # uint8 image
-        gt = np.array(gt, dtype=np.single) / 255  # float32
-
-        # Take image and extract relevant crop
-        x_init = self.csv_instances.iloc[idx, 2]
-        x_final = self.csv_instances.iloc[idx, 3]
-        y_init = self.csv_instances.iloc[idx, 4]
-        y_final = self.csv_instances.iloc[idx, 5]
+        gt = np.load(gt_name) / 255.  # numpy array -> float32
 
         # Numpy HxWxC -> Torch CxHxW
-        noisy_final = torch.tensor(self.crop(noisy, x_init, x_final, y_init, y_final)).permute(2, 0, 1)
-        gt_final = torch.tensor(self.crop(gt, x_init, x_final, y_init, y_final)).permute(2, 0, 1)
+        noisy_final = torch.tensor(noisy).permute(2, 0, 1)
+        gt_final = torch.tensor(gt).permute(2, 0, 1)
 
         # Final sample output
         sample_item = {'NOISY': noisy_final, 'GT': gt_final}
@@ -58,10 +50,6 @@ class DatasetSIDD(Dataset):
             sample_item = self.transform(sample_item)
 
         return sample_item
-
-    @staticmethod
-    def crop(image, x_init, x_final, y_init, y_final):
-        return image[x_init:x_final, y_init:y_final, :]
 
 
 # Randomly flip the image in the H and W channel
