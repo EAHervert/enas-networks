@@ -53,7 +53,7 @@ for epoch in range(EPOCHS):
 
         index = i_validation + 1
         mse_val_validation = ((index - 1) * mse_val_validation + MSE_val.item()) / index
-        continue  # Only do one pass for Validation
+        break  # Only do one pass for Validation
 
     print('\nEPOCH:', epoch, 'Validation MSE:', mse_val_validation)
 
