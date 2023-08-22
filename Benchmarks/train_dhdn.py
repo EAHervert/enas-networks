@@ -14,6 +14,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing())
 SIDD_validation = dataset.DatasetSIDD(csv_file=path_validation, transform=dataset.RandomProcessing())
+
 if torch.cuda.is_available():
     dataloader_sidd_training = DataLoader(dataset=SIDD_training, batch_size=64, shuffle=True, num_workers=16)
     dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=32, shuffle=True, num_workers=8)
@@ -45,10 +46,10 @@ for epoch in range(EPOCHS):
     print('\nEPOCH:', epoch, 'Loss:', loss_val_epoch)
 
     for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
-        x = validation_batch['NOISY']
+        x = validation_batch['NOISY'].to(device)
         with torch.no_grad():
             y = net(x)
-            MSE_val = MSE(y, validation_batch['GT'])
+            MSE_val = MSE(y, validation_batch['GT'].to(device))
 
         index = i_validation + 1
         mse_val_validation = ((index - 1) * mse_val_validation + MSE_val.item()) / index
