@@ -13,8 +13,6 @@ import visdom
 # from utilities.functions import list_instances, display_time, create_batches
 from utilities.utils import CSVLogger, Logger
 
-from DHDN.training_functions import generate_loggers
-
 # Hyperparameters
 config_path = os.getcwd() + '/configs/config.json'
 config = json.load(open(config_path))
@@ -70,7 +68,7 @@ loss = nn.L1Loss().to(device)
 MSE = nn.MSELoss().to(device)
 
 # Now, let us define our loggers:
-loggers = generate_loggers()
+# loggers = generate_loggers()
 
 # # Image Batches
 # loss_batch, loss_original_batch, ssim_batch, ssim_original_batch, psnr_batch, psnr_original_batch = loggers[0]
