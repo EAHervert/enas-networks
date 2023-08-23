@@ -14,7 +14,7 @@ import visdom
 from utilities.utils import CSVLogger, Logger
 
 # Hyperparameters
-config_path = os.getcwd() + '/configs/config.json'
+config_path = os.getcwd() + '/configs/config_sidd.json'
 config = json.load(open(config_path))
 
 today = date.today()  # Date to label the models
