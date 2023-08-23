@@ -5,6 +5,7 @@ import dhdn
 import time
 from datetime import date
 import json
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -12,6 +13,7 @@ import visdom
 
 # from utilities.functions import list_instances, display_time, create_batches
 from utilities.utils import CSVLogger, Logger
+from utilities.functions import SSIM, PSNR, generate_loggers
 
 # Hyperparameters
 config_path = os.getcwd() + '/configs/config_sidd.json'
@@ -68,16 +70,13 @@ loss = nn.L1Loss().to(device)
 MSE = nn.MSELoss().to(device)
 
 # Now, let us define our loggers:
-# loggers = generate_loggers()
+loggers = generate_loggers()
 
 # # Image Batches
-# loss_batch, loss_original_batch, ssim_batch, ssim_original_batch, psnr_batch, psnr_original_batch = loggers[0]
-# # Total Training
-# loss_meter_train, loss_original_meter_train, ssim_meter_train, ssim_original_meter_train = loggers[1][0:4]
-# psnr_meter_train, psnr_original_meter_train = loggers[1][4:]
+loss_batch, loss_original_batch, ssim_batch, ssim_original_batch, psnr_batch, psnr_original_batch = loggers[0]
 # # Validation
-# loss_meter_val, loss_original_meter_val, ssim_meter_val, ssim_original_meter_val = loggers[2][0:4]
-# psnr_meter_val, psnr_original_meter_val = loggers[2][4:]
+loss_batch_val, loss_original_batch_val, ssim_batch_val, ssim_original_batch_val = loggers[2][0:4]
+psnr_batch_val, psnr_original_batch_val = loggers[0][4:]
 
 # Load the Training and Validation Data:
 SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing())
@@ -93,33 +92,112 @@ else:
 t_init = time.time()
 
 for epoch in range(config['Training']['Epochs']):
-    loss_val_epoch = 0
-    mse_val_validation = 0
     for i_batch, sample_batch in enumerate(dataloader_sidd_training):
         x = sample_batch['NOISY'].to(device)
         y = dhdn(x)
-        loss_val = loss(y, sample_batch['GT'].to(device))
-        print('EPOCH:', epoch, 'ITERATION:', i_batch, 'Loss', loss_val.item())
+        t = sample_batch['GT'].to(device)
+        loss_value = loss(y, t)
+        loss_batch.update(loss_value.item())
 
-        index = i_batch + 1
-        loss_val_epoch = ((index - 1) * loss_val_epoch + loss_val.item()) / index
+        # Calculate values not needing to be backpropagated
+        with torch.no_grad():
+            loss_original_batch.update(loss(x, t).item())
+            ssim_batch.update(SSIM(y, t).item())
+            ssim_original_batch.update(SSIM(x, t).item())
+            psnr_batch.update(PSNR(MSE(y, t)).item())
+            psnr_original_batch.update(PSNR(MSE(x, t)).item())
+
+        # Backpropagate to train model
         optimizer.zero_grad()
-        loss_val.backward()
+        loss_value.backward()
         optimizer.step()
 
-    print('\nEPOCH:', epoch, 'Loss:', loss_val_epoch)
+        Display_Loss = "Loss_DHDN: %.6f" % loss_batch.avg + "\tLoss_Original: %.6f" % loss_original_batch.avg
+        Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch.avg + "\tSSIM_Original: %.6f" % ssim_original_batch.avg
+        Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch.avg + "\tPSNR_Original: %.6f" % psnr_original_batch.avg
+
+        print("Training Data for Epoch: ", epoch, "Image Batch: ", i_batch)
+        print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
+
+    Display_Loss = "Loss_DHDN: %.6f" % loss_batch.avg + "\tLoss_Original: %.6f" % loss_original_batch.avg
+    Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch.avg + "\tSSIM_Original: %.6f" % ssim_original_batch.avg
+    Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch.avg + "\tPSNR_Original: %.6f" % psnr_original_batch.avg
+
+    print("Total Training Data for Epoch: ", epoch)
+    print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
 
     for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
         x = validation_batch['NOISY'].to(device)
+        t = validation_batch['GT'].to(device)
         with torch.no_grad():
             y = dhdn(x)
-            MSE_val = MSE(y, validation_batch['GT'].to(device))
+            loss_batch_val.update(loss(y, t).item())
+            loss_original_batch_val.update(loss(x, t).item())
+            ssim_batch_val.update(SSIM(y, t).item())
+            ssim_original_batch_val.update(SSIM(x, t).item())
+            psnr_batch_val.update(PSNR(MSE(y, t)).item())
+            psnr_original_batch_val.update(PSNR(MSE(x, t)).item())
 
-        index = i_validation + 1
-        mse_val_validation = ((index - 1) * mse_val_validation + MSE_val.item()) / index
-        break  # Only do one pass for Validation
+        # Only do up to 3 passes for Validation
+        if i_validation > 3:
+            break
 
-    print('\nEPOCH:', epoch, 'Validation MSE:', mse_val_validation)
+    Display_Loss = "Loss_DHDN: %.6f" % loss_batch_val.avg + \
+                   "\tLoss_Original: %.6f" % loss_original_batch_val.avg
+    Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch_val.avg + \
+                   "\tSSIM_Original: %.6f" % ssim_original_batch_val.avg
+    Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch_val.avg + \
+                   "\tPSNR_Original: %.6f" % psnr_original_batch_val.avg
+    print("Validation Data for Epoch: ", epoch)
+    print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
+
+    print('-' * 160 + '\n')
+
+    Logger.writerow({
+        'Loss_Train': loss_batch.avg,
+        'Loss_Val': loss_batch_val.avg,
+        'Loss_Original_Train': loss_original_batch.avg,
+        'Loss_Original_Val': loss_original_batch_val.avg,
+        'SSIM_Train': ssim_batch.avg,
+        'SSIM_Val': ssim_batch_val.avg,
+        'SSIM_Original_Train': ssim_original_batch.avg,
+        'SSIM_Original_Val': ssim_original_batch_val.avg,
+        'PSNR_Train': psnr_batch.avg,
+        'PSNR_Val': psnr_batch_val.avg,
+        'PSNR_Original_Train': psnr_original_batch.avg,
+        'PSNR_Original_Val': psnr_original_batch_val.avg
+    })
+
+    Legend = ['Train', 'Val', 'Original_Train', 'Original_Val']
+
+    vis_window['DHDN_SSIM'] = vis.line(
+        X=np.column_stack([epoch] * 4),
+        Y=np.column_stack([ssim_batch.avg, ssim_batch_val.avg,
+                           ssim_original_batch.avg, ssim_original_batch_val.avg]),
+        win=vis_window['DHDN_SSIM'],
+        opts=dict(title='DHDN_SSIM', xlabel='Epoch', ylabel='SSIM', legend=Legend),
+        update='append' if epoch > 0 else None)
+
+    vis_window['DHDN_PSNR'] = vis.line(
+        X=np.column_stack([epoch] * 4),
+        Y=np.column_stack([psnr_batch.avg, psnr_batch_val.avg,
+                           psnr_original_batch.avg, psnr_original_batch_val.avg]),
+        win=vis_window['DHDN_PSNR'],
+        opts=dict(title='DHDN_PSNR', xlabel='Epoch', ylabel='PSNR', legend=Legend),
+        update='append' if epoch > 0 else None)
+
+    loss_batch.reset()
+    loss_original_batch.reset()
+    ssim_batch.reset()
+    ssim_original_batch.reset()
+    psnr_batch.reset()
+    psnr_original_batch.reset()
+    loss_batch_val.reset()
+    loss_original_batch_val.reset()
+    ssim_batch_val.reset()
+    ssim_original_batch_val.reset()
+    psnr_batch_val.reset()
+    psnr_original_batch_val.reset()
 
 d1 = today.strftime("%Y_%m_%d")
 
