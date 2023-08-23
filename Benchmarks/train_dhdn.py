@@ -112,12 +112,13 @@ for epoch in range(config['Training']['Epochs']):
         loss_value.backward()
         optimizer.step()
 
-        Display_Loss = "Loss_DHDN: %.6f" % loss_batch.avg + "\tLoss_Original: %.6f" % loss_original_batch.avg
-        Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch.avg + "\tSSIM_Original: %.6f" % ssim_original_batch.avg
-        Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch.avg + "\tPSNR_Original: %.6f" % psnr_original_batch.avg
+        Display_Loss = "Loss_DHDN: %.6f" % loss_batch.val + "\tLoss_Original: %.6f" % loss_original_batch.val
+        Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch.val + "\tSSIM_Original: %.6f" % ssim_original_batch.val
+        Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch.val + "\tPSNR_Original: %.6f" % psnr_original_batch.val
 
-        print("Training Data for Epoch: ", epoch, "Image Batch: ", i_batch)
-        print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
+        if i_batch % 10 == 0:
+            print("Training Data for Epoch: ", epoch, "Image Batch: ", i_batch)
+            print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
 
     Display_Loss = "Loss_DHDN: %.6f" % loss_batch.avg + "\tLoss_Original: %.6f" % loss_original_batch.avg
     Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch.avg + "\tSSIM_Original: %.6f" % ssim_original_batch.avg
@@ -142,8 +143,8 @@ for epoch in range(config['Training']['Epochs']):
         if i_validation > 3:
             break
 
-    Display_Loss = "Loss_DHDN: %.6f" % loss_batch_val.avg + \
-                   "\tLoss_Original: %.6f" % loss_original_batch_val.avg
+    Display_Loss = "Loss_DHDN: %.6f" % loss_batch_val.val + \
+                   "\tLoss_Original: %.6f" % loss_original_batch_val.val
     Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch_val.avg + \
                    "\tSSIM_Original: %.6f" % ssim_original_batch_val.avg
     Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch_val.avg + \
