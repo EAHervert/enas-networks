@@ -76,7 +76,7 @@ loggers = generate_loggers()
 loss_batch, loss_original_batch, ssim_batch, ssim_original_batch, psnr_batch, psnr_original_batch = loggers[0]
 # # Validation
 loss_batch_val, loss_original_batch_val, ssim_batch_val, ssim_original_batch_val = loggers[2][0:4]
-psnr_batch_val, psnr_original_batch_val = loggers[0][4:]
+psnr_batch_val, psnr_original_batch_val = loggers[2][4:]
 
 # Load the Training and Validation Data:
 SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing())
@@ -84,10 +84,10 @@ SIDD_validation = dataset.DatasetSIDD(csv_file=path_validation, transform=datase
 
 if torch.cuda.is_available():
     dataloader_sidd_training = DataLoader(dataset=SIDD_training, batch_size=64, shuffle=True, num_workers=16)
-    dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=32, shuffle=True, num_workers=8)
+    dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=32, shuffle=False, num_workers=8)
 else:
     dataloader_sidd_training = DataLoader(dataset=SIDD_training, batch_size=16, shuffle=True, num_workers=0)
-    dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=4, shuffle=True, num_workers=0)
+    dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=4, shuffle=False, num_workers=0)
 
 t_init = time.time()
 
@@ -125,19 +125,19 @@ for epoch in range(config['Training']['Epochs']):
     Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch.avg + "\tPSNR_Original: %.6f" % psnr_original_batch.avg
 
     print("Total Training Data for Epoch: ", epoch)
-    print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
+    print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
 
     for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
-        x = validation_batch['NOISY'].to(device)
-        t = validation_batch['GT'].to(device)
+        x_v = validation_batch['NOISY'].to(device)
+        t_v = validation_batch['GT'].to(device)
         with torch.no_grad():
-            y = dhdn(x)
-            loss_batch_val.update(loss(y, t).item())
-            loss_original_batch_val.update(loss(x, t).item())
-            ssim_batch_val.update(SSIM(y, t).item())
-            ssim_original_batch_val.update(SSIM(x, t).item())
-            psnr_batch_val.update(PSNR(MSE(y, t)).item())
-            psnr_original_batch_val.update(PSNR(MSE(x, t)).item())
+            y_v = dhdn(x_v)
+            loss_batch_val.update(loss(y_v, t_v).item())
+            loss_original_batch_val.update(loss(x_v, t_v).item())
+            ssim_batch_val.update(SSIM(y_v, t_v).item())
+            ssim_original_batch_val.update(SSIM(x_v, t_v).item())
+            psnr_batch_val.update(PSNR(MSE(y_v, t_v)).item())
+            psnr_original_batch_val.update(PSNR(MSE(x_v, t_v)).item())
 
         # Only do up to 3 passes for Validation
         if i_validation > 3:
@@ -149,8 +149,9 @@ for epoch in range(config['Training']['Epochs']):
                    "\tSSIM_Original: %.6f" % ssim_original_batch_val.avg
     Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch_val.avg + \
                    "\tPSNR_Original: %.6f" % psnr_original_batch_val.avg
+
     print("Validation Data for Epoch: ", epoch)
-    print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
+    print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
 
     print('-' * 160 + '\n')
 
@@ -169,7 +170,7 @@ for epoch in range(config['Training']['Epochs']):
         'PSNR_Original_Val': psnr_original_batch_val.avg
     })
 
-    Legend = ['Train', 'Val', 'Original_Train', 'Original_Val']
+    Legend = ['Train', 'Val', 'Train_Orig', 'Val_Orig']
 
     vis_window['DHDN_SSIM'] = vis.line(
         X=np.column_stack([epoch] * 4),
@@ -199,6 +200,8 @@ for epoch in range(config['Training']['Epochs']):
     ssim_original_batch_val.reset()
     psnr_batch_val.reset()
     psnr_original_batch_val.reset()
+
+    scheduler.step()
 
 d1 = today.strftime("%Y_%m_%d")
 

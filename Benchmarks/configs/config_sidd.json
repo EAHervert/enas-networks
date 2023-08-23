@@ -6,7 +6,7 @@
     "Output_File": "DHDN_Baseline"
   },
   "Training": {
-    "Epochs": 10,
+    "Epochs": 25,
     "Train_Image_Batch": 100,
     "Validation_Image_Batch": 100,
     "Batch_Size": 16,
