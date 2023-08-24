@@ -121,7 +121,7 @@ for epoch in range(config['Training']['Epochs']):
     Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch.avg + "\tSSIM_Original: %.6f" % ssim_original_batch.avg
     Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch.avg + "\tPSNR_Original: %.6f" % psnr_original_batch.avg
 
-    print("Total Training Data for Epoch: ", epoch)
+    print("\nTotal Training Data for Epoch: ", epoch)
     print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
 
     # Free up space in GPU

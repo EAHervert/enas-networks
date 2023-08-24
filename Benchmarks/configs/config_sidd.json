@@ -7,7 +7,7 @@
   },
   "Training": {
     "Epochs": 25,
-    "Train_Batch_Size": 80,
+    "Train_Batch_Size": 64,
     "Validation_Batch_Size": 32,
     "Learning_Rate": 1e-4
   },
