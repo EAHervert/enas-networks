@@ -124,6 +124,9 @@ for epoch in range(config['Training']['Epochs']):
     print("Total Training Data for Epoch: ", epoch)
     print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
 
+    # Free up space in GPU
+    del x, y, t
+
     for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
         x_v = validation_batch['NOISY'].to(device)
         t_v = validation_batch['GT'].to(device)
@@ -149,6 +152,9 @@ for epoch in range(config['Training']['Epochs']):
 
     print("Validation Data for Epoch: ", epoch)
     print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
+
+    # Free up space in GPU
+    del x_v, y_v, t_v
 
     print('-' * 160 + '\n')
 
