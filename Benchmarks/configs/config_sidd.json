@@ -7,16 +7,9 @@
   },
   "Training": {
     "Epochs": 25,
-    "Train_Image_Batch": 100,
-    "Validation_Image_Batch": 100,
-    "Batch_Size": 16,
-    "Partition": 10,
-    "Train_N": 4,
-    "Train_M": 4,
-    "Validation_N": 6,
-    "Validation_M": 8,
-    "Num_Epochs": 25,
-    "Learning_Rate": 1e-4
+    "Train_Batch_Size": 80,
+    "Validation_Batch_Size": 32,
+    "Learning_Rate": 5e-4
   },
   "CUDA": {
     "Device": "cuda:0",

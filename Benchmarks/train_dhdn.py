@@ -11,7 +11,6 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 import visdom
 
-# from utilities.functions import list_instances, display_time, create_batches
 from utilities.utils import CSVLogger, Logger
 from utilities.functions import SSIM, PSNR, generate_loggers
 
@@ -72,9 +71,9 @@ MSE = nn.MSELoss().to(device)
 # Now, let us define our loggers:
 loggers = generate_loggers()
 
-# # Image Batches
+# Training Batches
 loss_batch, loss_original_batch, ssim_batch, ssim_original_batch, psnr_batch, psnr_original_batch = loggers[0]
-# # Validation
+# Validation Batches
 loss_batch_val, loss_original_batch_val, ssim_batch_val, ssim_original_batch_val = loggers[2][0:4]
 psnr_batch_val, psnr_original_batch_val = loggers[2][4:]
 
@@ -82,12 +81,10 @@ psnr_batch_val, psnr_original_batch_val = loggers[2][4:]
 SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing())
 SIDD_validation = dataset.DatasetSIDD(csv_file=path_validation, transform=dataset.RandomProcessing())
 
-if torch.cuda.is_available():
-    dataloader_sidd_training = DataLoader(dataset=SIDD_training, batch_size=64, shuffle=True, num_workers=16)
-    dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=32, shuffle=False, num_workers=8)
-else:
-    dataloader_sidd_training = DataLoader(dataset=SIDD_training, batch_size=16, shuffle=True, num_workers=0)
-    dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=4, shuffle=False, num_workers=0)
+dataloader_sidd_training = DataLoader(dataset=SIDD_training, batch_size=config['Training']['Train_Batch_Size'],
+                                      shuffle=True, num_workers=16)
+dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=config['Training']['Validation_Batch_Size'],
+                                        shuffle=False, num_workers=8)
 
 t_init = time.time()
 
@@ -139,8 +136,8 @@ for epoch in range(config['Training']['Epochs']):
             psnr_batch_val.update(PSNR(MSE(y_v, t_v)).item())
             psnr_original_batch_val.update(PSNR(MSE(x_v, t_v)).item())
 
-        # Only do up to 3 passes for Validation
-        if i_validation > 3:
+        # Only do up to 10 passes for Validation
+        if i_validation > 10:
             break
 
     Display_Loss = "Loss_DHDN: %.6f" % loss_batch_val.val + \
