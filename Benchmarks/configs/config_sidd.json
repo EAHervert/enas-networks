@@ -6,9 +6,9 @@
     "Output_File": "DHDN_Baseline"
   },
   "Training": {
-    "Epochs": 25,
-    "Train_Batch_Size": 64,
-    "Validation_Batch_Size": 32,
+    "Epochs": 50,
+    "Train_Batch_Size": 16,
+    "Validation_Batch_Size": 16,
     "Learning_Rate": 1e-4
   },
   "CUDA": {
