@@ -8,12 +8,12 @@ class _DCR_block(nn.Module):
 
         self.conv_1 = nn.Conv2d(in_channels=channel_in, out_channels=int(channel_in / 2.), kernel_size=3, stride=1,
                                 padding=1)
-        self.relu1 = nn.ReLU()
+        self.relu1 = nn.PReLU()
         self.conv_2 = nn.Conv2d(in_channels=int(channel_in * 3 / 2.), out_channels=int(channel_in / 2.), kernel_size=3,
                                 stride=1, padding=1)
-        self.relu2 = nn.ReLU()
+        self.relu2 = nn.PReLU()
         self.conv_3 = nn.Conv2d(in_channels=channel_in * 2, out_channels=channel_in, kernel_size=3, stride=1, padding=1)
-        self.relu3 = nn.ReLU()
+        self.relu3 = nn.PReLU()
 
     def forward(self, x):
         residual = x
@@ -32,7 +32,7 @@ class _down(nn.Module):
     def __init__(self, channel_in):
         super(_down, self).__init__()
 
-        self.relu = nn.ReLU()
+        self.relu = nn.PReLU()
         self.maxpool = nn.MaxPool2d(2)
         self.conv = nn.Conv2d(in_channels=channel_in, out_channels=2 * channel_in, kernel_size=1, stride=1, padding=0)
 
@@ -47,7 +47,7 @@ class _up(nn.Module):
     def __init__(self, channel_in):
         super(_up, self).__init__()
 
-        self.relu = nn.ReLU()
+        self.relu = nn.PReLU()
         self.subpixel = nn.PixelShuffle(2)
         self.conv = nn.Conv2d(in_channels=channel_in, out_channels=channel_in, kernel_size=1, stride=1, padding=0)
 
@@ -64,7 +64,7 @@ class Net(nn.Module):
         super(Net, self).__init__()
 
         self.conv_i = nn.Conv2d(in_channels=3, out_channels=128, kernel_size=1, stride=1, padding=0)
-        self.relu1 = nn.ReLU()
+        self.relu1 = nn.PReLU()
         self.DCR_block11 = self.make_layer(_DCR_block, 128)
         self.DCR_block12 = self.make_layer(_DCR_block, 128)
         self.down1 = self.make_layer(_down, 128)
@@ -86,7 +86,7 @@ class Net(nn.Module):
         self.DCR_block13 = self.make_layer(_DCR_block, 256)
         self.DCR_block14 = self.make_layer(_DCR_block, 256)
         self.conv_f = nn.Conv2d(in_channels=256, out_channels=3, kernel_size=1, stride=1, padding=0)
-        self.relu2 = nn.ReLU()
+        self.relu2 = nn.PReLU()
 
     def make_layer(self, block, channel_in):
         layers = [block(channel_in)]
