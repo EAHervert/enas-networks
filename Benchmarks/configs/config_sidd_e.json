@@ -1,9 +1,9 @@
 {
-  "Description": "Train_DHDN_Vanilla",
+  "Description": "Train_EDHDN",
   "Locations": {
     "Training": "/scratch1/eah170630/Data/Images/SIDD_Medium_Srgb_Crops/Instances_Crop_Batches_64.csv",
     "Validation": "/scratch1/eah170630/Data/Images/SIDD_Medium_Srgb_Crops/Instances_Crop_Batches_256.csv",
-    "Output_File": "DHDN_Baseline"
+    "Output_File": "EDHDN_Baseline"
   },
   "Training": {
     "Epochs": 25,
