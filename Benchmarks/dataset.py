@@ -22,7 +22,7 @@ class DatasetSIDD(Dataset):
         """
         self.csv_instances = pd.read_csv(csv_file)
         if index_set is not None:
-            self.csv_instances = self.csv_instances[self.csv_instances['image_index'].isin(index_set)]
+            self.csv_instances = self.csv_instances[self.csv_instances['INDEX'].isin(index_set)]
         self.transform = transform
 
     def __len__(self):
