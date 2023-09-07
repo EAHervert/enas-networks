@@ -1,7 +1,6 @@
 import random
 import torch
 import pandas as pd
-import cv2
 import numpy as np
 from torch.utils.data import Dataset
 
@@ -14,7 +13,7 @@ warnings.filterwarnings("ignore")
 class DatasetSIDD(Dataset):
     """SIDD dataset."""
 
-    def __init__(self, csv_file, transform=None):
+    def __init__(self, csv_file, transform=None, index_set=None):
         """
         Arguments:
             csv_file (string): Path to the csv file with annotations.
@@ -22,6 +21,8 @@ class DatasetSIDD(Dataset):
                 on a sample.
         """
         self.csv_instances = pd.read_csv(csv_file)
+        if index_set is not None:
+            self.csv_instances = self.csv_instances[self.csv_instances['image_index'].isin(index_set)]
         self.transform = transform
 
     def __len__(self):
@@ -32,11 +33,11 @@ class DatasetSIDD(Dataset):
             idx = idx.tolist()
 
         # Noisy image
-        noisy_name = self.csv_instances.iloc[idx, 0]
+        noisy_name = self.csv_instances.iloc[idx, 1]
         noisy = np.load(noisy_name) / 255.  # numpy array
 
         # GT image
-        gt_name = self.csv_instances.iloc[idx, 1]
+        gt_name = self.csv_instances.iloc[idx, 2]
         gt = np.load(gt_name) / 255.  # numpy array -> float32
 
         # Numpy HxWxC -> Torch CxHxW
