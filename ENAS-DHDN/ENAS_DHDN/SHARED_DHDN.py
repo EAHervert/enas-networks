@@ -119,7 +119,9 @@ class SharedDHDN(nn.Module):
             )
         )
 
-    def forward(self, x, architecture):
+    def forward(self, x, architecture=None):
+        if architecture is None:
+            architecture = self.architecture
 
         # Initial Convolution:
         out = self.init_conv(x)

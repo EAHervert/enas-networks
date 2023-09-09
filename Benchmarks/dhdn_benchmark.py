@@ -54,8 +54,12 @@ encoder_0 = [0, 0, 0, 0, 0, 0, 0, 0, 0]  # vanilla DHDN
 encoder_1 = [0, 0, 2, 0, 0, 2, 0, 0, 2]  # Best searched model
 bottleneck = [0, 0]
 decoder = [0, 0, 0, 0, 0, 0, 0, 0, 0]
-dhdn = DHDN.SharedDHDN(architecture=encoder_0 + bottleneck + decoder)
-edhdn = DHDN.SharedDHDN(architecture=encoder_1 + bottleneck + decoder)
+dhdn_architecture = encoder_0 + bottleneck + decoder
+edhdn_architecture = encoder_1 + bottleneck + decoder
+
+dhdn = DHDN.SharedDHDN(architecture=dhdn_architecture)
+edhdn = DHDN.SharedDHDN(architecture=edhdn_architecture)
+
 dhdn.to(device0)
 edhdn.to(device1)
 
