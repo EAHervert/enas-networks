@@ -45,11 +45,7 @@ class _down_Fixed(nn.Module):
 
         self.architecture_k = architecture_k
 
-        if self.architecture_k == 0:
-            self.down = nn.MaxPool2d(2)
-        elif self.architecture_k == 1:
-            self.down = nn.AvgPool2d(2)
-        elif self.architecture_k == 2:
+        if self.architecture_k == 2:
             self.down = nn.Conv2d(
                 in_channels=channel_in,
                 out_channels=2 * channel_in,
@@ -57,14 +53,18 @@ class _down_Fixed(nn.Module):
                 stride=2,
                 padding=0
             )
-
-        self.conv = nn.Conv2d(
-            in_channels=channel_in,
-            out_channels=2 * channel_in,
-            kernel_size=1,
-            stride=1,
-            padding=0
-        )
+        else:
+            self.conv = nn.Conv2d(
+                in_channels=channel_in,
+                out_channels=2 * channel_in,
+                kernel_size=1,
+                stride=1,
+                padding=0
+            )
+            if self.architecture_k == 0:
+                self.down = nn.MaxPool2d(2)
+            elif self.architecture_k == 1:
+                self.down = nn.AvgPool2d(2)
 
         self.relu = nn.PReLU()
 
