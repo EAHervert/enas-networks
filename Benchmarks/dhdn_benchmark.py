@@ -40,12 +40,12 @@ Logger = CSVLogger(fieldnames=Field_Names, filename=File_Name)
 
 # Define the devices:
 if config['CUDA']['Device0'] != 'None':
-    device0 = torch.device(config['CUDA']['Device'])
+    device0 = torch.device(config['CUDA']['Device0'])
 else:
     device0 = torch.device("cpu")
 
 if config['CUDA']['Device1'] != 'None':
-    device1 = torch.device(config['CUDA']['Device'])
+    device1 = torch.device(config['CUDA']['Device1'])
 else:
     device1 = torch.device("cpu")
 
