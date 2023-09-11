@@ -184,7 +184,7 @@ for epoch in range(config['Training']['Epochs']):
             loss_original_batch_val.update(loss0(x_v.to(device0), t_v.to(device0)).item())
 
             ssim_batch_val0.update(SSIM(y_v0, t_v.to(device0)).item())
-            ssim_batch_val0.update(SSIM(y_v0, t_v.to(device0)).item())
+            ssim_batch_val1.update(SSIM(y_v1, t_v.to(device1)).item())
             ssim_original_batch_val.update(SSIM(x_v, t_v).item())
 
             psnr_batch_val0.update(PSNR(MSE0(y_v0, t_v.to(device0))).item())
