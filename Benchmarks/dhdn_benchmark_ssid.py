@@ -234,7 +234,7 @@ for epoch in range(config['Training']['Epochs']):
     Legend = ['DHDN_Train', 'eDHDN_Train', 'Train_Orig', 'DHDN_Val', 'eDHDN_Val', 'Val_Orig']
 
     vis_window['SSIM'] = vis.line(
-        X=np.column_stack([epoch] * 4),
+        X=np.column_stack([epoch] * 6),
         Y=np.column_stack([ssim_batch0.avg, ssim_batch1.avg, ssim_original_batch.avg,
                            ssim_batch_val0.avg, ssim_batch_val1.avg, ssim_original_batch_val.avg]),
         win=vis_window['SSIM'],
@@ -242,7 +242,7 @@ for epoch in range(config['Training']['Epochs']):
         update='append' if epoch > 0 else None)
 
     vis_window['PSNR'] = vis.line(
-        X=np.column_stack([epoch] * 4),
+        X=np.column_stack([epoch] * 6),
         Y=np.column_stack([psnr_batch0.avg, psnr_batch1.avg, psnr_original_batch.avg,
                            psnr_batch_val0.avg, psnr_batch_val1.avg, psnr_original_batch_val.avg]),
         win=vis_window['PSNR'],
