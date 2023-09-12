@@ -65,8 +65,8 @@ for i in range(size[0]):
 y_dhdn_final = np.array(y_dhdn_final, dtype=np.uint8)
 y_edhdn_final = np.array(y_edhdn_final, dtype=np.uint8)
 
-file_dhdn = '/results/dhdn/SubmitSrgb.mat'
-file_edhdn = '/results/edhdn/SubmitSrgb.mat'
+file_dhdn = 'results/dhdn/SubmitSrgb.mat'
+file_edhdn = 'results/edhdn/SubmitSrgb.mat'
 
 mat_dhdn = mat
 mat_edhdn = mat
