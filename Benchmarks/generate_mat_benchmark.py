@@ -51,14 +51,16 @@ for i in range(size[0]):
         y_dhdn = dhdn(x_sample_pt.to(device0))
         y_edhdn = edhdn(x_sample_pt.to(device1))
 
-    y_dhdn_out_np = y_dhdn.permute(0, 2, 3, 1).numpy()[:, :, :, ::-1]
+    y_dhdn_out_np = y_dhdn.permute(0, 2, 3, 1).cpu().numpy()[:, :, :, ::-1]
     y_dhdn_out = np.clip((y_dhdn_out_np * 255).round(), 0, 255).astype(np.uint8).tolist()
 
-    y_edhdn_out_np = y_edhdn.permute(0, 2, 3, 1).numpy()[:, :, :, ::-1]
+    y_edhdn_out_np = y_edhdn.permute(0, 2, 3, 1).cpu().numpy()[:, :, :, ::-1]
     y_edhdn_out = np.clip((y_edhdn_out_np * 255).round(), 0, 255).astype(np.uint8)
 
     y_dhdn_final.append(y_dhdn_out)
     y_edhdn_final.append(y_dhdn_out)
+
+    del x_sample_pt, y_dhdn, y_dhdn_out, y_dhdn_out_np, y_edhdn, y_edhdn_out, y_edhdn_out_np
 
 y_dhdn_final = np.array(y_dhdn_final, dtype=np.uint8)
 y_edhdn_final = np.array(y_edhdn_final, dtype=np.uint8)
