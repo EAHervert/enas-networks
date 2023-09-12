@@ -47,7 +47,7 @@ for i in range(size[0]):
 
     with torch.no_grad():
         y_dhdn = dhdn(x_sample_pt.to(device0))
-        y_edhdn = dhdn(x_sample_pt.to(device1))
+        y_edhdn = edhdn(x_sample_pt.to(device1))
 
     y_dhdn_out_np = y_dhdn.permute(0, 2, 3, 1).numpy()[:, :, :, ::-1]
     y_dhdn_out = np.clip((y_dhdn_out_np * 255).round(), 0, 255).astype(np.uint8).tolist()
