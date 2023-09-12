@@ -131,3 +131,6 @@ dmypy.json
 /Image-Processor/development/
 /Benchmarks/instances/
 /Benchmarks/models/
+/Benchmarks/results/
+/Benchmarks/data/
+/Benchmarks/data/

@@ -15,13 +15,13 @@ from utilities.utils import CSVLogger, Logger
 from utilities.functions import SSIM, PSNR, generate_loggers
 
 # Hyperparameters
-config_path = os.getcwd() + '/configs/config_dhdn_sidd.json'
+config_path = os.getcwd() + '/configs/config_dhdn_davis.json'
 config = json.load(open(config_path))
 
 today = date.today()  # Date to label the models
 
-path_training = os.getcwd() + '/instances/instances_064.csv'
-path_validation = os.getcwd() + '/instances/instances_256.csv'
+path_training = os.getcwd() + '/instances/davis_instances_064.csv'
+path_validation = os.getcwd() + '/instances/davis_instances_256.csv'
 
 Result_Path = os.getcwd() + '/results/'
 if not os.path.isdir(Result_Path):
@@ -103,9 +103,10 @@ loss_batch_val1, _, ssim_batch_val1, _, psnr_batch_val1, _ = loggers1[1]
 # Load the Training and Validation Data:
 index_validation = config['Training']['List_Validation']
 index_training = [i for i in range(320) if i not in index_validation]
-SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing(),
-                                    index_set=index_training)
-SIDD_validation = dataset.DatasetSIDD(csv_file=path_validation, index_set=index_validation)
+SIDD_training = dataset.DatasetDAVIS(csv_file=path_training, noise_choice=config['Training']['Noise'],
+                                     transform=dataset.RandomProcessing(), index_set=index_training)
+SIDD_validation = dataset.DatasetDAVIS(csv_file=path_validation, noise_choice=config['Training']['Noise'],
+                                       index_set=index_validation)
 
 dataloader_sidd_training = DataLoader(dataset=SIDD_training, batch_size=config['Training']['Train_Batch_Size'],
                                       shuffle=True, num_workers=16)
@@ -148,14 +149,14 @@ for epoch in range(config['Training']['Epochs']):
         loss_value1.backward()
         optimizer1.step()
 
-        Display_Loss = "Loss_DHDN: %.6f" % loss_batch0.val + "\tLoss_eDHDN: %.6f" % loss_batch1.val + \
-                       "\tLoss_Original: %.6f" % loss_original_batch.val
-        Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch0.val + "\tSSIM_eDHDN: %.6f" % ssim_batch1.val + \
-                       "\tSSIM_Original: %.6f" % ssim_original_batch.val
-        Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch0.val + "\tPSNR_eDHDN: %.6f" % psnr_batch1.val + \
-                       "\tPSNR_Original: %.6f" % psnr_original_batch.val
+        if i_batch % 100 == 0:
+            Display_Loss = "Loss_DHDN: %.6f" % loss_batch0.val + "\tLoss_eDHDN: %.6f" % loss_batch1.val + \
+                           "\tLoss_Original: %.6f" % loss_original_batch.val
+            Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch0.val + "\tSSIM_eDHDN: %.6f" % ssim_batch1.val + \
+                           "\tSSIM_Original: %.6f" % ssim_original_batch.val
+            Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch0.val + "\tPSNR_eDHDN: %.6f" % psnr_batch1.val + \
+                           "\tPSNR_Original: %.6f" % psnr_original_batch.val
 
-        if i_batch % 25 == 0:
             print("Training Data for Epoch: ", epoch, "Image Batch: ", i_batch)
             print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
 
