@@ -29,10 +29,12 @@ decoder = [0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 architecture_vanilla = encoder0 + bottleneck + decoder
 dhdn = DHDN.SharedDHDN(architecture=architecture_vanilla)
+dhdn.to(device0)
 dhdn.load_state_dict(torch.load(model_dhdn, map_location=device0))
 
 architecture_edhdn = encoder1 + bottleneck + decoder
 edhdn = DHDN.SharedDHDN(architecture=architecture_edhdn)
+edhdn.to(device1)
 edhdn.load_state_dict(torch.load(model_edhdn, map_location=device1))
 
 # Get the outputs
@@ -43,7 +45,7 @@ y_edhdn_final = []
 for i in range(size[0]):
     x_sample = x_samples[i, :, :, :, :]
     x_sample_np = (x_sample.astype(dtype=float) / 255)[:, :, :, ::-1]
-    x_sample_pt = torch.tensor(x_sample_np.copy(), dtype=torch.float32).permute(0, 3, 1, 2)
+    x_sample_pt = torch.tensor(x_sample_np.copy(), dtype=torch.float).permute(0, 3, 1, 2)
 
     with torch.no_grad():
         y_dhdn = dhdn(x_sample_pt.to(device0))
