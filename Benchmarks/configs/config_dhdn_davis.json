@@ -3,7 +3,6 @@
     "Output_File": "DHDN_Compare_DAVIS"
   },
   "Training": {
-    "Noise": "GAUSSIAN_25",
     "Epochs": 25,
     "Train_Batch_Size": 16,
     "Validation_Batch_Size": 16,

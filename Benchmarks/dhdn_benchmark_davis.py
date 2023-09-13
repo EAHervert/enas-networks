@@ -114,9 +114,9 @@ loss_batch_val1, _, ssim_batch_val1, _, psnr_batch_val1, _ = loggers1[1]
 # Load the Training and Validation Data:
 index_validation = config['Training']['List_Validation']
 index_training = [i for i in range(320) if i not in index_validation]
-SIDD_training = dataset.DatasetDAVIS(csv_file=path_training, noise_choice=config['Training']['Noise'],
+SIDD_training = dataset.DatasetDAVIS(csv_file=path_training, noise_choice=str(args.Noise),
                                      transform=dataset.RandomProcessing(), index_set=index_training)
-SIDD_validation = dataset.DatasetDAVIS(csv_file=path_validation, noise_choice=config['Training']['Noise'],
+SIDD_validation = dataset.DatasetDAVIS(csv_file=path_validation, noise_choice=str(args.Noise),
                                        index_set=index_validation)
 
 dataloader_sidd_training = DataLoader(dataset=SIDD_training, batch_size=config['Training']['Train_Batch_Size'],
