@@ -10,13 +10,24 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import visdom
+import argparse
 
 from utilities.utils import CSVLogger, Logger
 from utilities.functions import SSIM, PSNR, generate_loggers
 
+# Parser
+parser = argparse.ArgumentParser(
+                    prog='DHDN_DAVIS',
+                    description='Runs DHDN Denoising Comparison for DAVIS Dataset',
+                    )
+parser.add_argument('Noise')  # positional argument
+args = parser.parse_args()
+
 # Hyperparameters
 config_path = os.getcwd() + '/configs/config_dhdn_davis.json'
 config = json.load(open(config_path))
+
+config['Locations']['Output_File'] += '_' + str(args.Noise)
 
 today = date.today()  # Date to label the models
 
