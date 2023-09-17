@@ -101,7 +101,7 @@ loss_batch_val1, _, ssim_batch_val1, _, psnr_batch_val1, _ = loggers1[1]
 
 # Load the Training and Validation Data:
 index_validation = config['Training']['List_Validation']
-index_training = [i for i in config['Training']['Number_Images'] if i not in index_validation]
+index_training = [i for i in range(config['Training']['Number_Images']) if i not in index_validation]
 SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing(),
                                     index_set=index_training)
 SIDD_validation = dataset.DatasetSIDD(csv_file=path_validation, index_set=index_validation)
