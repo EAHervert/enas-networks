@@ -20,8 +20,8 @@ config = json.load(open(config_path))
 
 today = date.today()  # Date to label the models
 
-path_training = os.getcwd() + '/instances/instances_064.csv'
-path_validation = os.getcwd() + '/instances/instances_256.csv'
+path_training = os.getcwd() + '/instances/sidd_np_instances_064.csv'
+path_validation = os.getcwd() + '/instances/sidd_np_instances_256.csv'
 
 Result_Path = os.getcwd() + '/results/'
 if not os.path.isdir(Result_Path):

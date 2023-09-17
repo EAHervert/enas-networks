@@ -31,8 +31,8 @@ config['Locations']['Output_File'] += '_' + str(args.Noise)
 
 today = date.today()  # Date to label the models
 
-path_training = os.getcwd() + '/instances/davis_instances_064.csv'
-path_validation = os.getcwd() + '/instances/davis_instances_256.csv'
+path_training = os.getcwd() + '/instances/davis_np_instances_064.csv'
+path_validation = os.getcwd() + '/instances/davis_np_instances_256.csv'
 
 Result_Path = os.getcwd() + '/results/'
 if not os.path.isdir(Result_Path):
@@ -73,6 +73,13 @@ edhdn = DHDN.SharedDHDN(architecture=edhdn_architecture)
 
 dhdn.to(device0)
 edhdn.to(device1)
+
+# Load previous best model
+model_dhdn = os.getcwd() + '/models/2023_09_14_dhdn.pth'
+model_edhdn = os.getcwd() + '/models/2023_09_14_edhdn.pth'
+
+dhdn.load_state_dict(torch.load(model_dhdn, map_location=device0))
+edhdn.load_state_dict(torch.load(model_edhdn, map_location=device1))
 
 # Create the Visdom window:
 # This window will show the SSIM and PSNR of the different networks.

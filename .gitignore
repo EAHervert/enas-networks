@@ -134,3 +134,4 @@ dmypy.json
 /Benchmarks/results/
 /Benchmarks/data/
 /Benchmarks/visualize_benchmark_sidd.ipynb
+/Benchmarks/frame_analysis.ipynb
