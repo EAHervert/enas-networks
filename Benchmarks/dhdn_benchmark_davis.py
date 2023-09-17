@@ -30,7 +30,7 @@ config['Locations']['Output_File'] += '_' + str(args.Noise)
 
 today = date.today()  # Date to label the models
 
-path_training = os.getcwd() + '/instances/davis_np_instances_064.csv'
+path_training = os.getcwd() + '/instances/davis_np_instances_128.csv'
 path_validation = os.getcwd() + '/instances/davis_np_instances_256.csv'
 
 Result_Path = os.getcwd() + '/results/'
