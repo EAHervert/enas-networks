@@ -1,97 +1,93 @@
-# import os
-# import sys
-# from utilities import dataset
-# from ENAS_DHDN import SHARED_DHDN as DHDN
-# import time
-# from datetime import date
-# import json
-# import numpy as np
-# import torch
-# import torch.nn as nn
-# from torch.utils.data import DataLoader
-# import visdom
-# import argparse
+import os
+import sys
+from utilities import dataset
+from ENAS_DHDN import SHARED_DHDN as DHDN
+import time
+from datetime import date
+import json
+import numpy as np
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
+import visdom
+import argparse
+
+from utilities.utils import CSVLogger, Logger
+from utilities.functions import SSIM, PSNR, generate_loggers
 #
-# from utilities.utils import CSVLogger, Logger
-# from utilities.functions import SSIM, PSNR, generate_loggers
+# Parser
+parser = argparse.ArgumentParser(
+                    prog='DHDN_Compare_Size',
+                    description='Compares 3 sizes of models based on the DHDN architecture',
+                    )
+parser.add_argument('Noise')  # positional argument
+args = parser.parse_args()
 #
-# # Parser
-# parser = argparse.ArgumentParser(
-#                     prog='DHDN_Compare_Size',
-#                     description='Compares 3 sizes of models based on the DHDN architecture',
-#                     )
-# parser.add_argument('Noise')  # positional argument
-# args = parser.parse_args()
+# Hyperparameters
+config_path = os.getcwd() + '/configs/config_compare_size.json'
+config = json.load(open(config_path))
 #
-# # Hyperparameters
-# config_path = os.getcwd() + '/configs/config_dhdn_davis.json'
-# config = json.load(open(config_path))
+config['Locations']['Output_File'] += '_' + str(args.Noise)
+
+today = date.today()  # Date to label the models
+if args.Noise == 'SSID':
+    path_training = os.getcwd() + '/instances/sidd_np_instances_064.csv'
+    path_validation = os.getcwd() + '/instances/sidd_np_instances_256.csv'
+    Result_Path = os.getcwd() + '/SIDD/'
+else:
+    path_training = os.getcwd() + '/instances/davis_np_instances_128.csv'
+    path_validation = os.getcwd() + '/instances/davis_np_instances_256.csv'
+    Result_Path = os.getcwd() + '/{noise}/'.format(noise=args.Noise)
+
+if not os.path.isdir(Result_Path):
+    os.mkdir(Result_Path)
+
+if not os.path.isdir(Result_Path + '/' + config['Locations']['Output_File']):
+    os.mkdir(Result_Path + '/' + config['Locations']['Output_File'])
+sys.stdout = Logger(Result_Path + '/' + config['Locations']['Output_File'] + 'log.log')
 #
-# config['Locations']['Output_File'] += '_' + str(args.Noise)
+# Create the CSV Logger:
+File_Name = Result_Path + '/' + config['Locations']['Output_File'] + '/data.csv'
+Field_Names = ['Loss_Batch0', 'Loss_Batch1', 'Loss_Val0', 'Loss_Val1', 'Loss_Original_Train', 'Loss_Original_Val',
+               'SSIM_Batch0', 'SSIM_Batch1', 'SSIM_Val0', 'SSIM_Val1', 'SSIM_Original_Train', 'SSIM_Original_Val',
+               'PSNR_Batch0', 'PSNR_Batch1', 'PSNR_Val0', 'PSNR_Val1', 'PSNR_Original_Train', 'PSNR_Original_Val']
+Logger = CSVLogger(fieldnames=Field_Names, filename=File_Name)
 #
-# today = date.today()  # Date to label the models
-#
-# path_training = os.getcwd() + '/instances/sidd_instances_064.csv'
-# path_validation = os.getcwd() + '/instances/sidd_instances_256.csv'
-#
-# Result_Path = os.getcwd() + '/results/'
-# if not os.path.isdir(Result_Path):
-#     os.mkdir(Result_Path)
-#
-# if not os.path.isdir(Result_Path + '/' + config['Locations']['Output_File']):
-#     os.mkdir(Result_Path + '/' + config['Locations']['Output_File'])
-# sys.stdout = Logger(Result_Path + '/' + config['Locations']['Output_File'] + '/Log.log')
-#
-# # Create the CSV Logger:
-# File_Name = Result_Path + '/' + config['Locations']['Output_File'] + '/Data.csv'
-# Field_Names = ['Loss_Batch0', 'Loss_Batch1', 'Loss_Val0', 'Loss_Val1', 'Loss_Original_Train', 'Loss_Original_Val',
-#                'SSIM_Batch0', 'SSIM_Batch1', 'SSIM_Val0', 'SSIM_Val1', 'SSIM_Original_Train', 'SSIM_Original_Val',
-#                'PSNR_Batch0', 'PSNR_Batch1', 'PSNR_Val0', 'PSNR_Val1', 'PSNR_Original_Train', 'PSNR_Original_Val']
-# Logger = CSVLogger(fieldnames=Field_Names, filename=File_Name)
-#
-# # Define the devices:
-# if config['CUDA']['Device0'] != 'None':
-#     device0 = torch.device(config['CUDA']['Device0'])
-# else:
-#     device0 = torch.device("cpu")
-#
-# if config['CUDA']['Device1'] != 'None':
-#     device1 = torch.device(config['CUDA']['Device1'])
-# else:
-#     device1 = torch.device("cpu")
-#
-# # Load the Models:
-# # Size 5
-# encoder_5 = [0, 0, 0, 0, 0, 0]  # Two steps Down
-# bottleneck_5 = [0, 0]
-# decoder_5 = [0, 0, 0, 0, 0, 0]  # Two steps Up
-# architecture_5 = encoder_5 + bottleneck_5 + decoder_5
-#
-# DHDN_5 = DHDN.SharedDHDN(k_value=2, channels=128, architecture=architecture_5)
-#
-# ## Cast to GPU(s)
-# if (args.DataParallel == 1):
-#     DHDN_5 = nn.DataParallel(DHDN_5)
-#
-# DHDN_5 = DHDN_5.to(Device)
-#
-# # Size 7
-# encoder_7 = [0, 0, 0, 0, 0, 0, 0, 0, 0]  # Three Steps Down
-# bottleneck_7 = [0, 0]
-# decoder_7 = [0, 0, 0, 0, 0, 0, 0, 0, 0]  # Three Steps Up
-# architecture_7 = encoder_7 + bottleneck_7 + decoder_7
-#
-# DHDN_7 = DHDN.SharedDHDN(k_value=3, channels=128, architecture=architecture_7)
-#
-# ## Cast to GPU(s)
-# if (args.DataParallel == 1):
-#     DHDN_7 = nn.DataParallel(DHDN_7)
-#
-# DHDN_7 = DHDN_7.to(Device)
-#
-# # Size 9
-# encoder_9 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # Four Steps Down
-# bottleneck_9 = [0, 0]
+# Define the devices:
+if config['CUDA']['Device'] != 'None':
+    device = torch.device(config['CUDA']['Device'])
+else:
+    device = torch.device("cpu")
+
+# Load the Models:
+# Size 5 - Two steps Down, Two steps Up
+encoder_5, bottleneck_5, decoder_5 = [0, 0, 0, 0, 0, 0], [0, 0], [0, 0, 0, 0, 0, 0]
+architecture_5 = encoder_5 + bottleneck_5 + decoder_5
+DHDN_5 = DHDN.SharedDHDN(k_value=2, channels=128, architecture=architecture_5)
+
+# Cast to GPU(s)
+if (config['CUDA']['DataParallel']):
+    DHDN_5 = nn.DataParallel(DHDN_5)
+
+DHDN_5 = DHDN_5.to(device0)
+
+# Size 7
+encoder_7 = [0, 0, 0, 0, 0, 0, 0, 0, 0]  # Three Steps Down
+bottleneck_7 = [0, 0]
+decoder_7 = [0, 0, 0, 0, 0, 0, 0, 0, 0]  # Three Steps Up
+architecture_7 = encoder_7 + bottleneck_7 + decoder_7
+
+DHDN_7 = DHDN.SharedDHDN(k_value=3, channels=128, architecture=architecture_7)
+
+## Cast to GPU(s)
+if (args.DataParallel == 1):
+    DHDN_7 = nn.DataParallel(DHDN_7)
+
+DHDN_7 = DHDN_7.to(Device)
+
+# Size 9
+encoder_9 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # Four Steps Down
+bottleneck_9 = [0, 0]
 # decoder_9 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # Four steps Up
 # architecture_9 = encoder_9 + bottleneck_9 + decoder_9
 #
