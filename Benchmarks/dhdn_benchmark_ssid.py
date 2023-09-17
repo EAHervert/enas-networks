@@ -158,6 +158,9 @@ for epoch in range(config['Training']['Epochs']):
             print("Training Data for Epoch: ", epoch, "Image Batch: ", i_batch)
             print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
 
+        # Free up space in GPU
+        del x, y0, y1, t
+
     Display_Loss = "Loss_DHDN: %.6f" % loss_batch_0.avg + "\tLoss_eDHDN: %.6f" % loss_batch_1.avg + \
                    "\tLoss_Original: %.6f" % loss_original_batch.avg
     Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch_0.avg + "\tSSIM_eDHDN: %.6f" % ssim_batch_1.avg + \
@@ -167,9 +170,6 @@ for epoch in range(config['Training']['Epochs']):
 
     print("\nTotal Training Data for Epoch: ", epoch)
     print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
-
-    # Free up space in GPU
-    del x, y0, y1, t
 
     for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
         x_v = validation_batch['NOISY']
@@ -190,6 +190,9 @@ for epoch in range(config['Training']['Epochs']):
             psnr_batch_val_1.update(PSNR(MSE(y_v1.to(device_0), t_v.to(device_0))).item())
             psnr_original_batch_val.update(PSNR(MSE(x_v.to(device_0), t_v.to(device_0))).item())
 
+        # Free up space in GPU
+        del x_v, y_v0, y_v1, t_v
+
         # Only do up to 25 passes for Validation
         if i_validation > 25:
             break
@@ -203,10 +206,6 @@ for epoch in range(config['Training']['Epochs']):
 
     print("Validation Data for Epoch: ", epoch)
     print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
-
-    # Free up space in GPU
-    del x_v, y_v0, y_v1, t_v
-
     print('-' * 160 + '\n')
 
     Logger.writerow({

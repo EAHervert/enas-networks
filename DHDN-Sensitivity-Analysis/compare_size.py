@@ -34,10 +34,13 @@ if args.Noise == 'SSID':
     path_training = os.getcwd() + '/instances/sidd_np_instances_064.csv'
     path_validation = os.getcwd() + '/instances/sidd_np_instances_256.csv'
     Result_Path = os.getcwd() + '/SIDD/'
-else:
+elif args.Noise in ['GAUSSIAN_10', 'GAUSSIAN_25', 'GAUSSIAN_50', 'RAIN', 'SALT_PEPPER', 'MIXED']:
     path_training = os.getcwd() + '/instances/davis_np_instances_128.csv'
     path_validation = os.getcwd() + '/instances/davis_np_instances_256.csv'
     Result_Path = os.getcwd() + '/{noise}/'.format(noise=args.Noise)
+else:
+    print('Incorrect Noise Selection!')
+    exit()
 
 if not os.path.isdir(Result_Path):
     os.mkdir(Result_Path)
@@ -157,7 +160,7 @@ for epoch in range(config['Training']['Epochs']):
         loss_value_9 = loss_9(y9, t.to(device_0))
         loss_batch_5.update(loss_value_5.item())
         loss_batch_7.update(loss_value_7.item())
-        loss_batch_7.update(loss_value_9.item())
+        loss_batch_9.update(loss_value_9.item())
 
         # Calculate values not needing to be backpropagated
         with torch.no_grad():
@@ -168,8 +171,8 @@ for epoch in range(config['Training']['Epochs']):
             ssim_batch_9.update(SSIM(y9, t.to(device_0)).item())
             ssim_original_batch.update(SSIM(x, t).item())
 
-            psnr_batch_5.update(PSNR(MSE(y5.to(device_0), t.to(device_0))).item())
-            psnr_batch_7.update(PSNR(MSE(y7.to(device_0), t.to(device_0))).item())
+            psnr_batch_5.update(PSNR(MSE(y5, t.to(device_0))).item())
+            psnr_batch_7.update(PSNR(MSE(y7, t.to(device_0))).item())
             psnr_batch_9.update(PSNR(MSE(y9, t.to(device_0))).item())
             psnr_original_batch.update(PSNR(MSE(x.to(device_0), t.to(device_0))).item())
 
@@ -197,6 +200,9 @@ for epoch in range(config['Training']['Epochs']):
             print("Training Data for Epoch: ", epoch, "Image Batch: ", i_batch)
             print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
 
+        # Free up space in GPU
+        del x, y5, y7, y9, t
+
     Display_Loss = "Loss_Size_5: %.6f" % loss_batch_5.avg + "\tLoss_Size_7: %.6f" % loss_batch_7.avg + \
                    "\tLoss_Size_9: %.6f" % loss_batch_9.avg + "\tLoss_Original: %.6f" % loss_original_batch.avg
     Display_SSIM = "SSIM_Size_5: %.6f" % ssim_batch_5.avg + "\tSSIM_Size_7: %.6f" % ssim_batch_7.avg + \
@@ -206,9 +212,6 @@ for epoch in range(config['Training']['Epochs']):
 
     print("\nTotal Training Data for Epoch: ", epoch)
     print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
-
-    # Free up space in GPU
-    del x, y5, y7, y9, t
 
     for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
         x_v = validation_batch['NOISY']
@@ -228,10 +231,13 @@ for epoch in range(config['Training']['Epochs']):
             ssim_batch_val_9.update(SSIM(y_v9, t_v.to(device_0)).item())
             ssim_original_batch_val.update(SSIM(x_v, t_v).item())
 
-            psnr_batch_val_5.update(PSNR(MSE(y_v5.to(device_0), t_v.to(device_0))).item())
-            psnr_batch_val_7.update(PSNR(MSE(y_v7.to(device_0), t_v.to(device_0))).item())
+            psnr_batch_val_5.update(PSNR(MSE(y_v5, t_v.to(device_0))).item())
+            psnr_batch_val_7.update(PSNR(MSE(y_v7, t_v.to(device_0))).item())
             psnr_batch_val_9.update(PSNR(MSE(y_v9, t_v.to(device_0))).item())
             psnr_original_batch_val.update(PSNR(MSE(x_v.to(device_0), t_v.to(device_0))).item())
+
+        # Free up space in GPU
+        del x_v, y_v5, y_v7, y_v9, t_v
 
         # Only do up to 25 passes for Validation
         if i_validation > 25:
@@ -246,9 +252,6 @@ for epoch in range(config['Training']['Epochs']):
 
     print("Validation Data for Epoch: ", epoch)
     print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
-
-    # Free up space in GPU
-    del x_v, y_v5, y_v7, y_v9, t_v
 
     print('-' * 160 + '\n')
 
