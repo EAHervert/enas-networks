@@ -1,8 +1,6 @@
 {
   "Description": "DHDN_Compare",
   "Locations": {
-    "Training": "/scratch1/eah170630/Data/Images/SIDD_Medium_Srgb_pytorch/instances_064.csv",
-    "Validation": "/scratch1/eah170630/Data/Images/SIDD_Medium_Srgb_pytorch/instances_256.csv",
     "Output_File": "DHDN_Compare_SIDD"
   },
   "Training": {
@@ -10,6 +8,7 @@
     "Train_Batch_Size": 16,
     "Validation_Batch_Size": 16,
     "Learning_Rate": 1e-4,
+    "Number_Images": 320,
     "List_Validation": [121, 45, 168, 92, 119, 306, 195, 198, 275, 120, 219, 78, 59, 307, 281, 97, 299, 160, 190, 199,
       97, 80, 4, 198, 45, 21, 286, 265, 195, 170, 142, 276, 4, 150, 3, 258, 287, 226, 309, 287, 116, 56, 29, 124, 102,
       101, 93, 306, 134, 2, 94, 291, 102, 36, 276, 214, 30, 273, 221, 189, 83, 176, 81, 34]

@@ -2,7 +2,6 @@ import os
 import sys
 from utilities import dataset
 from ENAS_DHDN import SHARED_DHDN as DHDN
-import time
 from datetime import date
 import json
 import numpy as np
@@ -29,10 +28,10 @@ if not os.path.isdir(Result_Path):
 
 if not os.path.isdir(Result_Path + '/' + config['Locations']['Output_File']):
     os.mkdir(Result_Path + '/' + config['Locations']['Output_File'])
-sys.stdout = Logger(Result_Path + '/' + config['Locations']['Output_File'] + '/Log.log')
+sys.stdout = Logger(Result_Path + '/' + config['Locations']['Output_File'] + '/log.log')
 
 # Create the CSV Logger:
-File_Name = Result_Path + '/' + config['Locations']['Output_File'] + '/Data.csv'
+File_Name = Result_Path + '/' + config['Locations']['Output_File'] + '/data.csv'
 Field_Names = ['Loss_Batch0', 'Loss_Batch1', 'Loss_Val0', 'Loss_Val1', 'Loss_Original_Train', 'Loss_Original_Val',
                'SSIM_Batch0', 'SSIM_Batch1', 'SSIM_Val0', 'SSIM_Val1', 'SSIM_Original_Train', 'SSIM_Original_Val',
                'PSNR_Batch0', 'PSNR_Batch1', 'PSNR_Val0', 'PSNR_Val1', 'PSNR_Original_Train', 'PSNR_Original_Val']
@@ -102,7 +101,7 @@ loss_batch_val1, _, ssim_batch_val1, _, psnr_batch_val1, _ = loggers1[1]
 
 # Load the Training and Validation Data:
 index_validation = config['Training']['List_Validation']
-index_training = [i for i in range(320) if i not in index_validation]
+index_training = [i for i in config['Training']['Number_Images'] if i not in index_validation]
 SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing(),
                                     index_set=index_training)
 SIDD_validation = dataset.DatasetSIDD(csv_file=path_validation, index_set=index_validation)
@@ -112,15 +111,12 @@ dataloader_sidd_training = DataLoader(dataset=SIDD_training, batch_size=config['
 dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=config['Training']['Validation_Batch_Size'],
                                         shuffle=False, num_workers=8)
 
-t_init = time.time()
-
 for epoch in range(config['Training']['Epochs']):
     for i_batch, sample_batch in enumerate(dataloader_sidd_training):
         x = sample_batch['NOISY']
         y0 = dhdn(x.to(device0))
         y1 = edhdn(x.to(device1))
         t = sample_batch['GT']
-
 
         loss_value0 = loss0(y0, t.to(device0))
         loss_value1 = loss1(y1, t.to(device1))
@@ -273,7 +269,7 @@ for epoch in range(config['Training']['Epochs']):
 
 d1 = today.strftime("%Y_%m_%d")
 
-model_path0 = os.getcwd() + '/models/{date}_dhdn.pth'.format(date=d1)
-model_path1 = os.getcwd() + '/models/{date}_edhdn.pth'.format(date=d1)
+model_path0 = os.getcwd() + '/models/{date}_dhdn_ssid.pth'.format(date=d1)
+model_path1 = os.getcwd() + '/models/{date}_edhdn_ssid.pth'.format(date=d1)
 torch.save(dhdn.state_dict(), model_path0)
 torch.save(edhdn.state_dict(), model_path1)
