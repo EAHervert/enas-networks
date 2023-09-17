@@ -14,22 +14,23 @@ import argparse
 
 from utilities.utils import CSVLogger, Logger
 from utilities.functions import SSIM, PSNR, generate_loggers
-#
+
 # Parser
 parser = argparse.ArgumentParser(
-                    prog='DHDN_Compare_Size',
-                    description='Compares 3 sizes of models based on the DHDN architecture',
-                    )
+    prog='DHDN_Compare_Size',
+    description='Compares 3 sizes of models based on the DHDN architecture',
+)
 parser.add_argument('Noise')  # positional argument
 args = parser.parse_args()
-#
-# Hyperparameters
+
+# Config
 config_path = os.getcwd() + '/configs/config_compare_size.json'
 config = json.load(open(config_path))
-#
 config['Locations']['Output_File'] += '_' + str(args.Noise)
 
 today = date.today()  # Date to label the models
+
+# Noise Dataset
 if args.Noise == 'SSID':
     path_training = os.getcwd() + '/instances/sidd_np_instances_064.csv'
     path_validation = os.getcwd() + '/instances/sidd_np_instances_256.csv'
@@ -45,587 +46,296 @@ if not os.path.isdir(Result_Path):
 if not os.path.isdir(Result_Path + '/' + config['Locations']['Output_File']):
     os.mkdir(Result_Path + '/' + config['Locations']['Output_File'])
 sys.stdout = Logger(Result_Path + '/' + config['Locations']['Output_File'] + 'log.log')
-#
+
 # Create the CSV Logger:
 File_Name = Result_Path + '/' + config['Locations']['Output_File'] + '/data.csv'
-Field_Names = ['Loss_Batch0', 'Loss_Batch1', 'Loss_Val0', 'Loss_Val1', 'Loss_Original_Train', 'Loss_Original_Val',
-               'SSIM_Batch0', 'SSIM_Batch1', 'SSIM_Val0', 'SSIM_Val1', 'SSIM_Original_Train', 'SSIM_Original_Val',
-               'PSNR_Batch0', 'PSNR_Batch1', 'PSNR_Val0', 'PSNR_Val1', 'PSNR_Original_Train', 'PSNR_Original_Val']
+Field_Names = ['Loss_Batch_5', 'Loss_Batch_7', 'Loss_Batch_9', 'Loss_Original_Train',
+               'Loss_Val_5', 'Loss_Val_7', 'Loss_Val_9', 'Loss_Original_Val',
+               'SSIM_Batch_5', 'SSIM_Batch_7', 'SSIM_Batch_9', 'SSIM_Original_Train',
+               'SSIM_Val_5', 'SSIM_Val_7', 'SSIM_Val_9', 'SSIM_Original_Val',
+               'PSNR_Batch_5', 'PSNR_Batch_7', 'PSNR_Batch_9', 'PSNR_Original_Train',
+               'PSNR_Val_5', 'PSNR_Val_7', 'PSNR_Val_9', 'PSNR_Original_Val']
 Logger = CSVLogger(fieldnames=Field_Names, filename=File_Name)
-#
+
 # Define the devices:
-if config['CUDA']['Device'] != 'None':
-    device = torch.device(config['CUDA']['Device'])
-else:
-    device = torch.device("cpu")
+device0 = torch.device(config['CUDA']['Device1'])
+device1 = torch.device(config['CUDA']['Device1'])
 
 # Load the Models:
+bottleneck = [0, 0]
+
 # Size 5 - Two steps Down, Two steps Up
-encoder_5, bottleneck_5, decoder_5 = [0, 0, 0, 0, 0, 0], [0, 0], [0, 0, 0, 0, 0, 0]
-architecture_5 = encoder_5 + bottleneck_5 + decoder_5
-DHDN_5 = DHDN.SharedDHDN(k_value=2, channels=128, architecture=architecture_5)
+encoder_5, decoder_5 = [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]
+architecture_5 = encoder_5 + bottleneck + decoder_5
+dhdn_5 = DHDN.SharedDHDN(k_value=2, channels=128, architecture=architecture_5)
 
-# Cast to GPU(s)
-if (config['CUDA']['DataParallel']):
-    DHDN_5 = nn.DataParallel(DHDN_5)
+# Size 7 - Three steps Down, Three steps Up
+encoder_7, decoder_7 = [0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]
+architecture_7 = encoder_7 + bottleneck + decoder_7
+dhdn_7 = DHDN.SharedDHDN(k_value=3, channels=128, architecture=architecture_7)
 
-DHDN_5 = DHDN_5.to(device0)
+# Size 9 - Four steps Down, Four steps Up
+encoder_9, decoder_9 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+architecture_9 = encoder_9 + bottleneck + decoder_9
+dhdn_9 = DHDN.SharedDHDN(k_value=4, channels=128, architecture=architecture_9)
 
-# Size 7
-encoder_7 = [0, 0, 0, 0, 0, 0, 0, 0, 0]  # Three Steps Down
-bottleneck_7 = [0, 0]
-decoder_7 = [0, 0, 0, 0, 0, 0, 0, 0, 0]  # Three Steps Up
-architecture_7 = encoder_7 + bottleneck_7 + decoder_7
+dhdn_5 = dhdn_5.to(device0)
+dhdn_7 = dhdn_7.to(device0)
+dhdn_9 = dhdn_9.to(device1)
 
-DHDN_7 = DHDN.SharedDHDN(k_value=3, channels=128, architecture=architecture_7)
+# Create the Visdom window:
+# This window will show the SSIM and PSNR of the different networks.
+vis = visdom.Visdom(
+    server='eng-ml-01.utdallas.edu',
+    port=8097,
+    use_incoming_socket=False
+)
 
-## Cast to GPU(s)
-if (args.DataParallel == 1):
-    DHDN_7 = nn.DataParallel(DHDN_7)
+# Display the data to the window:
+vis.env = 'DHDN_Compare_Size_' + str(args.Noise)
+vis_window = {'SSIM': None, 'PSNR': None}
 
-DHDN_7 = DHDN_7.to(Device)
+# Define the optimizers:
+optimizer_5 = torch.optim.Adam(dhdn_5.parameters(), args.Learning_Rate)
+optimizer_7 = torch.optim.Adam(dhdn_7.parameters(), args.Learning_Rate)
+optimizer_9 = torch.optim.Adam(dhdn_9.parameters(), args.Learning_Rate)
 
-# Size 9
-encoder_9 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # Four Steps Down
-bottleneck_9 = [0, 0]
-# decoder_9 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # Four steps Up
-# architecture_9 = encoder_9 + bottleneck_9 + decoder_9
-#
-# DHDN_9 = DHDN.SharedDHDN(k_value=4, channels=128, architecture=architecture_9)
-#
-# ## Cast to GPU(s)
-# if (args.DataParallel == 1):
-#     DHDN_9 = nn.DataParallel(DHDN_9)
-#
-# DHDN_9 = DHDN_9.to(Device)
-#
-# ## Create the Visdom window:
-# ## This window will show the SSIM and PSNR of the different networks.
-# vis = visdom.Visdom(
-#     server='eng-ml-01.utdallas.edu',
-#     port=8097,
-#     use_incoming_socket=False
-# )
-#
-# ## Display the data to the window:
-# vis.env = 'DHDN_Compare_Size'
-# vis_window = {
-#     'DHDN_5_SSIM': None, 'DHDN_7_SSIM': None, 'DHDN_9_SSIM': None,
-#     'DHDN_5_PSNR': None, 'DHDN_7_PSNR': None, 'DHDN_9_PSNR': None,
-#     'DHDN_Compare_SSIM_Train': None, 'DHDN_Compare_SSIM_Val': None,
-#     'DHDN_Compare_PSNR_Train': None, 'DHDN_Compare_PSNR_Val': None
-# }
-#
-# ## Load the Validation Data:
-# if (args.Instances == 1):
-#     with open(args.Instances_Location + 'Training_List_1.json', 'r') as f:
-#         Training_List = json.load(f)
-#
-#     with open(args.Instances_Location + 'Validation_List_1.json', 'r') as f:
-#         Validation_List = json.load(f)
-#
-# elif (args.Instances == 2):
-#     with open(args.Instances_Location + 'Training_List_2.json', 'r') as f:
-#         Training_List = json.load(f)
-#
-#     with open(args.Instances_Location + 'Validation_List_2.json', 'r') as f:
-#         Validation_List = json.load(f)
-#
-# elif (args.Instances == 3):
-#     with open(args.Instances_Location + 'Training_List_3.json', 'r') as f:
-#         Training_List = json.load(f)
-#
-#     with open(args.Instances_Location + 'Validation_List_3.json', 'r') as f:
-#         Validation_List = json.load(f)
-#
-# else:
-#     print("Incorrect Instance Number")
-#     exit()
-#
-# ## Define the optimizers:
-# Optimizer_5 = torch.optim.Adam(DHDN_5.parameters(), args.Learning_Rate)
-# Optimizer_7 = torch.optim.Adam(DHDN_7.parameters(), args.Learning_Rate)
-# Optimizer_9 = torch.optim.Adam(DHDN_9.parameters(), args.Learning_Rate)
-#
-# ## Define the Scheduling:
-# Scheduler_5 = torch.optim.lr_scheduler.StepLR(Optimizer_5, 3, 0.5, -1)
-# Scheduler_7 = torch.optim.lr_scheduler.StepLR(Optimizer_7, 3, 0.5, -1)
-# Scheduler_9 = torch.optim.lr_scheduler.StepLR(Optimizer_9, 3, 0.5, -1)
-#
-# ## Define the Loss and evaluation metrics:
-# Loss = nn.L1Loss().to(Device)
-# MSE = nn.MSELoss().to(Device)
-#
-# ## Now, let us define our loggers:
-#
-# ## Image Batches
-# Loss_5_Meter = AverageMeter()
-# Loss_7_Meter = AverageMeter()
-# Loss_9_Meter = AverageMeter()
-# Loss_Original_Meter = AverageMeter()
-#
-# SSIM_5_Meter = AverageMeter()
-# SSIM_7_Meter = AverageMeter()
-# SSIM_9_Meter = AverageMeter()
-# SSIM_Original_Meter = AverageMeter()
-#
-# PSNR_5_Meter = AverageMeter()
-# PSNR_7_Meter = AverageMeter()
-# PSNR_9_Meter = AverageMeter()
-# PSNR_Original_Meter = AverageMeter()
-#
-# ## Total Training
-# Loss_5_Meter_Train = AverageMeter()
-# Loss_7_Meter_Train = AverageMeter()
-# Loss_9_Meter_Train = AverageMeter()
-# Loss_Original_Meter_Train = AverageMeter()
-#
-# SSIM_5_Meter_Train = AverageMeter()
-# SSIM_7_Meter_Train = AverageMeter()
-# SSIM_9_Meter_Train = AverageMeter()
-# SSIM_Original_Meter_Train = AverageMeter()
-#
-# PSNR_5_Meter_Train = AverageMeter()
-# PSNR_7_Meter_Train = AverageMeter()
-# PSNR_9_Meter_Train = AverageMeter()
-# PSNR_Original_Meter_Train = AverageMeter()
-#
-# ## Validation
-# Loss_5_Meter_Val = AverageMeter()
-# Loss_7_Meter_Val = AverageMeter()
-# Loss_9_Meter_Val = AverageMeter()
-# Loss_Original_Meter_Val = AverageMeter()
-#
-# SSIM_5_Meter_Val = AverageMeter()
-# SSIM_7_Meter_Val = AverageMeter()
-# SSIM_9_Meter_Val = AverageMeter()
-# SSIM_Original_Meter_Val = AverageMeter()
-#
-# PSNR_5_Meter_Val = AverageMeter()
-# PSNR_7_Meter_Val = AverageMeter()
-# PSNR_9_Meter_Val = AverageMeter()
-# PSNR_Original_Meter_Val = AverageMeter()
-#
-# t_init = time.time()
-#
-# ## Now, let us loop through the training Data:
-# for Epoch in range(args.Num_Epochs):
-#
-#     t0 = time.time()
-#
-#     Batches_Num = 0
-#
-#     Batches_Training = Create_Batches(Training_List, args.Train_Image_Batch)
-#
-#     ## Loop through the training batches:
-#     for i in Batches_Training:
-#
-#         t00 = time.time()
-#
-#         Batches_Num += 1
-#
-#         Loader = Load_Dataset_Images(i, Size_N=args.Train_N, Size_M=args.Train_M)
-#
-#         ## Loop through the batches:
-#         for i, (Input, Target) in enumerate(Loader):
-#             ## Randomly Flip and rotate the tensors:
-#             Input, Target = Rand_Mod(Input, Target)
-#
-#             ## Cast to Cuda:
-#             Input = Input.to(Device)
-#             Target = Target.to(Device)
-#
-#             ## Get the Outputs of each network:
-#             Output_5 = DHDN_5(Input, Architecture_5)
-#             Output_7 = DHDN_7(Input, Architecture_7)
-#             Output_9 = DHDN_9(Input, Architecture_9)
-#
-#             ## Calculate the losses:
-#             Loss_5 = Loss(Output_5, Target)
-#             Loss_7 = Loss(Output_7, Target)
-#             Loss_9 = Loss(Output_9, Target)
-#             with torch.no_grad():
-#                 Loss_Original = Loss(Input, Target)
-#
-#             Loss_5_Meter_Train.update(Loss_5.item())
-#             Loss_7_Meter_Train.update(Loss_7.item())
-#             Loss_9_Meter_Train.update(Loss_9.item())
-#             Loss_Original_Meter_Train.update(Loss_Original.item())
-#
-#             ## Calculate SSIM:
-#             with torch.no_grad():
-#                 SSIM_5 = SSIM(Output_5, Target)
-#                 SSIM_7 = SSIM(Output_7, Target)
-#                 SSIM_9 = SSIM(Output_9, Target)
-#                 SSIM_Original = SSIM(Input, Target)
-#
-#             SSIM_5_Meter_Train.update(SSIM_5.item())
-#             SSIM_7_Meter_Train.update(SSIM_7.item())
-#             SSIM_9_Meter_Train.update(SSIM_9.item())
-#             SSIM_Original_Meter_Train.update(SSIM_Original.item())
-#
-#             ## Calculate PSNR:
-#             with torch.no_grad():
-#                 MSE_5 = MSE(Output_5, Target)
-#                 MSE_7 = MSE(Output_7, Target)
-#                 MSE_9 = MSE(Output_9, Target)
-#                 MSE_Original = MSE(Input, Target)
-#
-#             PSNR_5 = PSNR(MSE_5)
-#             PSNR_7 = PSNR(MSE_7)
-#             PSNR_9 = PSNR(MSE_9)
-#             PSNR_Original = PSNR(MSE_Original)
-#
-#             PSNR_5_Meter_Train.update(PSNR_5.item())
-#             PSNR_7_Meter_Train.update(PSNR_7.item())
-#             PSNR_9_Meter_Train.update(PSNR_9.item())
-#             PSNR_Original_Meter_Train.update(PSNR_Original.item())
-#
-#             ## Back Progagate through the batch:
-#             Optimizer_5.zero_grad()
-#             Loss_5.backward()
-#             Optimizer_5.step()
-#
-#             Optimizer_7.zero_grad()
-#             Loss_7.backward()
-#             Optimizer_7.step()
-#
-#             Optimizer_9.zero_grad()
-#             Loss_9.backward()
-#             Optimizer_9.step()
-#
-#             ## Update Image Batches logger:
-#             Loss_5_Meter.update(Loss_5.item())
-#             Loss_7_Meter.update(Loss_7.item())
-#             Loss_9_Meter.update(Loss_9.item())
-#             Loss_Original_Meter.update(Loss_Original.item())
-#             SSIM_5_Meter.update(SSIM_5.item())
-#             SSIM_7_Meter.update(SSIM_7.item())
-#             SSIM_9_Meter.update(SSIM_9.item())
-#             SSIM_Original_Meter.update(SSIM_Original.item())
-#             PSNR_5_Meter.update(PSNR_5.item())
-#             PSNR_7_Meter.update(PSNR_7.item())
-#             PSNR_9_Meter.update(PSNR_9.item())
-#             PSNR_Original_Meter.update(PSNR_Original.item())
-#
-#         t01 = time.time()
-#
-#         print("Training Data for Epoch: ", Epoch, "Image Batch: ", Batches_Num)
-#
-#         Display_Loss = "Loss_DHDN_5: %.6f" % (Loss_5_Meter.avg) + \
-#                        "\tLoss_DHDN_7: %.6f" % (Loss_7_Meter.avg) + \
-#                        "\tLoss_DHDN_9: %.6f" % (Loss_9_Meter.avg) + \
-#                        "\tLoss_Original: %.6f" % (Loss_Original_Meter.avg)
-#         print(Display_Loss)
-#
-#         Display_SSIM = "SSIM_DHDN_5: %.6f" % (SSIM_5_Meter.avg) + \
-#                        "\tSSIM_DHDN_7: %.6f" % (SSIM_7_Meter.avg) + \
-#                        "\tSSIM_DHDN_9: %.6f" % (SSIM_9_Meter.avg) + \
-#                        "\tSSIM_Original: %.6f" % (SSIM_Original_Meter.avg)
-#         print(Display_SSIM)
-#
-#         Display_PSNR = "PSNR_DHDN_5: %.6f" % (PSNR_5_Meter.avg) + \
-#                        "\tPSNR_DHDN_7: %.6f" % (PSNR_7_Meter.avg) + \
-#                        "\tPSNR_DHDN_9: %.6f" % (PSNR_9_Meter.avg) + \
-#                        "\tPSNR_Original: %.6f" % (PSNR_Original_Meter.avg)
-#         print(Display_PSNR)
-#
-#         Display_Time(t01 - t00)
-#
-#         ## Reset the loggers:
-#         Loss_5_Meter.reset()
-#         Loss_7_Meter.reset()
-#         Loss_9_Meter.reset()
-#         Loss_Original_Meter.reset()
-#
-#         SSIM_5_Meter.reset()
-#         SSIM_7_Meter.reset()
-#         SSIM_9_Meter.reset()
-#         SSIM_Original_Meter.reset()
-#
-#         PSNR_5_Meter.reset()
-#         PSNR_7_Meter.reset()
-#         PSNR_9_Meter.reset()
-#         PSNR_Original_Meter.reset()
-#
-#     t1 = time.time()
-#
-#     print('-' * 160)
-#
-#     print("Total Training Data for Epoch: ", Epoch)
-#
-#     Display_Loss = "Loss_DHDN_5: %.6f" % (Loss_5_Meter_Train.avg) + \
-#                    "\tLoss_DHDN_7: %.6f" % (Loss_7_Meter_Train.avg) + \
-#                    "\tLoss_DHDN_9: %.6f" % (Loss_9_Meter_Train.avg) + \
-#                    "\tLoss_Original: %.6f" % (Loss_Original_Meter_Train.avg)
-#     print(Display_Loss)
-#
-#     Display_SSIM = "SSIM_DHDN_5: %.6f" % (SSIM_5_Meter_Train.avg) + \
-#                    "\tSSIM_DHDN_7: %.6f" % (SSIM_7_Meter_Train.avg) + \
-#                    "\tSSIM_DHDN_9: %.6f" % (SSIM_9_Meter_Train.avg) + \
-#                    "\tSSIM_Original: %.6f" % (SSIM_Original_Meter_Train.avg)
-#     print(Display_SSIM)
-#
-#     Display_PSNR = "PSNR_DHDN_5: %.6f" % (PSNR_5_Meter_Train.avg) + \
-#                    "\tPSNR_DHDN_7: %.6f" % (PSNR_7_Meter_Train.avg) + \
-#                    "\tPSNR_DHDN_9: %.6f" % (PSNR_9_Meter_Train.avg) + \
-#                    "\tPSNR_Original: %.6f" % (PSNR_Original_Meter_Train.avg)
-#     print(Display_PSNR)
-#
-#     for param_group in Optimizer_5.param_groups:
-#         LR = param_group['lr']
-#         print("Learning Rate: ", LR)
-#
-#     Display_Time(t1 - t0)
-#
-#     Batches_Validation = Create_Batches(Validation_List, args.Validation_Image_Batch)
-#
-#     t2 = time.time()
-#
-#     ## Loop through the training batches:
-#     for i in Batches_Validation:
-#
-#         Loader = Load_Dataset_Images(i, Size_Crop=256, Size_N=args.Validation_N, Size_M=args.Validation_M)
-#
-#         ## Loop through the batches:
-#         for i, (Input, Target) in enumerate(Loader):
-#             ## Randomly Flip and rotate the tensors:
-#             Input, Target = Rand_Mod(Input, Target)
-#
-#             ## Cast to Cuda:
-#             Input = Input.to(Device).detach()
-#             Target = Target.to(Device).detach()
-#
-#             ## Get the Outputs of each network:
-#             with torch.no_grad():
-#                 Output_5 = DHDN_5(Input, Architecture_5)
-#                 Output_7 = DHDN_7(Input, Architecture_7)
-#                 Output_9 = DHDN_9(Input, Architecture_9)
-#
-#             ## Calculate the losses:
-#             with torch.no_grad():
-#                 Loss_5 = Loss(Output_5, Target)
-#                 Loss_7 = Loss(Output_7, Target)
-#                 Loss_9 = Loss(Output_9, Target)
-#                 Loss_Original = Loss(Input, Target)
-#
-#             Loss_5_Meter_Val.update(Loss_5.item())
-#             Loss_7_Meter_Val.update(Loss_7.item())
-#             Loss_9_Meter_Val.update(Loss_9.item())
-#             Loss_Original_Meter_Val.update(Loss_Original.item())
-#
-#             ## Calculate SSIM:
-#             with torch.no_grad():
-#                 SSIM_5 = SSIM(Output_5, Target)
-#                 SSIM_7 = SSIM(Output_7, Target)
-#                 SSIM_9 = SSIM(Output_9, Target)
-#                 SSIM_Original = SSIM(Input, Target)
-#
-#             SSIM_5_Meter_Val.update(SSIM_5.item())
-#             SSIM_7_Meter_Val.update(SSIM_7.item())
-#             SSIM_9_Meter_Val.update(SSIM_9.item())
-#             SSIM_Original_Meter_Val.update(SSIM_Original.item())
-#
-#             ## Calculate PSNR:
-#             with torch.no_grad():
-#                 MSE_5 = MSE(Output_5, Target)
-#                 MSE_7 = MSE(Output_7, Target)
-#                 MSE_9 = MSE(Output_9, Target)
-#                 MSE_Original = MSE(Input, Target)
-#
-#             PSNR_5 = PSNR(MSE_5)
-#             PSNR_7 = PSNR(MSE_7)
-#             PSNR_9 = PSNR(MSE_9)
-#             PSNR_Original = PSNR(MSE_Original)
-#
-#             PSNR_5_Meter_Val.update(PSNR_5.item())
-#             PSNR_7_Meter_Val.update(PSNR_7.item())
-#             PSNR_9_Meter_Val.update(PSNR_9.item())
-#             PSNR_Original_Meter_Val.update(PSNR_Original.item())
-#
-#     t3 = time.time()
-#
-#     print('-' * 160)
-#
-#     print("Validation Data for Epoch: ", Epoch)
-#     Display_Loss = "Loss_DHDN_5: %.6f" % (Loss_5_Meter_Val.avg) + \
-#                    "\tLoss_DHDN_7: %.6f" % (Loss_7_Meter_Val.avg) + \
-#                    "\tLoss_DHDN_9: %.6f" % (Loss_9_Meter_Val.avg) + \
-#                    "\tLoss_Original: %.6f" % (Loss_Original_Meter_Val.avg)
-#     print(Display_Loss)
-#
-#     Display_SSIM = "SSIM_DHDN_5: %.6f" % (SSIM_5_Meter_Val.avg) + \
-#                    "\tSSIM_DHDN_7: %.6f" % (SSIM_7_Meter_Val.avg) + \
-#                    "\tSSIM_DHDN_9: %.6f" % (SSIM_9_Meter_Val.avg) + \
-#                    "\tSSIM_Original: %.6f" % (SSIM_Original_Meter_Val.avg)
-#     print(Display_SSIM)
-#
-#     Display_PSNR = "PSNR_DHDN_5: %.6f" % (PSNR_5_Meter_Val.avg) + \
-#                    "\tPSNR_DHDN_7: %.6f" % (PSNR_7_Meter_Val.avg) + \
-#                    "\tPSNR_DHDN_9: %.6f" % (PSNR_9_Meter_Val.avg) + \
-#                    "\tPSNR_Original: %.6f" % (PSNR_Original_Meter_Val.avg)
-#     print(Display_PSNR)
-#
-#     Display_Time(t3 - t2)
-#
-#     print('-' * 160)
-#     print()
-#
-#     Logger.writerow({
-#         'Loss_5_Train': Loss_5_Meter_Train.avg,
-#         'Loss_5_Val': Loss_5_Meter_Val.avg,
-#         'Loss_7_Train': Loss_7_Meter_Train.avg,
-#         'Loss_7_Val': Loss_7_Meter_Val.avg,
-#         'Loss_9_Train': Loss_9_Meter_Train.avg,
-#         'Loss_9_Val': Loss_9_Meter_Val.avg,
-#         'Loss_Original_Train': Loss_Original_Meter_Train.avg,
-#         'Loss_Original_Val': Loss_Original_Meter_Val.avg,
-#         'SSIM_5_Train': SSIM_5_Meter_Train.avg,
-#         'SSIM_5_Val': SSIM_5_Meter_Val.avg,
-#         'SSIM_7_Train': SSIM_7_Meter_Train.avg,
-#         'SSIM_7_Val': SSIM_7_Meter_Val.avg,
-#         'SSIM_9_Train': SSIM_9_Meter_Train.avg,
-#         'SSIM_9_Val': SSIM_9_Meter_Val.avg,
-#         'SSIM_Original_Train': SSIM_Original_Meter_Train.avg,
-#         'SSIM_Original_Val': SSIM_Original_Meter_Val.avg,
-#         'PSNR_5_Train': PSNR_5_Meter_Train.avg,
-#         'PSNR_5_Val': PSNR_5_Meter_Val.avg,
-#         'PSNR_7_Train': PSNR_7_Meter_Train.avg,
-#         'PSNR_7_Val': PSNR_7_Meter_Val.avg,
-#         'PSNR_9_Train': PSNR_9_Meter_Train.avg,
-#         'PSNR_9_Val': PSNR_9_Meter_Val.avg,
-#         'PSNR_Original_Train': PSNR_Original_Meter_Train.avg,
-#         'PSNR_Original_Val': PSNR_Original_Meter_Val.avg
-#     })
-#
-#     Legend = ['Train', 'Val', 'Original_Train', 'Original_Val']
-#
-#     vis_window['DHDN_5_SSIM'] = vis.line(
-#         X=np.column_stack([Epoch] * 4),
-#         Y=np.column_stack([SSIM_5_Meter_Train.avg, SSIM_5_Meter_Val.avg,
-#                            SSIM_Original_Meter_Train.avg, SSIM_Original_Meter_Val.avg]),
-#         win=vis_window['DHDN_5_SSIM'],
-#         opts=dict(title='DHDN_5_SSIM', xlabel='Epoch', ylabel='SSIM', legend=Legend),
-#         update='append' if Epoch > 0 else None)
-#
-#     vis_window['DHDN_7_SSIM'] = vis.line(
-#         X=np.column_stack([Epoch] * 4),
-#         Y=np.column_stack([SSIM_7_Meter_Train.avg, SSIM_7_Meter_Val.avg,
-#                            SSIM_Original_Meter_Train.avg, SSIM_Original_Meter_Val.avg]),
-#         win=vis_window['DHDN_7_SSIM'],
-#         opts=dict(title='DHDN_7_SSIM', xlabel='Epoch', ylabel='SSIM', legend=Legend),
-#         update='append' if Epoch > 0 else None)
-#
-#     vis_window['DHDN_9_SSIM'] = vis.line(
-#         X=np.column_stack([Epoch] * 4),
-#         Y=np.column_stack([SSIM_9_Meter_Train.avg, SSIM_9_Meter_Val.avg,
-#                            SSIM_Original_Meter_Train.avg, SSIM_Original_Meter_Val.avg]),
-#         win=vis_window['DHDN_9_SSIM'],
-#         opts=dict(title='DHDN_9_SSIM', xlabel='Epoch', ylabel='SSIM', legend=Legend),
-#         update='append' if Epoch > 0 else None)
-#
-#     vis_window['DHDN_5_PSNR'] = vis.line(
-#         X=np.column_stack([Epoch] * 4),
-#         Y=np.column_stack([PSNR_5_Meter_Train.avg, PSNR_5_Meter_Val.avg,
-#                            PSNR_Original_Meter_Train.avg, PSNR_Original_Meter_Val.avg]),
-#         win=vis_window['DHDN_5_PSNR'],
-#         opts=dict(title='DHDN_5_PSNR', xlabel='Epoch', ylabel='PSNR', legend=Legend),
-#         update='append' if Epoch > 0 else None)
-#
-#     vis_window['DHDN_7_PSNR'] = vis.line(
-#         X=np.column_stack([Epoch] * 4),
-#         Y=np.column_stack([PSNR_7_Meter_Train.avg, PSNR_7_Meter_Val.avg,
-#                            PSNR_Original_Meter_Train.avg, PSNR_Original_Meter_Val.avg]),
-#         win=vis_window['DHDN_7_PSNR'],
-#         opts=dict(title='DHDN_7_PSNR', xlabel='Epoch', ylabel='PSNR', legend=Legend),
-#         update='append' if Epoch > 0 else None)
-#
-#     vis_window['DHDN_9_PSNR'] = vis.line(
-#         X=np.column_stack([Epoch] * 4),
-#         Y=np.column_stack([PSNR_9_Meter_Train.avg, PSNR_9_Meter_Val.avg,
-#                            PSNR_Original_Meter_Train.avg, PSNR_Original_Meter_Val.avg]),
-#         win=vis_window['DHDN_9_PSNR'],
-#         opts=dict(title='DHDN_9_PSNR', xlabel='Epoch', ylabel='PSNR', legend=Legend),
-#         update='append' if Epoch > 0 else None)
-#
-#     Legend = ['Size_5', 'Size_7', 'Size_9']
-#
-#     vis_window['DHDN_Compare_SSIM_Train'] = vis.line(
-#         X=np.column_stack([Epoch] * 3),
-#         Y=np.column_stack([SSIM_5_Meter_Train.avg, SSIM_7_Meter_Train.avg,
-#                            SSIM_9_Meter_Train.avg]),
-#         win=vis_window['DHDN_Compare_SSIM_Train'],
-#         opts=dict(title='DHDN_Compare_SSIM_Train', xlabel='Epoch', ylabel='SSIM', legend=Legend),
-#         update='append' if Epoch > 0 else None)
-#
-#     vis_window['DHDN_Compare_SSIM_Val'] = vis.line(
-#         X=np.column_stack([Epoch] * 3),
-#         Y=np.column_stack([SSIM_5_Meter_Val.avg, SSIM_7_Meter_Val.avg, SSIM_9_Meter_Val.avg]),
-#         win=vis_window['DHDN_Compare_SSIM_Val'],
-#         opts=dict(title='DHDN_Compare_SSIM_Val', xlabel='Epoch', ylabel='SSIM', legend=Legend),
-#         update='append' if Epoch > 0 else None)
-#
-#     vis_window['DHDN_Compare_PSNR_Train'] = vis.line(
-#         X=np.column_stack([Epoch] * 3),
-#         Y=np.column_stack([PSNR_5_Meter_Train.avg, PSNR_7_Meter_Train.avg, PSNR_9_Meter_Train.avg]),
-#         win=vis_window['DHDN_Compare_PSNR_Train'],
-#         opts=dict(title='DHDN_Compare_PSNR_Train', xlabel='Epoch', ylabel='PSNR', legend=Legend),
-#         update='append' if Epoch > 0 else None)
-#
-#     vis_window['DHDN_Compare_PSNR_Val'] = vis.line(
-#         X=np.column_stack([Epoch] * 3),
-#         Y=np.column_stack([PSNR_5_Meter_Val.avg, PSNR_7_Meter_Val.avg, PSNR_9_Meter_Val.avg]),
-#         win=vis_window['DHDN_Compare_PSNR_Val'],
-#         opts=dict(title='DHDN_Compare_PSNR_Val', xlabel='Epoch', ylabel='PSNR', legend=Legend),
-#         update='append' if Epoch > 0 else None)
-#
-#     ## Now, let us reset our loggers:
-#     ## Training
-#     Loss_5_Meter_Train.reset()
-#     Loss_7_Meter_Train.reset()
-#     Loss_9_Meter_Train.reset()
-#     Loss_Original_Meter_Train.reset()
-#
-#     SSIM_5_Meter_Train.reset()
-#     SSIM_7_Meter_Train.reset()
-#     SSIM_9_Meter_Train.reset()
-#     SSIM_Original_Meter_Train.reset()
-#
-#     PSNR_5_Meter_Train.reset()
-#     PSNR_7_Meter_Train.reset()
-#     PSNR_9_Meter_Train.reset()
-#     PSNR_Original_Meter_Train.reset()
-#
-#     ## Validation
-#     Loss_5_Meter_Val.reset()
-#     Loss_7_Meter_Val.reset()
-#     Loss_9_Meter_Val.reset()
-#     Loss_Original_Meter_Val.reset()
-#
-#     SSIM_5_Meter_Val.reset()
-#     SSIM_7_Meter_Val.reset()
-#     SSIM_9_Meter_Val.reset()
-#     SSIM_Original_Meter_Val.reset()
-#
-#     PSNR_5_Meter_Val.reset()
-#     PSNR_7_Meter_Val.reset()
-#     PSNR_9_Meter_Val.reset()
-#     PSNR_Original_Meter_Val.reset()
-#
-#     ## Adjust Learning Rate:
-#     Scheduler_5.step()
-#     Scheduler_7.step()
-#     Scheduler_9.step()
-#
-# t_fin = time.time()
-#
-# Display_Time(t_fin - t_init)
-#
-# ## Save the parameters:
-# Path_5 = Result_Path + '/' + args.Output_File + '/DHDN_5_Parameters'
-# Path_7 = Result_Path + '/' + args.Output_File + '/DHDN_7_Parameters'
-# Path_9 = Result_Path + '/' + args.Output_File + '/DHDN_9_Parameters'
-#
-# torch.save(DHDN_5.state_dict(), Path_5)
-# torch.save(DHDN_7.state_dict(), Path_7)
-# torch.save(DHDN_9.state_dict(), Path_9)
+# Define the Scheduling:
+scheduler_5 = torch.optim.lr_scheduler.StepLR(optimizer_5, 3, 0.5, -1)
+scheduler_7 = torch.optim.lr_scheduler.StepLR(optimizer_7, 3, 0.5, -1)
+scheduler_9 = torch.optim.lr_scheduler.StepLR(optimizer_9, 3, 0.5, -1)
+
+# Define the Loss and evaluation metrics:
+loss_5 = nn.L1Loss().to(device0)
+loss_7 = nn.L1Loss().to(device0)
+loss_9 = nn.L1Loss().to(device1)
+MSE = nn.MSELoss().to(device1)
+
+# Now, let us define our loggers:
+loggers5 = generate_loggers()
+loggers7 = generate_loggers()
+loggers9 = generate_loggers()
+
+# Training Batches
+loss_batch_5, loss_original_batch, ssim_batch_5, ssim_original_batch, psnr_batch_5, psnr_original_batch = loggers5[0]
+loss_batch_7, _, ssim_batch_7, _, psnr_batch_7, _ = loggers7[0]
+loss_batch_9, _, ssim_batch_9, _, psnr_batch_9, _ = loggers9[0]
+
+# Validation Batches
+loss_batch_val_5, loss_original_batch_val, ssim_batch_val_5, ssim_original_batch_val = loggers5[1][0:4]
+psnr_batch_val_5, psnr_original_batch_val = loggers5[1][4:]
+
+loss_batch_val_7, _, ssim_batch_val_7, _, psnr_batch_val_7, _ = loggers7[1]
+loss_batch_val_9, _, ssim_batch_val_9, _, psnr_batch_val_9, _ = loggers9[1]
+
+# Load the Training and Validation Data:
+if args.Noise == 'SSID':
+    index_validation = config['Training']['List_Validation_SSID']
+    index_training = [i for i in range(config['Training']['Number_Images_SSID']) if i not in index_validation]
+else:
+    index_validation = config['Training']['List_Validation_DAVIS']
+    index_training = [i for i in range(config['Training']['Number_Images_DAVIS']) if i not in index_validation]
+
+SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing(),
+                                    index_set=index_training)
+SIDD_validation = dataset.DatasetSIDD(csv_file=path_validation, index_set=index_validation)
+
+dataloader_sidd_training = DataLoader(dataset=SIDD_training, batch_size=config['Training']['Train_Batch_Size'],
+                                      shuffle=True, num_workers=16)
+dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=config['Training']['Validation_Batch_Size'],
+                                        shuffle=False, num_workers=8)
+
+for epoch in range(config['Training']['Epochs']):
+
+    for i_batch, sample_batch in enumerate(dataloader_sidd_training):
+        x = sample_batch['NOISY']
+        y5 = dhdn_5(x.to(device0))
+        y7 = dhdn_7(x.to(device0))
+        y9 = dhdn_9(x.to(device1))
+        t = sample_batch['GT']
+
+        loss_value_5 = loss_5(y5, t.to(device0))
+        loss_value_7 = loss_7(y7, t.to(device0))
+        loss_value_9 = loss_9(y9, t.to(device0))
+        loss_batch_5.update(loss_value_5.item())
+        loss_batch_7.update(loss_value_7.item())
+        loss_batch_7.update(loss_value_9.item())
+
+        # Calculate values not needing to be backpropagated
+        with torch.no_grad():
+            loss_original_batch.update(loss_9(x.to(device1), t.to(device1)).item())
+
+            ssim_batch_5.update(SSIM(y5, t.to(device0)).item())
+            ssim_batch_7.update(SSIM(y7, t.to(device0)).item())
+            ssim_batch_9.update(SSIM(y9, t.to(device1)).item())
+            ssim_original_batch.update(SSIM(x, t).item())
+
+            psnr_batch_5.update(PSNR(MSE(y5.to(device1), t.to(device1))).item())
+            psnr_batch_7.update(PSNR(MSE(y7.to(device1), t.to(device1))).item())
+            psnr_batch_9.update(PSNR(MSE(y9, t.to(device1))).item())
+            psnr_original_batch.update(PSNR(MSE(x.to(device1), t.to(device1))).item())
+
+        # Backpropagate to train model
+        optimizer_5.zero_grad()
+        loss_value_5.backward()
+        optimizer_5.step()
+
+        optimizer_7.zero_grad()
+        loss_value_7.backward()
+        optimizer_7.step()
+
+        optimizer_9.zero_grad()
+        loss_value_9.backward()
+        optimizer_9.step()
+
+        Display_Loss = "Loss_Size_5: %.6f" % loss_batch_5.val + "\tLoss_Size_7: %.6f" % loss_batch_7.val + \
+                       "\tLoss_Size_9: %.6f" % loss_batch_9.val + "\tLoss_Original: %.6f" % loss_original_batch.val
+        Display_SSIM = "SSIM_Size_5: %.6f" % ssim_batch_5.val + "\tSSIM_Size_7: %.6f" % ssim_batch_7.val + \
+                       "\tSSIM_Size_9: %.6f" % ssim_batch_9.val + "\tSSIM_Original: %.6f" % ssim_original_batch.val
+        Display_PSNR = "PSNR_Size_5: %.6f" % psnr_batch_5.val + "\tPSNR_Size_7: %.6f" % psnr_batch_7.val + \
+                       "\tPSNR_Size_9: %.6f" % psnr_batch_9.val + "\tPSNR_Original: %.6f" % psnr_original_batch.val
+
+        if i_batch % 50 == 0:
+            print("Training Data for Epoch: ", epoch, "Image Batch: ", i_batch)
+            print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
+
+    Display_Loss = "Loss_Size_5: %.6f" % loss_batch_5.avg + "\tLoss_Size_7: %.6f" % loss_batch_7.avg + \
+                   "\tLoss_Size_9: %.6f" % loss_batch_9.avg + "\tLoss_Original: %.6f" % loss_original_batch.avg
+    Display_SSIM = "SSIM_Size_5: %.6f" % ssim_batch_5.avg + "\tSSIM_Size_7: %.6f" % ssim_batch_7.avg + \
+                   "\tSSIM_Size_9: %.6f" % ssim_batch_9.avg + "\tSSIM_Original: %.6f" % ssim_original_batch.avg
+    Display_PSNR = "PSNR_Size_5: %.6f" % psnr_batch_5.avg + "\tPSNR_Size_7: %.6f" % psnr_batch_7.avg + \
+                   "\tPSNR_Size_9: %.6f" % psnr_batch_9.avg + "\tPSNR_Original: %.6f" % psnr_original_batch.avg
+
+    print("\nTotal Training Data for Epoch: ", epoch)
+    print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
+
+    # Free up space in GPU
+    del x, y5, y7, y9, t
+
+    for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
+        x_v = validation_batch['NOISY']
+        t_v = validation_batch['GT']
+        with torch.no_grad():
+            y_v5 = dhdn_5(x_v.to(device0))
+            y_v7 = dhdn_7(x_v.to(device0))
+            y_v9 = dhdn_9(x_v.to(device0))
+
+            loss_batch_val_5.update(loss_5(y_v5, t_v.to(device0)).item())
+            loss_batch_val_7.update(loss_7(y_v7, t_v.to(device0)).item())
+            loss_batch_val_9.update(loss_9(y_v9, t_v.to(device1)).item())
+            loss_original_batch_val.update(loss_9(x_v.to(device1), t_v.to(device1)).item())
+
+            ssim_batch_val_5.update(SSIM(y_v5, t_v.to(device0)).item())
+            ssim_batch_val_7.update(SSIM(y_v7, t_v.to(device0)).item())
+            ssim_batch_val_9.update(SSIM(y_v9, t_v.to(device1)).item())
+            ssim_original_batch_val.update(SSIM(x_v, t_v).item())
+
+            psnr_batch_val_5.update(PSNR(MSE(y_v5.to(device1), t_v.to(device1))).item())
+            psnr_batch_val_7.update(PSNR(MSE(y_v7.to(device1), t_v.to(device1))).item())
+            psnr_batch_val_9.update(PSNR(MSE(y_v9, t_v.to(device1))).item())
+            psnr_original_batch_val.update(PSNR(MSE(x_v.to(device1), t_v.to(device1))).item())
+
+        # Only do up to 25 passes for Validation
+        if i_validation > 25:
+            break
+
+    Display_Loss = "Loss_Size_5: %.6f" % loss_batch_val_5.val + "\tLoss_Size_7: %.6f" % loss_batch_val_7.val + \
+                   "\tLoss_Size_9: %.6f" % loss_batch_val_9.val + "\tLoss_Original: %.6f" % loss_original_batch_val.val
+    Display_SSIM = "SSIM_Size_5: %.6f" % ssim_batch_val_5.val + "\tSSIM_Size_7: %.6f" % ssim_batch_val_7.val + \
+                   "\tSSIM_Size_9: %.6f" % ssim_batch_val_9.val + "\tSSIM_Original: %.6f" % ssim_original_batch_val.val
+    Display_PSNR = "PSNR_Size_5: %.6f" % psnr_batch_val_5.val + "\tPSNR_Size_7: %.6f" % psnr_batch_val_7.val + \
+                   "\tPSNR_Size_9: %.6f" % psnr_batch_val_9.val + "\tPSNR_Original: %.6f" % psnr_original_batch_val.val
+
+    print("Validation Data for Epoch: ", epoch)
+    print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
+
+    # Free up space in GPU
+    del x_v, y_v5, y_v7, y_v9, t_v
+
+    print('-' * 160 + '\n')
+
+    Logger.writerow({
+        'Loss_Batch_5': loss_batch_5.avg,
+        'Loss_Batch_7': loss_batch_7.avg,
+        'Loss_Batch_9': loss_batch_9.avg,
+        'Loss_Val_5': loss_batch_val_5.avg,
+        'Loss_Val_7': loss_batch_val_7.avg,
+        'Loss_Val_9': loss_batch_val_9.avg,
+        'Loss_Original_Train': loss_original_batch.avg,
+        'Loss_Original_Val': loss_original_batch_val.avg,
+        'SSIM_Batch_5': ssim_batch_5.avg,
+        'SSIM_Batch_7': ssim_batch_7.avg,
+        'SSIM_Batch_9': ssim_batch_9.avg,
+        'SSIM_Val_5': ssim_batch_val_5.avg,
+        'SSIM_Val_7': ssim_batch_val_7.avg,
+        'SSIM_Val_9': ssim_batch_val_9.avg,
+        'SSIM_Original_Train': ssim_original_batch.avg,
+        'SSIM_Original_Val': ssim_original_batch_val.avg,
+        'PSNR_Batch_5': psnr_batch_5.avg,
+        'PSNR_Batch_7': psnr_batch_7.avg,
+        'PSNR_Batch_9': psnr_batch_9.avg,
+        'PSNR_Val_5': psnr_batch_val_5.avg,
+        'PSNR_Val_7': psnr_batch_val_7.avg,
+        'PSNR_Val_9': psnr_batch_val_9.avg,
+        'PSNR_Original_Train': psnr_original_batch.avg,
+        'PSNR_Original_Val': psnr_original_batch_val.avg
+    })
+
+    Legend = ['Size_5_Train', 'Size_7_Train', 'Size_9_Train', 'Orig_Train',
+              'Size_5_Val', 'Size_7_Val', 'Size_9_Val', 'Orig_Val']
+
+    vis_window['SSIM'] = vis.line(
+        X=np.column_stack([epoch] * 8),
+        Y=np.column_stack([ssim_batch_5.avg, ssim_batch_7.avg, ssim_batch_9.avg, ssim_original_batch.avg,
+                           ssim_batch_val_5.avg, ssim_batch_val_7.avg,  ssim_batch_val_9.avg,
+                           ssim_original_batch_val.avg]),
+        win=vis_window['SSIM'],
+        opts=dict(title='SSIM', xlabel='Epoch', ylabel='SSIM', legend=Legend),
+        update='append' if epoch > 0 else None)
+
+    vis_window['PSNR'] = vis.line(
+        X=np.column_stack([epoch] * 8),
+        Y=np.column_stack([psnr_batch_5.avg, psnr_batch_7.avg, psnr_batch_9.avg, psnr_original_batch.avg,
+                           psnr_batch_val_5.avg, psnr_batch_val_7.avg, psnr_batch_val_9.avg,
+                           psnr_original_batch_val.avg]),
+        win=vis_window['PSNR'],
+        opts=dict(title='PSNR', xlabel='Epoch', ylabel='PSNR', legend=Legend),
+        update='append' if epoch > 0 else None)
+
+    loss_batch_5.reset()
+    loss_batch_7.reset()
+    loss_batch_9.reset()
+    loss_original_batch.reset()
+    ssim_batch_5.reset()
+    ssim_batch_7.reset()
+    ssim_batch_9.reset()
+    ssim_original_batch.reset()
+    psnr_batch_5.reset()
+    psnr_batch_7.reset()
+    psnr_batch_9.reset()
+    psnr_original_batch.reset()
+    loss_batch_val_5.reset()
+    loss_batch_val_7.reset()
+    loss_batch_val_9.reset()
+    loss_original_batch_val.reset()
+    ssim_batch_val_5.reset()
+    ssim_batch_val_7.reset()
+    ssim_batch_val_9.reset()
+    ssim_original_batch_val.reset()
+    psnr_batch_val_5.reset()
+    psnr_batch_val_7.reset()
+    psnr_batch_val_9.reset()
+    psnr_original_batch_val.reset()
+
+    scheduler_5.step()
+    scheduler_7.step()
+    scheduler_9.step()
+
+d1 = today.strftime("%Y_%m_%d")
+
+model_path_5 = os.getcwd() + '/models/{date}_dhdn_size_5_{noise}.pth'.format(date=d1, noise=args.Noise)
+model_path_7 = os.getcwd() + '/models/{date}_dhdn_size_7_{noise}.pth'.format(date=d1, noise=args.Noise)
+model_path_9 = os.getcwd() + '/models/{date}_dhdn_size_9_{noise}.pth'.format(date=d1, noise=args.Noise)
+torch.save(dhdn_5.state_dict(), model_path_5)
+torch.save(dhdn_7.state_dict(), model_path_7)
+torch.save(dhdn_9.state_dict(), model_path_9)

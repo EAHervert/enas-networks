@@ -1,6 +1,8 @@
 {
   "Locations": {
-    "Output_File": "DHDN_Compare_DAVIS"
+    "Training_File": "/instances/sidd_np_instances_064.csv",
+    "Validation_File": "/instances/sidd_np_instances_256.csv",
+    "Output_File": "DHDN_Compare_SIDD"
   },
   "Training": {
     "Epochs": 25,
