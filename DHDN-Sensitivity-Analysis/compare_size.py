@@ -96,9 +96,9 @@ vis.env = 'DHDN_Compare_Size_' + str(args.Noise)
 vis_window = {'SSIM': None, 'PSNR': None}
 
 # Define the optimizers:
-optimizer_5 = torch.optim.Adam(dhdn_5.parameters(), args.Learning_Rate)
-optimizer_7 = torch.optim.Adam(dhdn_7.parameters(), args.Learning_Rate)
-optimizer_9 = torch.optim.Adam(dhdn_9.parameters(), args.Learning_Rate)
+optimizer_5 = torch.optim.Adam(dhdn_5.parameters(), config['Training']['Learning_Rate'])
+optimizer_7 = torch.optim.Adam(dhdn_7.parameters(), config['Training']['Learning_Rate'])
+optimizer_9 = torch.optim.Adam(dhdn_9.parameters(), config['Training']['Learning_Rate'])
 
 # Define the Scheduling:
 scheduler_5 = torch.optim.lr_scheduler.StepLR(optimizer_5, 3, 0.5, -1)

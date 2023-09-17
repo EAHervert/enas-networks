@@ -135,3 +135,5 @@ dmypy.json
 /Benchmarks/data/
 /Benchmarks/visualize_benchmark_sidd.ipynb
 /Benchmarks/frame_analysis.ipynb
+/DHDN-Sensitivity-Analysis/models/
+/DHDN-Sensitivity-Analysis/results/
