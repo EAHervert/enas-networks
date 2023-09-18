@@ -61,6 +61,7 @@ Logger = CSVLogger(fieldnames=Field_Names, filename=File_Name)
 
 # Define the devices:
 device_0 = torch.device(config['CUDA']['Device0'])
+device_1 = torch.device(config['CUDA']['Device1'])
 
 # Load the Models:
 bottleneck = [0, 0]
@@ -82,7 +83,7 @@ dhdn_9 = DHDN.SharedDHDN(k_value=4, channels=128, architecture=architecture_9)
 
 dhdn_5 = dhdn_5.to(device_0)
 dhdn_7 = dhdn_7.to(device_0)
-dhdn_9 = dhdn_9.to(device_0)
+dhdn_9 = dhdn_9.to(device_1)
 
 # Create the Visdom window:
 # This window will show the SSIM and PSNR of the different networks.
@@ -109,8 +110,8 @@ scheduler_9 = torch.optim.lr_scheduler.StepLR(optimizer_9, 3, 0.5, -1)
 # Define the Loss and evaluation metrics:
 loss_5 = nn.L1Loss().to(device_0)
 loss_7 = nn.L1Loss().to(device_0)
-loss_9 = nn.L1Loss().to(device_0)
-MSE = nn.MSELoss().to(device_0)
+loss_9 = nn.L1Loss().to(device_1)
+MSE = nn.MSELoss().to(device_1)
 
 # Now, let us define our loggers:
 loggers5 = generate_loggers()
@@ -152,29 +153,29 @@ for epoch in range(config['Training']['Epochs']):
         x = sample_batch['NOISY']
         y5 = dhdn_5(x.to(device_0))
         y7 = dhdn_7(x.to(device_0))
-        y9 = dhdn_9(x.to(device_0))
+        y9 = dhdn_9(x.to(device_1))
         t = sample_batch['GT']
 
         loss_value_5 = loss_5(y5, t.to(device_0))
         loss_value_7 = loss_7(y7, t.to(device_0))
-        loss_value_9 = loss_9(y9, t.to(device_0))
+        loss_value_9 = loss_9(y9, t.to(device_1))
         loss_batch_5.update(loss_value_5.item())
         loss_batch_7.update(loss_value_7.item())
         loss_batch_9.update(loss_value_9.item())
 
         # Calculate values not needing to be backpropagated
         with torch.no_grad():
-            loss_original_batch.update(loss_9(x.to(device_0), t.to(device_0)).item())
+            loss_original_batch.update(loss_9(x.to(device_1), t.to(device_1)).item())
 
             ssim_batch_5.update(SSIM(y5, t.to(device_0)).item())
             ssim_batch_7.update(SSIM(y7, t.to(device_0)).item())
-            ssim_batch_9.update(SSIM(y9, t.to(device_0)).item())
+            ssim_batch_9.update(SSIM(y9, t.to(device_1)).item())
             ssim_original_batch.update(SSIM(x, t).item())
 
             psnr_batch_5.update(PSNR(MSE(y5, t.to(device_0))).item())
             psnr_batch_7.update(PSNR(MSE(y7, t.to(device_0))).item())
-            psnr_batch_9.update(PSNR(MSE(y9, t.to(device_0))).item())
-            psnr_original_batch.update(PSNR(MSE(x.to(device_0), t.to(device_0))).item())
+            psnr_batch_9.update(PSNR(MSE(y9, t.to(device_1))).item())
+            psnr_original_batch.update(PSNR(MSE(x.to(device_1), t.to(device_1))).item())
 
         # Backpropagate to train model
         optimizer_5.zero_grad()
@@ -219,22 +220,22 @@ for epoch in range(config['Training']['Epochs']):
         with torch.no_grad():
             y_v5 = dhdn_5(x_v.to(device_0))
             y_v7 = dhdn_7(x_v.to(device_0))
-            y_v9 = dhdn_9(x_v.to(device_0))
+            y_v9 = dhdn_9(x_v.to(device_1))
 
             loss_batch_val_5.update(loss_5(y_v5, t_v.to(device_0)).item())
             loss_batch_val_7.update(loss_7(y_v7, t_v.to(device_0)).item())
-            loss_batch_val_9.update(loss_9(y_v9, t_v.to(device_0)).item())
-            loss_original_batch_val.update(loss_9(x_v.to(device_0), t_v.to(device_0)).item())
+            loss_batch_val_9.update(loss_9(y_v9, t_v.to(device_1)).item())
+            loss_original_batch_val.update(loss_9(x_v.to(device_1), t_v.to(device_1)).item())
 
             ssim_batch_val_5.update(SSIM(y_v5, t_v.to(device_0)).item())
             ssim_batch_val_7.update(SSIM(y_v7, t_v.to(device_0)).item())
-            ssim_batch_val_9.update(SSIM(y_v9, t_v.to(device_0)).item())
+            ssim_batch_val_9.update(SSIM(y_v9, t_v.to(device_1)).item())
             ssim_original_batch_val.update(SSIM(x_v, t_v).item())
 
             psnr_batch_val_5.update(PSNR(MSE(y_v5, t_v.to(device_0))).item())
             psnr_batch_val_7.update(PSNR(MSE(y_v7, t_v.to(device_0))).item())
-            psnr_batch_val_9.update(PSNR(MSE(y_v9, t_v.to(device_0))).item())
-            psnr_original_batch_val.update(PSNR(MSE(x_v.to(device_0), t_v.to(device_0))).item())
+            psnr_batch_val_9.update(PSNR(MSE(y_v9, t_v.to(device_1))).item())
+            psnr_original_batch_val.update(PSNR(MSE(x_v.to(device_1), t_v.to(device_1))).item())
 
         # Free up space in GPU
         del x_v, y_v5, y_v7, y_v9, t_v

@@ -193,8 +193,8 @@ for epoch in range(config['Training']['Epochs']):
         # Free up space in GPU
         del x_v, y_v0, y_v1, t_v
 
-        # Only do up to 25 passes for Validation
-        if i_validation > 25:
+        # Only do up to 50 passes for Validation
+        if i_validation > 50:
             break
 
     Display_Loss = "Loss_DHDN: %.6f" % loss_batch_val_0.val + "\tLoss_eDHDN: %.6f" % loss_batch_val_1.val + \
@@ -270,6 +270,9 @@ for epoch in range(config['Training']['Epochs']):
     scheduler_1.step()
 
 d1 = today.strftime("%Y_%m_%d")
+
+if not os.path.exists(os.getcwd() + '/models/'):
+    os.makedirs(os.getcwd() + '/models/')
 
 model_path_0 = os.getcwd() + '/models/{date}_dhdn_SSID.pth'.format(date=d1)
 model_path_1 = os.getcwd() + '/models/{date}_edhdn_SSID.pth'.format(date=d1)
