@@ -78,11 +78,11 @@ class DatasetDAVIS(Dataset):
 
         # Noisy image
         noisy_name = self.csv_instances.iloc[idx, 1]
-        noisy = np.load(noisy_name) / 255.  # numpy array
+        noisy = np.load(noisy_name, dtype=np.single)  # numpy array
 
         # GT image
         gt_name = self.csv_instances.iloc[idx, 2]
-        gt = np.load(gt_name) / 255.  # numpy array -> float32
+        gt = np.load(gt_name, dtype=np.single)  # numpy array -> float32
 
         # Numpy HxWxC -> Torch CxHxW
         noisy_final = torch.tensor(noisy).permute(2, 0, 1)
