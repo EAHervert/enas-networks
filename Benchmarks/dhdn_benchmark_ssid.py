@@ -14,15 +14,16 @@ from utilities.utils import CSVLogger, Logger
 from utilities.functions import SSIM, PSNR, generate_loggers
 
 # Hyperparameters
-config_path = os.getcwd() + '/configs/config_dhdn_sidd.json'
+dir_current = os.getcwd()
+config_path = dir_current + '/configs/config_dhdn_sidd.json'
 config = json.load(open(config_path))
 
 today = date.today()  # Date to label the models
 
-path_training = os.getcwd() + config['Locations']['Training_File']
-path_validation = os.getcwd() + config['Locations']['Validation_File']
+path_training = dir_current + config['Locations']['Training_File']
+path_validation = dir_current + config['Locations']['Validation_File']
 
-Result_Path = os.getcwd() + '/results/'
+Result_Path = dir_current + '/results/'
 if not os.path.isdir(Result_Path):
     os.mkdir(Result_Path)
 
@@ -271,10 +272,10 @@ for epoch in range(config['Training']['Epochs']):
 
 d1 = today.strftime("%Y_%m_%d")
 
-if not os.path.exists(os.getcwd() + '/models/'):
-    os.makedirs(os.getcwd() + '/models/')
+if not os.path.exists(dir_current + '/models/'):
+    os.makedirs(dir_current + '/models/')
 
-model_path_0 = os.getcwd() + '/models/{date}_dhdn_SIDD.pth'.format(date=d1)
-model_path_1 = os.getcwd() + '/models/{date}_edhdn_SIDD.pth'.format(date=d1)
+model_path_0 = dir_current + '/models/{date}_dhdn_SIDD.pth'.format(date=d1)
+model_path_1 = dir_current + '/models/{date}_edhdn_SIDD.pth'.format(date=d1)
 torch.save(dhdn.state_dict(), model_path_0)
 torch.save(edhdn.state_dict(), model_path_1)
