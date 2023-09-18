@@ -30,7 +30,7 @@ config['Locations']['Output_File'] += '_' + str(args.Noise)
 today = date.today()  # Date to label the models
 
 # Noise Dataset
-if args.Noise == 'SSID':
+if args.Noise == 'SIDD':
     path_training = os.getcwd() + '/instances/sidd_np_instances_064.csv'
     path_validation = os.getcwd() + '/instances/sidd_np_instances_256.csv'
     Result_Path = os.getcwd() + '/SIDD/'
@@ -131,9 +131,9 @@ loss_batch_val_7, _, ssim_batch_val_7, _, psnr_batch_val_7, _ = loggers7[1]
 loss_batch_val_9, _, ssim_batch_val_9, _, psnr_batch_val_9, _ = loggers9[1]
 
 # Load the Training and Validation Data:
-if args.Noise == 'SSID':
-    index_validation = config['Training']['List_Validation_SSID']
-    index_training = [i for i in range(config['Training']['Number_Images_SSID']) if i not in index_validation]
+if args.Noise == 'SIDD':
+    index_validation = config['Training']['List_Validation_SIDD']
+    index_training = [i for i in range(config['Training']['Number_Images_SIDD']) if i not in index_validation]
 else:
     index_validation = config['Training']['List_Validation_DAVIS']
     index_training = [i for i in range(config['Training']['Number_Images_DAVIS']) if i not in index_validation]

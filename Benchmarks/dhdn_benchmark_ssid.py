@@ -274,7 +274,7 @@ d1 = today.strftime("%Y_%m_%d")
 if not os.path.exists(os.getcwd() + '/models/'):
     os.makedirs(os.getcwd() + '/models/')
 
-model_path_0 = os.getcwd() + '/models/{date}_dhdn_SSID.pth'.format(date=d1)
-model_path_1 = os.getcwd() + '/models/{date}_edhdn_SSID.pth'.format(date=d1)
+model_path_0 = os.getcwd() + '/models/{date}_dhdn_SIDD.pth'.format(date=d1)
+model_path_1 = os.getcwd() + '/models/{date}_edhdn_SIDD.pth'.format(date=d1)
 torch.save(dhdn.state_dict(), model_path_0)
 torch.save(edhdn.state_dict(), model_path_1)

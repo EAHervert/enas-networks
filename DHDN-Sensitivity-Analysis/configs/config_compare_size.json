@@ -1,7 +1,7 @@
 {
   "Description": "DHDN_Compare",
   "Locations": {
-    "Output_File": "DHDN_Compare_SIDD"
+    "Output_File": "DHDN_Compare_Size"
   },
   "Training": {
     "Epochs": 25,
