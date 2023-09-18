@@ -6,7 +6,7 @@
   },
   "Training": {
     "Epochs": 25,
-    "Train_Batch_Size": 16,
+    "Train_Batch_Size": 32,
     "Validation_Batch_Size": 16,
     "Learning_Rate": 1e-4,
     "Number_Images": 2754,
