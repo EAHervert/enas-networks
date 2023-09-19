@@ -2,28 +2,46 @@ import os
 import sys
 from utilities import dataset
 from ENAS_DHDN import SHARED_DHDN as DHDN
-from datetime import date
+import datetime
 import json
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import visdom
+import argparse
 
 from utilities.utils import CSVLogger, Logger
 from utilities.functions import SSIM, PSNR, generate_loggers
 
+# Parser
+parser = argparse.ArgumentParser(
+    prog='DHDN_Benchmark',
+    description='Compares Vanilla DHDN to optimized DHDN',
+)
+parser.add_argument('Noise')  # positional argument
+args = parser.parse_args()
+
 # Hyperparameters
 dir_current = os.getcwd()
-config_path = dir_current + '/configs/config_dhdn_sidd.json'
+config_path = dir_current + '/configs/config_dhdn.json'
 config = json.load(open(config_path))
 
-today = date.today()  # Date to label the models
+current_time = datetime.datetime.now()
 
-path_training = dir_current + config['Locations']['Training_File']
-path_validation = dir_current + config['Locations']['Validation_File']
+# Noise Dataset
+if args.Noise == 'SIDD':
+    path_training = dir_current + '/instances/sidd_np_instances_064.csv'
+    path_validation = dir_current + '/instances/sidd_np_instances_256.csv'
+    Result_Path = dir_current + '/SIDD/'
+elif args.Noise in ['GAUSSIAN_10', 'GAUSSIAN_25', 'GAUSSIAN_50', 'RAIN', 'SALT_PEPPER', 'MIXED']:
+    path_training = dir_current + '/instances/davis_np_instances_128.csv'
+    path_validation = dir_current + '/instances/davis_np_instances_256.csv'
+    Result_Path = dir_current + '/{noise}/'.format(noise=args.Noise)
+else:
+    print('Incorrect Noise Selection!')
+    exit()
 
-Result_Path = dir_current + '/results/'
 if not os.path.isdir(Result_Path):
     os.mkdir(Result_Path)
 
@@ -39,21 +57,13 @@ Field_Names = ['Loss_Batch_0', 'Loss_Batch_1', 'Loss_Val_0', 'Loss_Val_1', 'Loss
 Logger = CSVLogger(fieldnames=Field_Names, filename=File_Name)
 
 # Define the devices:
-if config['CUDA']['Device0'] != 'None':
-    device_0 = torch.device(config['CUDA']['Device0'])
-else:
-    device_0 = torch.device("cpu")
-
-if config['CUDA']['Device1'] != 'None':
-    device_1 = torch.device(config['CUDA']['Device1'])
-else:
-    device_1 = torch.device("cpu")
+device_0 = torch.device(config['CUDA']['Device0'])
+device_1 = torch.device(config['CUDA']['Device1'])
 
 # Load the models:
 encoder_0 = [0, 0, 0, 0, 0, 0, 0, 0, 0]  # vanilla DHDN
 encoder_1 = [0, 0, 2, 0, 0, 2, 0, 0, 2]  # Best searched model
-bottleneck = [0, 0]
-decoder = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+bottleneck, decoder = [0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]
 dhdn_architecture = encoder_0 + bottleneck + decoder
 edhdn_architecture = encoder_1 + bottleneck + decoder
 
@@ -105,7 +115,7 @@ index_validation = config['Training']['List_Validation']
 index_training = [i for i in range(config['Training']['Number_Images']) if i not in index_validation]
 SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing(),
                                     index_set=index_training)
-SIDD_validation = dataset.DatasetSIDD(csv_file=path_validation, index_set=index_validation)
+SIDD_validation = dataset.DatasetSIDD(csv_file=path_validation, index_set=index_validation, raw_images=True)
 
 dataloader_sidd_training = DataLoader(dataset=SIDD_training, batch_size=config['Training']['Train_Batch_Size'],
                                       shuffle=True, num_workers=16)
@@ -174,22 +184,27 @@ for epoch in range(config['Training']['Epochs']):
 
     for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
         x_v = validation_batch['NOISY']
+        x_v_raw = validation_batch['NOISY_RAW']
         t_v = validation_batch['GT']
+        t_v_raw = validation_batch['GT_RAW']
         with torch.no_grad():
             y_v0 = dhdn(x_v.to(device_0))
             y_v1 = edhdn(x_v.to(device_1))
+
+            y_v0_raw = torch.round(y_v0 * 255)
+            y_v1_raw = torch.round(y_v1 * 255)
 
             loss_batch_val_0.update(loss_0(y_v0, t_v.to(device_0)).item())
             loss_batch_val_1.update(loss_1(y_v1, t_v.to(device_1)).item())
             loss_original_batch_val.update(loss_0(x_v.to(device_0), t_v.to(device_0)).item())
 
-            ssim_batch_val_0.update(SSIM(y_v0, t_v.to(device_0)).item())
-            ssim_batch_val_1.update(SSIM(y_v1, t_v.to(device_1)).item())
-            ssim_original_batch_val.update(SSIM(x_v, t_v).item())
+            ssim_batch_val_0.update(SSIM(y_v0_raw, t_v_raw.to(device_0)).item())
+            ssim_batch_val_1.update(SSIM(y_v1_raw, t_v_raw.to(device_1)).item())
+            ssim_original_batch_val.update(SSIM(x_v_raw, t_v_raw).item())
 
-            psnr_batch_val_0.update(PSNR(MSE(y_v0, t_v.to(device_0))).item())
-            psnr_batch_val_1.update(PSNR(MSE(y_v1.to(device_0), t_v.to(device_0))).item())
-            psnr_original_batch_val.update(PSNR(MSE(x_v.to(device_0), t_v.to(device_0))).item())
+            psnr_batch_val_0.update(PSNR(MSE(y_v0_raw, t_v_raw.to(device_0))).item())
+            psnr_batch_val_1.update(PSNR(MSE(y_v1_raw, t_v_raw.to(device_1))).item())
+            psnr_original_batch_val.update(PSNR(MSE(x_v_raw.to(device_0), t_v_raw.to(device_0))).item())
 
         # Free up space in GPU
         del x_v, y_v0, y_v1, t_v
@@ -270,7 +285,7 @@ for epoch in range(config['Training']['Epochs']):
     scheduler_0.step()
     scheduler_1.step()
 
-d1 = today.strftime("%Y_%m_%d")
+d1 = current_time.strftime('%Y_%m_%d_%H_%M_%S_%f')
 
 if not os.path.exists(dir_current + '/models/'):
     os.makedirs(dir_current + '/models/')

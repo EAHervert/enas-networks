@@ -13,7 +13,7 @@ warnings.filterwarnings("ignore")
 class DatasetSIDD(Dataset):
     """SIDD dataset."""
 
-    def __init__(self, csv_file, transform=None, index_set=None):
+    def __init__(self, csv_file, transform=None, index_set=None, raw_images=False):
         """
         Arguments:
             csv_file (string): Path to the csv file with annotations.
@@ -24,6 +24,7 @@ class DatasetSIDD(Dataset):
         if index_set is not None:
             self.csv_instances = self.csv_instances[self.csv_instances['INDEX'].isin(index_set)]
         self.transform = transform
+        self.raw_images = raw_images
 
     def __len__(self):
         return len(self.csv_instances)
@@ -34,18 +35,25 @@ class DatasetSIDD(Dataset):
 
         # Noisy image
         noisy_name = self.csv_instances.iloc[idx, 1]
-        noisy = np.load(noisy_name) / 255.  # numpy array
+        noisy = np.load(noisy_name)  # numpy array
 
         # GT image
         gt_name = self.csv_instances.iloc[idx, 2]
-        gt = np.load(gt_name) / 255.  # numpy array -> float32
+        gt = np.load(gt_name)  # numpy array -> float32
 
         # Numpy HxWxC -> Torch CxHxW
         noisy_final = torch.tensor(noisy).permute(2, 0, 1)
         gt_final = torch.tensor(gt).permute(2, 0, 1)
 
         # Final sample output
-        sample_item = {'NOISY': noisy_final, 'GT': gt_final}
+        if self.raw_images:
+            sample_item = {'NOISY': noisy_final / 255.,
+                           'NOISY_RAW': noisy_final,
+                           'GT': gt_final / 255.,
+                           'GT_RAW': gt_final}
+        else:
+            sample_item = {'NOISY': noisy_final / 255.,
+                           'GT': gt_final / 255.}
 
         if self.transform:
             sample_item = self.transform(sample_item)
@@ -56,7 +64,7 @@ class DatasetSIDD(Dataset):
 class DatasetDAVIS(Dataset):
     """DAVIS dataset."""
 
-    def __init__(self, csv_file, noise_choice='GAUSSIAN_10', transform=None, index_set=None):
+    def __init__(self, csv_file, noise_choice='GAUSSIAN_10', transform=None, index_set=None, raw_images=False):
         """
         Arguments:
             csv_file (string): Path to the csv file with annotations.
@@ -68,6 +76,7 @@ class DatasetDAVIS(Dataset):
         if index_set is not None:
             self.csv_instances = self.csv_instances[self.csv_instances['INDEX'].isin(index_set)]
         self.transform = transform
+        self.raw_images = raw_images
 
     def __len__(self):
         return len(self.csv_instances)
@@ -89,7 +98,14 @@ class DatasetDAVIS(Dataset):
         gt_final = torch.tensor(gt).permute(2, 0, 1)
 
         # Final sample output
-        sample_item = {'NOISY': noisy_final, 'GT': gt_final}
+        if self.raw_images:
+            sample_item = {'NOISY': noisy_final / 255.,
+                           'NOISY_RAW': noisy_final,
+                           'GT': gt_final / 255.,
+                           'GT_RAW': gt_final}
+        else:
+            sample_item = {'NOISY': noisy_final / 255.,
+                           'GT': gt_final / 255.}
 
         if self.transform:
             sample_item = self.transform(sample_item)
