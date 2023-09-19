@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 from utilities import dataset
 from ENAS_DHDN import SHARED_DHDN as DHDN
@@ -112,6 +113,7 @@ loss_batch_val_1, _, ssim_batch_val_1, _, psnr_batch_val_1, _ = loggers1[1]
 
 # Load the Training and Validation Data:
 index_validation = config['Training']['List_Validation']
+index_validation = random.choices(index_validation, k=len(index_validation) // 2)
 index_training = [i for i in range(config['Training']['Number_Images']) if i not in index_validation]
 SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing(),
                                     index_set=index_training)
