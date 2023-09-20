@@ -41,63 +41,6 @@ def macro_array(k, kernel_array, down_array, up_array):
     return array
 
 
-def list_instances(instances_training, instances_validation, partition):
-    # Training Instances:
-    with open(instances_training, newline='') as f:
-        reader = csv.reader(f)
-        list_training = list(reader)
-
-    f.close()
-
-    list_training = list_training[1:]
-
-    # Validation Instances:
-    with open(instances_validation, newline='') as f:
-        reader = csv.reader(f)
-        list_validation = list(reader)
-
-    f.close()
-
-    list_validation = list_validation[1:]
-
-    size = len(list_training)
-
-    permutation = np.random.permutation(size)
-    training_size = (size // partition) * (partition - 1)
-
-    training_permutation = permutation[0:training_size]
-    validation_permutation = permutation[training_size:size]
-
-    training_instances = np.array(list_training)[training_permutation].tolist()
-    validation_instances = np.array(list_validation)[validation_permutation].tolist()
-
-    return training_instances, validation_instances
-
-
-def create_batches(instances, batch_number):
-    size = len(instances)
-    random.shuffle(instances)
-
-    i = 0
-
-    batch = []
-    if batch_number <= size:
-        for i in range(size // batch_number):
-            begin = i * batch_number
-            end = (i + 1) * batch_number
-
-            batch.append(instances[begin:end])
-
-            i += 1
-
-        if end < size:
-            batch.append(instances[end:size])
-    else:
-        batch = [instances]
-
-    return batch
-
-
 def display_time(time):
     time = abs(time)  # In case of Negative Time
     hours = time // (60 * 60)
