@@ -13,6 +13,16 @@ def get_out(out_tensor):
     return out
 
 
+def transform_tensor(in_tensor, r=0, s=0):
+    out_tensor = in_tensor
+    if s == 1:
+        out_tensor = torch.flip(in_tensor, dims=[2, 3])
+    if r != 0:
+        out_tensor = torch.rot90(out_tensor, k=r, dims=[2, 3])
+
+    return out_tensor
+
+
 # Load benchmark data for processing
 mat_file = os.getcwd() + '/data/ValidationNoisyBlocksSrgb.mat'
 mat = loadmat(mat_file)
@@ -59,13 +69,13 @@ for i in range(size[0]):
     x_sample_np = (x_sample.astype(dtype=float) / 255)[:, :, :, ::-1]
 
     x_sample_pt = torch.tensor(x_sample_np.copy(), dtype=torch.float).permute(0, 3, 1, 2)
-    r_x_sample_pt = torch.rot90(x_sample_pt, dims=[2, 3])
-    rr_x_sample_pt = torch.rot90(x_sample_pt, k=2, dims=[2, 3])
-    rrr_x_sample_pt = torch.rot90(x_sample_pt, k=3, dims=[2, 3])
-    s_x_sample_pt = torch.flip(x_sample_pt, dims=[2, 3])
-    rs_x_sample_pt = torch.rot90(torch.flip(x_sample_pt, dims=[2, 3]), dims=[2, 3])
-    rrs_x_sample_pt = torch.rot90(torch.flip(x_sample_pt, dims=[2, 3]), k=2, dims=[2, 3])
-    rrrs_x_sample_pt = torch.rot90(torch.flip(x_sample_pt, dims=[2, 3]), k=3, dims=[2, 3])
+    r_x_sample_pt = transform_tensor(x_sample_pt, r=1, s=0)
+    rr_x_sample_pt = transform_tensor(x_sample_pt, r=2, s=0)
+    rrr_x_sample_pt = transform_tensor(x_sample_pt, r=3, s=0)
+    s_x_sample_pt = transform_tensor(x_sample_pt, r=0, s=1)
+    rs_x_sample_pt = transform_tensor(x_sample_pt, r=1, s=1)
+    rrs_x_sample_pt = transform_tensor(x_sample_pt, r=2, s=1)
+    rrrs_x_sample_pt = transform_tensor(x_sample_pt, r=3, s=1)
 
     with torch.no_grad():
         y_dhdn = dhdn(x_sample_pt.to(device0))
@@ -87,12 +97,16 @@ for i in range(size[0]):
         srrr_y_edhdn = edhdn(rrrs_x_sample_pt.to(device1))
 
     y_dhdn_out = get_out(y_dhdn)
-    y_dhdn_out_plus = get_out((y_dhdn + r_y_dhdn + rr_y_dhdn + rrr_y_dhdn + s_y_dhdn + sr_y_dhdn + srr_y_dhdn +
-                               srrr_y_dhdn) / 8)
+    y_dhdn_out_plus = get_out(y_dhdn + transform_tensor(r_y_dhdn, r=3, s=0) + transform_tensor(rr_y_dhdn, r=2, s=0) +
+                              transform_tensor(rrr_y_dhdn, r=1, s=0) + transform_tensor(s_y_dhdn, r=0, s=1) +
+                              transform_tensor(sr_y_dhdn, r=3, s=1) + transform_tensor(srr_y_dhdn, r=2, s=1) +
+                              transform_tensor(srrr_y_dhdn, r=1, s=1) / 8)
 
     y_edhdn_out = get_out(y_edhdn)
-    y_edhdn_out_plus = get_out((y_edhdn + r_y_edhdn + rr_y_edhdn + rrr_y_edhdn + s_y_edhdn + sr_y_edhdn + srr_y_edhdn +
-                                srrr_y_edhdn) / 8)
+    y_edhdn_out_plus = get_out(y_edhdn + transform_tensor(r_y_edhdn, r=3, s=0) + transform_tensor(rr_y_edhdn, r=2, s=0)
+                               + transform_tensor(rrr_y_edhdn, r=1, s=0) + transform_tensor(s_y_edhdn, r=0, s=1) +
+                               transform_tensor(sr_y_edhdn, r=3, s=1) + transform_tensor(srr_y_edhdn, r=2, s=1) +
+                               transform_tensor(srrr_y_edhdn, r=1, s=1) / 8)
 
     y_dhdn_final.append(y_dhdn_out)
     y_edhdn_final.append(y_dhdn_out)
@@ -118,7 +132,7 @@ savemat(file_edhdn, mat_edhdn)
 y_dhdn_final_plus = np.array(y_dhdn_final_plus, dtype=np.uint8)
 y_edhdn_final_plus = np.array(y_edhdn_final_plus, dtype=np.uint8)
 file_dhdn_plus = 'results/ensemble/dhdn/SubmitSrgb.mat'
-file_edhdn_plus = 'results/ensemble/ensemble/SubmitSrgb.mat'
+file_edhdn_plus = 'results/ensemble/edhdn/SubmitSrgb.mat'
 mat_dhdn_plus = mat.copy()
 mat_edhdn_plus = mat.copy()
 mat_dhdn_plus['BenchmarkNoisyBlocksSrgb'] = y_dhdn_final_plus
