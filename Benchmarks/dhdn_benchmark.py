@@ -31,16 +31,17 @@ config_path = dir_current + '/configs/config_dhdn.json'
 config = json.load(open(config_path))
 
 current_time = datetime.datetime.now()
+d1 = current_time.strftime('%Y_%m_%d__%H_%M_%S')
 
 # Noise Dataset
 if args.Noise == 'SIDD':
     path_training = dir_current + '/instances/sidd_np_instances_064.csv'
     path_validation = dir_current + '/instances/sidd_np_instances_256.csv'
-    Result_Path = dir_current + '/SIDD/'
+    Result_Path = dir_current + '/SIDD/{date}/'.format(date=d1)
 elif args.Noise in ['GAUSSIAN_10', 'GAUSSIAN_25', 'GAUSSIAN_50', 'RAIN', 'SALT_PEPPER', 'MIXED']:
     path_training = dir_current + '/instances/davis_np_instances_128.csv'
     path_validation = dir_current + '/instances/davis_np_instances_256.csv'
-    Result_Path = dir_current + '/{noise}/'.format(noise=args.Noise)
+    Result_Path = dir_current + '/{noise}/{date}/'.format(noise=args.Noise, date=d1)
 else:
     print('Incorrect Noise Selection!')
     exit()
@@ -98,7 +99,7 @@ vis = visdom.Visdom(
 
 # Display the data to the window:
 vis.env = config['Locations']['Output_File']
-vis_window = {'SSIM': None, 'PSNR': None}
+vis_window = {'SSIM_{date}'.format(date=d1): None, 'PSNR_{date}'.format(date=d1): None}
 
 # Training Optimization and Scheduling:
 optimizer_0 = torch.optim.Adam(dhdn.parameters(), config['Training']['Learning_Rate'])
@@ -262,7 +263,7 @@ for epoch in range(config['Training']['Epochs']):
 
     Legend = ['DHDN_Train', 'eDHDN_Train', 'Orig_Train', 'DHDN_Val', 'eDHDN_Val', 'Orig_Val']
 
-    vis_window['SSIM'] = vis.line(
+    vis_window['SSIM_{date}'.format(date=d1)] = vis.line(
         X=np.column_stack([epoch] * 6),
         Y=np.column_stack([ssim_batch_0.avg, ssim_batch_1.avg, ssim_original_batch.avg,
                            ssim_batch_val_0.avg, ssim_batch_val_1.avg, ssim_original_batch_val.avg]),
@@ -270,7 +271,7 @@ for epoch in range(config['Training']['Epochs']):
         opts=dict(title='SSIM', xlabel='Epoch', ylabel='SSIM', legend=Legend),
         update='append' if epoch > 0 else None)
 
-    vis_window['PSNR'] = vis.line(
+    vis_window['PSNR_{date}'.format(date=d1)] = vis.line(
         X=np.column_stack([epoch] * 6),
         Y=np.column_stack([psnr_batch_0.avg, psnr_batch_1.avg, psnr_original_batch.avg,
                            psnr_batch_val_0.avg, psnr_batch_val_1.avg, psnr_original_batch_val.avg]),
@@ -299,8 +300,6 @@ for epoch in range(config['Training']['Epochs']):
 
     scheduler_0.step()
     scheduler_1.step()
-
-d1 = current_time.strftime('%Y_%m_%d__%H_%M_%S')
 
 if not os.path.exists(dir_current + '/models/'):
     os.makedirs(dir_current + '/models/')
