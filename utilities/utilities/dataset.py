@@ -118,15 +118,18 @@ class RandomProcessing(object):
     """Randomly flip the image in the H and W channel"""
 
     def __call__(self, sample):
+        r_val = np.random.choice([0, 1, 2, 3])  # Rotates image 90 degrees r_val times
+        s_val = np.random.choice([0, 1])  # Flip image book
 
         noisy = sample['NOISY']
         gt = sample['GT']
-        if bool(random.getrandbits(1)):
-            noisy = noisy.flip(dims=(1,))
-            gt = gt.flip(dims=(1,))
-        if bool(random.getrandbits(1)):
-            noisy = noisy.flip(dims=(2,))
-            gt = gt.flip(dims=(2,))
+
+        if s_val:
+            noisy = noisy[:, ::-1, :]
+            gt = gt[:, ::-1, :]
+
+        noisy = np.rot90(noisy, k=r_val, axes=(0, 1))
+        gt = np.rot90(gt, k=r_val, axes=(0, 1))
 
         return {'NOISY': noisy,
                 'GT': gt}

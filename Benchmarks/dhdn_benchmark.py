@@ -1,5 +1,4 @@
 import os
-import random
 import sys
 from utilities import dataset
 from ENAS_DHDN import SHARED_DHDN as DHDN
@@ -15,14 +14,17 @@ import argparse
 from utilities.utils import CSVLogger, Logger
 from utilities.functions import SSIM, PSNR, generate_loggers, drop_weights, gaussian_add_weights
 
+current_time = datetime.datetime.now()
+d1 = current_time.strftime('%Y_%m_%d__%H_%M_%S')
+
 # Parser
 parser = argparse.ArgumentParser(
-    prog='DHDN_Benchmark',
+    prog='DHDN_Benchmark_{date}'.format(date=d1),
     description='Compares Vanilla DHDN to optimized DHDN',
 )
 parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to train on
-parser.add_argument('--drop', default='-1', type=float)  # to use drop weights for model weight initialization
-parser.add_argument('--gaussian', default='-1', type=float)  # to use gaussian noise addition for model weight initialization
+parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
+parser.add_argument('--gaussian', default='-1', type=float)  # Gaussian noise addition for model weight # initialization
 args = parser.parse_args()
 
 # Hyperparameters
@@ -30,18 +32,15 @@ dir_current = os.getcwd()
 config_path = dir_current + '/configs/config_dhdn.json'
 config = json.load(open(config_path))
 
-current_time = datetime.datetime.now()
-d1 = current_time.strftime('%Y_%m_%d__%H_%M_%S')
-
 # Noise Dataset
-if args.Noise == 'SIDD':
+if args.noise == 'SIDD':
     path_training = dir_current + '/instances/sidd_np_instances_064.csv'
     path_validation = dir_current + '/instances/sidd_np_instances_256.csv'
     Result_Path = dir_current + '/SIDD/{date}/'.format(date=d1)
-elif args.Noise in ['GAUSSIAN_10', 'GAUSSIAN_25', 'GAUSSIAN_50', 'RAIN', 'SALT_PEPPER', 'MIXED']:
+elif args.noise in ['GAUSSIAN_10', 'GAUSSIAN_25', 'GAUSSIAN_50', 'RAIN', 'SALT_PEPPER', 'MIXED']:
     path_training = dir_current + '/instances/davis_np_instances_128.csv'
     path_validation = dir_current + '/instances/davis_np_instances_256.csv'
-    Result_Path = dir_current + '/{noise}/{date}/'.format(noise=args.Noise, date=d1)
+    Result_Path = dir_current + '/{noise}/{date}/'.format(noise=args.noise, date=d1)
 else:
     print('Incorrect Noise Selection!')
     exit()
@@ -267,16 +266,16 @@ for epoch in range(config['Training']['Epochs']):
         X=np.column_stack([epoch] * 6),
         Y=np.column_stack([ssim_batch_0.avg, ssim_batch_1.avg, ssim_original_batch.avg,
                            ssim_batch_val_0.avg, ssim_batch_val_1.avg, ssim_original_batch_val.avg]),
-        win=vis_window['SSIM'],
-        opts=dict(title='SSIM', xlabel='Epoch', ylabel='SSIM', legend=Legend),
+        win=vis_window['SSIM_{date}'.format(date=d1)],
+        opts=dict(title='SSIM_{date}'.format(date=d1), xlabel='Epoch', ylabel='SSIM', legend=Legend),
         update='append' if epoch > 0 else None)
 
     vis_window['PSNR_{date}'.format(date=d1)] = vis.line(
         X=np.column_stack([epoch] * 6),
         Y=np.column_stack([psnr_batch_0.avg, psnr_batch_1.avg, psnr_original_batch.avg,
                            psnr_batch_val_0.avg, psnr_batch_val_1.avg, psnr_original_batch_val.avg]),
-        win=vis_window['PSNR'],
-        opts=dict(title='PSNR', xlabel='Epoch', ylabel='PSNR', legend=Legend),
+        win=vis_window['PSNR_{date}'.format(date=d1)],
+        opts=dict(title='PSNR_{date}'.format(date=d1), xlabel='Epoch', ylabel='PSNR', legend=Legend),
         update='append' if epoch > 0 else None)
 
     loss_batch_0.reset()

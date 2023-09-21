@@ -3,24 +3,7 @@ from scipy.io import loadmat, savemat
 import numpy as np
 import torch
 from ENAS_DHDN import SHARED_DHDN as DHDN
-
-
-# Functions:
-def get_out(out_tensor):
-    out_np = out_tensor.permute(0, 2, 3, 1).cpu().numpy()[:, :, :, ::-1]
-    out = np.clip((out_np * 255).round(), 0, 255).astype(np.uint8).tolist()
-
-    return out
-
-
-def transform_tensor(in_tensor, r=0, s=0):
-    out_tensor = in_tensor
-    if s == 1:
-        out_tensor = torch.flip(in_tensor, dims=[2, 3])
-    if r != 0:
-        out_tensor = torch.rot90(out_tensor, k=r, dims=[2, 3])
-
-    return out_tensor
+from utilities.functions import transform_tensor, get_out
 
 
 # Load benchmark data for processing
