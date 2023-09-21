@@ -151,26 +151,26 @@ def generate_loggers():
     return batch_loggers, val_loggers
 
 
-def drop_weights(state_dict, p=0.8):
+def drop_weights(state_dict, p=0.8, device='cpu'):
     state_dict_out = state_dict.copy()
 
     for key in state_dict.keys():
         tensor = state_dict_out[key]
         mask = (torch.randn(tensor.size()) < p) * 1.
 
-        state_dict_out[key] = torch.mul(tensor, mask)
+        state_dict_out[key] = torch.mul(tensor, mask.to(device))
 
     return state_dict_out
 
 
-def gaussian_add_weights(state_dict, k=1):
+def gaussian_add_weights(state_dict, k=1, device='cpu'):
     state_dict_out = state_dict.copy()
 
     for key in state_dict.keys():
         tensor = state_dict_out[key]
         noise = k * torch.randn(tensor.size())
 
-        state_dict_out[key] = tensor + noise
+        state_dict_out[key] = tensor + noise.to(device)
 
     return state_dict_out
 

@@ -81,9 +81,11 @@ if config['Training']['Load_Previous_Model']:
     state_dict_edhdn = torch.load(dir_current + config['Training']['Model_Path_EDHDN'], map_location=device_1)
 
     if args.drop > 0:
-        state_dict_dhdn = drop_weights(state_dict_edhdn, p=args.drop)
+        state_dict_dhdn = drop_weights(state_dict_dhdn, p=args.drop, device=device_0)
+        state_dict_edhdn = drop_weights(state_dict_edhdn, p=args.drop, device=device_1)
     if args.gaussian > 0:
-        state_dict_dhdn = gaussian_add_weights(state_dict_edhdn, k=args.gaussian)
+        state_dict_dhdn = gaussian_add_weights(state_dict_dhdn, k=args.gaussian, device=device_0)
+        state_dict_edhdn = gaussian_add_weights(state_dict_edhdn, k=args.gaussian, device=device_1)
 
     dhdn.load_state_dict(state_dict_dhdn)
     edhdn.load_state_dict(state_dict_edhdn)
