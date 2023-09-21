@@ -125,11 +125,11 @@ class RandomProcessing(object):
         gt = sample['GT']
 
         if s_val:
-            noisy = noisy[:, ::-1, :]
-            gt = gt[:, ::-1, :]
+            noisy = torch.flip(noisy, dims=[1, 2])
+            gt = torch.flip(gt, dims=[1, 2])
 
-        noisy = np.rot90(noisy, k=r_val, axes=(0, 1))
-        gt = np.rot90(gt, k=r_val, axes=(0, 1))
+        noisy = torch.rot90(noisy, k=r_val, dims=[1, 2])
+        gt = torch.rot90(gt, k=r_val, dims=[1, 2])
 
         return {'NOISY': noisy,
                 'GT': gt}
