@@ -13,14 +13,16 @@ import visdom
 import argparse
 
 from utilities.utils import CSVLogger, Logger
-from utilities.functions import SSIM, PSNR, generate_loggers
+from utilities.functions import SSIM, PSNR, generate_loggers, drop_weights, gaussian_add_weights
 
 # Parser
 parser = argparse.ArgumentParser(
     prog='DHDN_Benchmark',
     description='Compares Vanilla DHDN to optimized DHDN',
 )
-parser.add_argument('Noise')  # positional argument
+parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to train on
+parser.add_argument('--drop', default='-1', type=float)  # to use drop weights for model weight initialization
+parser.add_argument('--gaussian', default='-1', type=float)  # to use gaussian noise addition for model weight initialization
 args = parser.parse_args()
 
 # Hyperparameters
@@ -74,6 +76,18 @@ edhdn = DHDN.SharedDHDN(architecture=edhdn_architecture)
 dhdn.to(device_0)
 edhdn.to(device_1)
 
+if config['Training']['Load_Previous_Model']:
+    state_dict_dhdn = torch.load(dir_current + config['Training']['Model_Path_DHDN'], map_location=device_0)
+    state_dict_edhdn = torch.load(dir_current + config['Training']['Model_Path_EDHDN'], map_location=device_1)
+
+    if args.drop > 0:
+        state_dict_dhdn = drop_weights(state_dict_edhdn, p=args.drop)
+    if args.gaussian > 0:
+        state_dict_dhdn = gaussian_add_weights(state_dict_edhdn, k=args.gaussian)
+
+    dhdn.load_state_dict(state_dict_dhdn)
+    edhdn.load_state_dict(state_dict_edhdn)
+
 # Create the Visdom window:
 # This window will show the SSIM and PSNR of the different networks.
 vis = visdom.Visdom(
@@ -113,7 +127,6 @@ loss_batch_val_1, _, ssim_batch_val_1, _, psnr_batch_val_1, _ = loggers1[1]
 
 # Load the Training and Validation Data:
 index_validation = config['Training']['List_Validation']
-index_validation = random.choices(index_validation, k=len(index_validation) // 2)
 index_training = [i for i in range(config['Training']['Number_Images']) if i not in index_validation]
 SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing(),
                                     index_set=index_training)
@@ -287,7 +300,7 @@ for epoch in range(config['Training']['Epochs']):
     scheduler_0.step()
     scheduler_1.step()
 
-d1 = current_time.strftime('%Y_%m_%d_%H_%M_%S_%f')
+d1 = current_time.strftime('%Y_%m_%d__%H_%M_%S')
 
 if not os.path.exists(dir_current + '/models/'):
     os.makedirs(dir_current + '/models/')

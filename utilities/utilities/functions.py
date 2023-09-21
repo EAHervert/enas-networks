@@ -150,3 +150,27 @@ def generate_loggers():
                    psnr_original_meter_val)
 
     return batch_loggers, val_loggers
+
+
+def drop_weights(state_dict, p=0.8):
+    state_dict_out = state_dict.copy()
+
+    for key in state_dict.keys():
+        tensor = state_dict_out[key]
+        mask = (torch.randn(tensor.size()) < p) * 1.
+
+        state_dict_out[key] = torch.mul(tensor, mask)
+
+    return state_dict_out
+
+
+def gaussian_add_weights(state_dict, k=1):
+    state_dict_out = state_dict.copy()
+
+    for key in state_dict.keys():
+        tensor = state_dict_out[key]
+        noise = k * torch.randn(tensor.size())
+
+        state_dict_out[key] = tensor + noise
+
+    return state_dict_out
