@@ -58,7 +58,7 @@ for i in range(size[0]):
     t_sample = t_samples[i, :, :, :, :]
     t_sample_np = (t_sample.astype(dtype=float) / 255)
 
-    x_sample_pt = torch.tensor(x_sample_np.copy(), dtype=torch.float).permute(0, 3, 1, 2)
+    x_sample_pt = torch.tensor(x_sample_np, dtype=torch.float).permute(0, 3, 1, 2)
     r_x_sample_pt = transform_tensor(x_sample_pt, r=1, s=0)
     rr_x_sample_pt = transform_tensor(x_sample_pt, r=2, s=0)
     rrr_x_sample_pt = transform_tensor(x_sample_pt, r=3, s=0)
@@ -67,7 +67,7 @@ for i in range(size[0]):
     rrs_x_sample_pt = transform_tensor(x_sample_pt, r=2, s=1)
     rrrs_x_sample_pt = transform_tensor(x_sample_pt, r=3, s=1)
 
-    t_sample_pt = torch.tensor(t_sample_np.copy(), dtype=torch.float).permute(0, 3, 1, 2)
+    t_sample_pt = torch.tensor(t_sample_np, dtype=torch.float).permute(0, 3, 1, 2)
 
     with torch.no_grad():
         y_dhdn = dhdn(x_sample_pt.to(device0))
@@ -127,7 +127,7 @@ for i in range(size[0]):
 
     y_dhdn_final.append(y_dhdn_out)
     y_dhdn_final_plus.append(y_dhdn_out_plus)
-    y_edhdn_final.append(y_dhdn_out)
+    y_edhdn_final.append(y_edhdn_out)
     y_edhdn_final_plus.append(y_edhdn_out_plus)
 
     del x_sample_pt

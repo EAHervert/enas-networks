@@ -184,7 +184,7 @@ def get_out(out_tensor):
 
 
 def transform_tensor(in_tensor, r=0, s=0):
-    out_tensor = in_tensor
+    out_tensor = in_tensor.clone().detach()
     if s == 1:
         out_tensor = torch.flip(in_tensor, dims=[2, 3])
     if r != 0:
