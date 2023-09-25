@@ -132,7 +132,7 @@ index_validation = config['Training']['List_Validation']
 index_training = [i for i in range(config['Training']['Number_Images']) if i not in index_validation]
 SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing(),
                                     index_set=index_training)
-SIDD_validation = dataset.DatasetSIDD(csv_file=path_validation, index_set=index_validation, raw_images=True)
+SIDD_validation = dataset.DatasetSIDD(csv_file=path_validation, index_set=index_validation)
 
 dataloader_sidd_training = DataLoader(dataset=SIDD_training, batch_size=config['Training']['Train_Batch_Size'],
                                       shuffle=True, num_workers=16)
@@ -201,27 +201,22 @@ for epoch in range(config['Training']['Epochs']):
 
     for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
         x_v = validation_batch['NOISY']
-        x_v_raw = validation_batch['NOISY_RAW']
         t_v = validation_batch['GT']
-        t_v_raw = validation_batch['GT_RAW']
         with torch.no_grad():
             y_v0 = dhdn(x_v.to(device_0))
             y_v1 = edhdn(x_v.to(device_1))
-
-            y_v0_raw = torch.round(y_v0 * 255)
-            y_v1_raw = torch.round(y_v1 * 255)
 
             loss_batch_val_0.update(loss_0(y_v0, t_v.to(device_0)).item())
             loss_batch_val_1.update(loss_1(y_v1, t_v.to(device_1)).item())
             loss_original_batch_val.update(loss_0(x_v.to(device_0), t_v.to(device_0)).item())
 
-            ssim_batch_val_0.update(SSIM(y_v0_raw, t_v_raw.to(device_0)).item())
-            ssim_batch_val_1.update(SSIM(y_v1_raw, t_v_raw.to(device_1)).item())
-            ssim_original_batch_val.update(SSIM(x_v_raw, t_v_raw).item())
+            ssim_batch_val_0.update(SSIM(y_v0, t_v.to(device_0)).item())
+            ssim_batch_val_1.update(SSIM(y_v1, t_v.to(device_1)).item())
+            ssim_original_batch_val.update(SSIM(x_v, t_v).item())
 
-            psnr_batch_val_0.update(PSNR(MSE(y_v0_raw, t_v_raw.to(device_0))).item())
-            psnr_batch_val_1.update(PSNR(MSE(y_v1_raw, t_v_raw.to(device_1))).item())
-            psnr_original_batch_val.update(PSNR(MSE(x_v_raw.to(device_0), t_v_raw.to(device_0))).item())
+            psnr_batch_val_0.update(PSNR(MSE(y_v0, t_v.to(device_0))).item())
+            psnr_batch_val_1.update(PSNR(MSE(y_v1, t_v.to(device_1))).item())
+            psnr_original_batch_val.update(PSNR(MSE(x_v.to(device_0), t_v.to(device_0))).item())
 
         # Free up space in GPU
         del x_v, y_v0, y_v1, t_v
