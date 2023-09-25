@@ -53,10 +53,10 @@ y_edhdn_final_plus = []
 
 for i in range(size[0]):
     x_sample = x_samples[i, :, :, :, :]
-    x_sample_np = (x_sample.astype(dtype=float) / 255)[:, :, :, ::-1]
+    x_sample_np = (x_sample.astype(dtype=float) / 255)
 
     t_sample = t_samples[i, :, :, :, :]
-    t_sample_np = (t_sample.astype(dtype=float) / 255)[:, :, :, ::-1]
+    t_sample_np = (t_sample.astype(dtype=float) / 255)
 
     x_sample_pt = torch.tensor(x_sample_np.copy(), dtype=torch.float).permute(0, 3, 1, 2)
     r_x_sample_pt = transform_tensor(x_sample_pt, r=1, s=0)
@@ -113,8 +113,8 @@ for i in range(size[0]):
                torch.square(x_sample_pt.to(device0) - y_dhdn_plus).mean(),
                torch.square(x_sample_pt.to(device1) - y_edhdn_plus).mean()]
         psnr = [PSNR(mse_i) for mse_i in mse]
-        psnr_display = "PSNR_Noisy: %.6f" % ssim[0] + "\tPSNR_DHDN: %.6f" % ssim[1] + "\tPSNR_EDHDN: %.6f" % ssim[2] + \
-                       "\tPSNR_DHDN_Plus: %.6f" % ssim[3] + "\tPSNR_EDHDN_Plus: %.6f" % ssim[4]
+        psnr_display = "PSNR_Noisy: %.6f" % psnr[0] + "\tPSNR_DHDN: %.6f" % psnr[1] + "\tPSNR_EDHDN: %.6f" % psnr[2] + \
+                       "\tPSNR_DHDN_Plus: %.6f" % psnr[3] + "\tPSNR_EDHDN_Plus: %.6f" % psnr[4]
 
         print(ssim_display)
         print(psnr_display)
