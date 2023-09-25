@@ -141,9 +141,6 @@ dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=conf
 
 for epoch in range(config['Training']['Epochs']):
     for i_batch, sample_batch in enumerate(dataloader_sidd_training):
-        if i_batch > 1000:
-            break  # Only train on 1000 random image samples each epoch
-
         x = sample_batch['NOISY']
         y0 = dhdn(x.to(device_0))
         y1 = edhdn(x.to(device_1))
@@ -175,7 +172,7 @@ for epoch in range(config['Training']['Epochs']):
         loss_value_1.backward()
         optimizer_1.step()
 
-        if i_batch % 50 == 0:
+        if i_batch % 100 == 0:
             Display_Loss = "Loss_DHDN: %.6f" % loss_batch_0.val + "\tLoss_eDHDN: %.6f" % loss_batch_1.val + \
                            "\tLoss_Original: %.6f" % loss_original_batch.val
             Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch_0.val + "\tSSIM_eDHDN: %.6f" % ssim_batch_1.val + \

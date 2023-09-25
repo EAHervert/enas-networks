@@ -44,7 +44,7 @@ edhdn.load_state_dict(torch.load(model_edhdn, map_location=device1))
 
 # Get the outputs
 x_samples = np.array(mat['ValidationNoisyBlocksSrgb'])
-t_samples = np.array(mat_gt['ValidationNoisyBlocksSrgb'])
+t_samples = np.array(mat_gt['ValidationGTBlocksSrgb'])
 size = x_samples.shape
 y_dhdn_final = []
 y_edhdn_final = []
@@ -100,16 +100,25 @@ for i in range(size[0]):
                        transform_tensor(srrr_y_edhdn, r=1, s=1)
         y_edhdn_plus /= 8
 
-        ssim = [SSIM(x_sample_pt, t_sample_pt), SSIM(x_sample_pt, y_dhdn), SSIM(x_sample_pt, y_edhdn),
-                SSIM(x_sample_pt, y_dhdn_plus), SSIM(x_sample_pt, y_edhdn_plus)]
+        ssim = [SSIM(x_sample_pt.to(device0), t_sample_pt.to(device0)),
+                SSIM(x_sample_pt.to(device0), y_dhdn),
+                SSIM(x_sample_pt.to(device1), y_edhdn),
+                SSIM(x_sample_pt.to(device0), y_dhdn_plus),
+                SSIM(x_sample_pt.to(device1), y_edhdn_plus)]
         ssim_display = "SSIM_Noisy: %.6f" % ssim[0] + "\tSSIM_DHDN: %.6f" % ssim[1] + "\tSSIM_EDHDN: %.6f" % ssim[2] + \
                        "\tSSIM_DHDN_Plus: %.6f" % ssim[3] + "\tSSIM_EDHDN_Plus: %.6f" % ssim[4]
-        mse = [torch.square(x_sample_pt - t_sample_pt).mean(), torch.square(x_sample_pt - y_dhdn).mean(),
-               torch.square(x_sample_pt - y_edhdn).mean(), torch.square(x_sample_pt - y_dhdn_plus).mean(),
-               torch.square(x_sample_pt - y_edhdn_plus).mean()]
+        mse = [torch.square(x_sample_pt.to(device1) - t_sample_pt.to(device1)).mean(),
+               torch.square(x_sample_pt.to(device0) - y_dhdn).mean(),
+               torch.square(x_sample_pt.to(device1) - y_edhdn).mean(),
+               torch.square(x_sample_pt.to(device0) - y_dhdn_plus).mean(),
+               torch.square(x_sample_pt.to(device1) - y_edhdn_plus).mean()]
         psnr = [PSNR(mse_i) for mse_i in mse]
         psnr_display = "PSNR_Noisy: %.6f" % ssim[0] + "\tPSNR_DHDN: %.6f" % ssim[1] + "\tPSNR_EDHDN: %.6f" % ssim[2] + \
                        "\tPSNR_DHDN_Plus: %.6f" % ssim[3] + "\tPSNR_EDHDN_Plus: %.6f" % ssim[4]
+
+        print(ssim_display)
+        print(psnr_display)
+        print()
 
     y_dhdn_out = get_out(y_dhdn)
     y_edhdn_out = get_out(y_edhdn)
