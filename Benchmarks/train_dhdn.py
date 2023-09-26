@@ -180,23 +180,10 @@ for epoch in range(config['Training']['Epochs']):
             psnr_batch_val.update(PSNR(MSE(y_v0, t_v.to(device))).item())
             psnr_original_batch_val.update(PSNR(MSE(x_v.to(device), t_v.to(device))).item())
 
-        # Save results as np array for analysis
-        y_v0_out = torch.clip(y_v0.clone().detach().permute(0, 3, 1, 2) * 255, 0, 255)
-        y_v0_out_np = y_v0_out.numpy().astype(np.uint)
-
-        t_out = torch.clip(t.clone().detach().permute(0, 3, 1, 2) * 255, 0, 255)
-        t_out_np = t_out.numpy().astype(np.uint)
-
-        print('True Validation Loss:', abs(t_out_np - y_v0_out_np).mean())
-        print()
-
-        np.save(Result_Path + 'validation_np/dhdn_{epoch}-{i_val}.npy'.format(epoch=epoch, i_val=i_validation),
-                y_v0_out_np)
-
         # Free up space in GPU
         del x_v, y_v0, t_v
 
-    Display_Loss = "Loss_DHDN: %.6f" % loss_batch_val.val + "\tLoss_Original: %.6f" % loss_original_batch_val.val
+    Display_Loss = "Loss_DHDN: %.6f" % loss_batch_val.avg + "\tLoss_Original: %.6f" % loss_original_batch_val.avg
     Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch_val.avg + "\tSSIM_Original: %.6f" % ssim_original_batch_val.avg
     Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch_val.avg + "\tPSNR_Original: %.6f" % psnr_original_batch_val.avg
 
@@ -251,6 +238,5 @@ for epoch in range(config['Training']['Epochs']):
     scheduler.step()
 
     if epoch > 0 and not epoch % 10:
-
         model_path_0 = dir_current + '/models/{date}_dhdn_SIDD.pth'.format(date=d1)
         torch.save(dhdn.state_dict(), model_path_0)

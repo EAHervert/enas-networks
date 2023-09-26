@@ -1,21 +1,30 @@
 import os
 import copy
+import datetime
+import json
 from scipy.io import loadmat, savemat
 import numpy as np
 import torch
 from ENAS_DHDN import SHARED_DHDN as DHDN
 from utilities.functions import transform_tensor, get_out, SSIM, PSNR
+import utilities.dataset as dataset
+from torch.utils.data import DataLoader
 
+current_time = datetime.datetime.now()
+d1 = current_time.strftime('%Y_%m_%d__%H_%M_%S')
+dir_current = os.getcwd()
+config_path = dir_current + '/configs/config_dhdn.json'
+config = json.load(open(config_path))
 
 # Load benchmark data for processing
-mat_file = os.getcwd() + '/data/ValidationNoisyBlocksSrgb.mat'
-mat_file_gt = os.getcwd() + '/data/ValidationGTBlocksSrgb.mat'
+mat_file = os.getcwd() + config['Locations']['Validation_Noisy']
+mat_file_gt = os.getcwd() + config['Locations']['Validation_GT']
 mat = loadmat(mat_file)
 mat_gt = loadmat(mat_file_gt)
 
 # Get the model paths
-model_dhdn = 'models/2023_09_25__13_36_22_dhdn_SIDD.pth'
-model_edhdn = 'models/2023_09_25__13_36_22_edhdn_SIDD.pth'
+model_dhdn = os.getcwd() + '/models/2023_09_11_dhdn_SIDD.pth'
+model_edhdn = os.getcwd() + '/models/2023_09_11_edhdn_SIDD.pth'
 
 # Cast to relevant device
 if torch.cuda.is_available():
@@ -43,22 +52,19 @@ dhdn.load_state_dict(torch.load(model_dhdn, map_location=device0))
 edhdn.load_state_dict(torch.load(model_edhdn, map_location=device1))
 
 # Get the outputs
-x_samples = np.array(mat['ValidationNoisyBlocksSrgb'])
-t_samples = np.array(mat_gt['ValidationGTBlocksSrgb'])
-size = x_samples.shape
+
+SIDD_validation = dataset.DatasetSIDDMAT(mat_noisy_file=mat_file, mat_gt_file=mat_file_gt)
+
+dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=config['Training']['Validation_Batch_Size'],
+                                        shuffle=False, num_workers=8)
+
 y_dhdn_final = []
 y_edhdn_final = []
 y_dhdn_final_plus = []
 y_edhdn_final_plus = []
 
-for i in range(size[0]):
-    x_sample = x_samples[i, :, :, :, :]
-    x_sample_np = (x_sample.astype(dtype=float) / 255)
-
-    t_sample = t_samples[i, :, :, :, :]
-    t_sample_np = (t_sample.astype(dtype=float) / 255)
-
-    x_sample_pt = torch.tensor(x_sample_np, dtype=torch.float).permute(0, 3, 1, 2)
+for i_batch, sample_batch in enumerate(dataloader_sidd_validation):
+    x_sample_pt = sample_batch['NOISY']
     r_x_sample_pt = transform_tensor(x_sample_pt, r=1, s=0)
     rr_x_sample_pt = transform_tensor(x_sample_pt, r=2, s=0)
     rrr_x_sample_pt = transform_tensor(x_sample_pt, r=3, s=0)
@@ -67,8 +73,7 @@ for i in range(size[0]):
     rrs_x_sample_pt = transform_tensor(x_sample_pt, r=2, s=1)
     rrrs_x_sample_pt = transform_tensor(x_sample_pt, r=3, s=1)
 
-    t_sample_pt = torch.tensor(t_sample_np, dtype=torch.float).permute(0, 3, 1, 2)
-
+    t_sample_pt = sample_batch['GT']
     with torch.no_grad():
         y_dhdn = dhdn(x_sample_pt.to(device0))
         r_y_dhdn = dhdn(r_x_sample_pt.to(device0))
@@ -134,26 +139,26 @@ for i in range(size[0]):
     del y_dhdn, r_y_dhdn, rr_y_dhdn, rrr_y_dhdn, s_y_dhdn, sr_y_dhdn, srr_y_dhdn, srrr_y_dhdn
     del y_edhdn, r_y_edhdn, rr_y_edhdn, rrr_y_edhdn, s_y_edhdn, sr_y_edhdn, srr_y_edhdn, srrr_y_edhdn
 
-y_dhdn_final = np.array(y_dhdn_final, dtype=np.uint8)
-file_dhdn = 'results/single/dhdn/SubmitSrgb.mat'
-mat_dhdn = copy.deepcopy(mat)
-mat_dhdn['BenchmarkNoisyBlocksSrgb'] = y_dhdn_final
-savemat(file_dhdn, mat_dhdn)
-
-y_dhdn_final_plus = np.array(y_dhdn_final_plus, dtype=np.uint8)
-file_dhdn_plus = 'results/ensemble/dhdn/SubmitSrgb.mat'
-mat_dhdn_plus = copy.deepcopy(mat)
-mat_dhdn_plus['BenchmarkNoisyBlocksSrgb'] = y_dhdn_final_plus
-savemat(file_dhdn_plus, mat_dhdn_plus)
-
-y_edhdn_final = np.array(y_edhdn_final, dtype=np.uint8)
-file_edhdn = 'results/single/edhdn/SubmitSrgb.mat'
-mat_edhdn = copy.deepcopy(mat)
-mat_edhdn['BenchmarkNoisyBlocksSrgb'] = y_edhdn_final
-savemat(file_edhdn, mat_edhdn)
-
-y_edhdn_final_plus = np.array(y_edhdn_final_plus, dtype=np.uint8)
-file_edhdn_plus = 'results/ensemble/edhdn/SubmitSrgb.mat'
-mat_edhdn_plus = copy.deepcopy(mat)
-mat_edhdn_plus['BenchmarkNoisyBlocksSrgb'] = y_edhdn_final_plus
-savemat(file_edhdn_plus, mat_edhdn_plus)
+# y_dhdn_final = np.array(y_dhdn_final, dtype=np.uint8)
+# file_dhdn = 'results/single/dhdn/SubmitSrgb.mat'
+# mat_dhdn = copy.deepcopy(mat)
+# mat_dhdn['BenchmarkNoisyBlocksSrgb'] = y_dhdn_final
+# savemat(file_dhdn, mat_dhdn)
+#
+# y_dhdn_final_plus = np.array(y_dhdn_final_plus, dtype=np.uint8)
+# file_dhdn_plus = 'results/ensemble/dhdn/SubmitSrgb.mat'
+# mat_dhdn_plus = copy.deepcopy(mat)
+# mat_dhdn_plus['BenchmarkNoisyBlocksSrgb'] = y_dhdn_final_plus
+# savemat(file_dhdn_plus, mat_dhdn_plus)
+#
+# y_edhdn_final = np.array(y_edhdn_final, dtype=np.uint8)
+# file_edhdn = 'results/single/edhdn/SubmitSrgb.mat'
+# mat_edhdn = copy.deepcopy(mat)
+# mat_edhdn['BenchmarkNoisyBlocksSrgb'] = y_edhdn_final
+# savemat(file_edhdn, mat_edhdn)
+#
+# y_edhdn_final_plus = np.array(y_edhdn_final_plus, dtype=np.uint8)
+# file_edhdn_plus = 'results/ensemble/edhdn/SubmitSrgb.mat'
+# mat_edhdn_plus = copy.deepcopy(mat)
+# mat_edhdn_plus['BenchmarkNoisyBlocksSrgb'] = y_edhdn_final_plus
+# savemat(file_edhdn_plus, mat_edhdn_plus)
