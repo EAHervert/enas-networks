@@ -1,4 +1,4 @@
-import random
+from scipy.io import loadmat
 import torch
 import pandas as pd
 import numpy as np
@@ -13,7 +13,7 @@ warnings.filterwarnings("ignore")
 class DatasetSIDD(Dataset):
     """SIDD dataset."""
 
-    def __init__(self, csv_file, transform=None, index_set=None, raw_images=False):
+    def __init__(self, csv_file, transform=None, raw_images=False):
         """
         Arguments:
             csv_file (string): Path to the csv file with annotations.
@@ -21,8 +21,6 @@ class DatasetSIDD(Dataset):
                 on a sample.
         """
         self.csv_instances = pd.read_csv(csv_file)
-        if index_set is not None:
-            self.csv_instances = self.csv_instances[self.csv_instances['INDEX'].isin(index_set)]
         self.transform = transform
         self.raw_images = raw_images
 
@@ -40,6 +38,73 @@ class DatasetSIDD(Dataset):
         # GT image
         gt_name = self.csv_instances.iloc[idx, 2]
         gt = np.load(gt_name)  # numpy array -> float32
+
+        # Numpy HxWxC -> Torch CxHxW
+        noisy_final = torch.tensor(noisy).permute(2, 0, 1)
+        gt_final = torch.tensor(gt).permute(2, 0, 1)
+
+        # Final sample output
+        if self.raw_images:
+            sample_item = {'NOISY': noisy_final / 255.,
+                           'NOISY_RAW': noisy_final,
+                           'GT': gt_final / 255.,
+                           'GT_RAW': gt_final}
+        else:
+            sample_item = {'NOISY': noisy_final / 255.,
+                           'GT': gt_final / 255.}
+
+        if self.transform:
+            sample_item = self.transform(sample_item)
+
+        return sample_item
+
+
+class DatasetSIDDMAT(Dataset):
+    """SIDD dataset from .mat file."""
+
+    def __init__(self, mat_noisy_file, mat_gt_file=None, transform=None, raw_images=False):
+        """
+        Arguments:
+            .mat file (.mat): Path to the mat file.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        # Noisy samples
+        self.mat_noisy_dict = loadmat(mat_noisy_file)
+        self.mat_noisy = self.mat_noisy_dict[next(reversed(self.mat_noisy_dict))]
+        self.size_noisy = self.mat_noisy.shape
+
+        # GT if available
+        if mat_gt_file is not None:
+            self.gt_avail = True
+            self.mat_gt_dict = loadmat(mat_gt_file)
+            self.mat_gt = self.mat_gt_dict[next(reversed(self.mat_gt_dict))]
+            self.size_gt = self.mat_gt.shape
+
+            assert self.size_noisy == self.size_gt
+        else:
+            self.gt_avail = False
+
+        self.transform = transform
+        self.raw_images = raw_images
+
+    def __len__(self):
+        return self.size_noisy[0] * self.size_noisy[1]
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        idx_0 = idx // self.size_noisy[1]
+        idx_1 = idx % self.size_noisy[1]
+
+        noisy = self.mat_noisy[idx_0, idx_1]  # Noisy image
+
+        # GT image
+        if self.gt_avail:
+            gt = self.mat_gt[idx_0, idx_1]
+        else:
+            gt = 0.
 
         # Numpy HxWxC -> Torch CxHxW
         noisy_final = torch.tensor(noisy).permute(2, 0, 1)

@@ -10,8 +10,8 @@ mat_file = os.getcwd() + '/data/BenchmarkNoisyBlocksSrgb.mat'
 mat = loadmat(mat_file)
 
 # Get the model paths
-model_dhdn = 'models/2023_09_11_dhdn.pth'
-model_edhdn = 'models/2023_09_11_edhdn.pth'
+model_dhdn = 'models/.pth'
+model_edhdn = 'models/.pth'
 
 # Cast to relevant device
 if torch.cuda.is_available():

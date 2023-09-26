@@ -139,3 +139,5 @@ dmypy.json
 /DHDN-Sensitivity-Analysis/results/
 /Benchmarks/visualize_validation_sidd.ipynb
 /Benchmarks/state_dict_modifier.ipynb
+/Benchmarks/test_dhdn_visual.ipynb
+/Benchmarks/test_validation_local.py
