@@ -36,8 +36,9 @@ if not os.path.exists(dir_current + '/models/'):
 
 # Noise Dataset
 if args.noise == 'SIDD':
-    path_training = dir_current + '/instances/sidd_np_instances_064.csv'
-    path_validation = dir_current + '/instances/sidd_np_instances_256.csv'
+    path_training = dir_current + config['Locations']['Training_File']
+    path_validation_noisy = dir_current + config['Locations']['Validation_Noisy']
+    path_validation_gt = dir_current + config['Locations']['Validation_GT']
     Result_Path = dir_current + '/SIDD/{date}/'.format(date=d1)
 elif args.noise in ['GAUSSIAN_10', 'GAUSSIAN_25', 'GAUSSIAN_50', 'RAIN', 'SALT_PEPPER', 'MIXED']:
     path_training = dir_current + '/instances/davis_np_instances_128.csv'
@@ -115,7 +116,7 @@ psnr_batch_val, psnr_original_batch_val = loggers0[1][4:]
 
 # Load the Training and Validation Data:
 SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing())
-SIDD_validation = dataset.DatasetSIDD(csv_file=path_validation)
+SIDD_validation = dataset.DatasetSIDDMAT(mat_noisy_file=path_validation_noisy, mat_gt_file=path_validation_gt)
 
 dataloader_sidd_training = DataLoader(dataset=SIDD_training, batch_size=config['Training']['Train_Batch_Size'],
                                       shuffle=True, num_workers=16)
@@ -194,10 +195,6 @@ for epoch in range(config['Training']['Epochs']):
 
         # Free up space in GPU
         del x_v, y_v0, t_v
-
-        # Only do up to 100 passes for Validation
-        if i_validation > 100:
-            break
 
     Display_Loss = "Loss_DHDN: %.6f" % loss_batch_val.val + "\tLoss_Original: %.6f" % loss_original_batch_val.val
     Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch_val.avg + "\tSSIM_Original: %.6f" % ssim_original_batch_val.avg
