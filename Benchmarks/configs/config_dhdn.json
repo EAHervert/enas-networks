@@ -12,7 +12,7 @@
     "Model_Path_EDHDN": "/models/2023_09_21__15_51_56_edhdn_SIDD.pth",
     "Epochs": 40,
     "Train_Batch_Size": 96,
-    "Validation_Batch_Size": 16,
+    "Validation_Batch_Size": 32,
     "Learning_Rate": 1e-4,
     "Number_Images": 320
   },
