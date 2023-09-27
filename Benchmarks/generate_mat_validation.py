@@ -22,8 +22,8 @@ mat = loadmat(mat_file)
 mat_gt = loadmat(mat_file_gt)
 
 # Get the model paths
-model_dhdn = os.getcwd() + '/models/2023_09_11_dhdn_SIDD.pth'
-model_edhdn = os.getcwd() + '/models/2023_09_11_edhdn_SIDD.pth'
+model_dhdn = os.getcwd() + config['Training']['Model_Path_DHDN']
+model_edhdn = os.getcwd() + config['Training']['Model_Path_EDHDN']
 
 # Cast to relevant device
 if torch.cuda.is_available():
