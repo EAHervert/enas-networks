@@ -237,6 +237,14 @@ for epoch in range(config['Training']['Epochs']):
 
     scheduler.step()
 
+    # Save every 10 instances
     if epoch > 0 and not epoch % 10:
         model_path_0 = dir_current + '/models/{date}_dhdn_SIDD.pth'.format(date=d1)
         torch.save(dhdn.state_dict(), model_path_0)
+        # modify weights to avoid overfitting
+        state_dict_dhdn = drop_weights(dhdn.state_dict(), p=0.9, device=device)
+        dhdn.load_state_dict(state_dict_dhdn)
+
+# Save final model
+model_path_0 = dir_current + '/models/{date}_dhdn_SIDD.pth'.format(date=d1)
+torch.save(dhdn.state_dict(), model_path_0)
