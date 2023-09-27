@@ -18,17 +18,23 @@ images_noisy = mat_noisy['ValidationNoisyBlocksSrgb']
 total_ssim = 0
 total_psnr = 0
 for i in range(size[0]):
-    images_gt_pt = torch.tensor(images_gt[i, :, :, :, :] / 255., dtype=torch.float).permute(0, 3, 1, 2)
-    images_noisy_pt = torch.tensor(images_noisy[i, :, :, :, :] / 255., dtype=torch.float).permute(0, 3, 1, 2)
+    for j in range(2):
+        start_j = int(j * size[1] / 2)
+        end_j = int((j + 1) * size[1] / 2)
+        images_gt_pt = torch.tensor(images_gt[i, start_j:end_j, :, :, :] / 255.,
+                                    dtype=torch.float).permute(0, 3, 1, 2)
+        images_noisy_pt = torch.tensor(images_noisy[i, start_j:end_j, :, :, :] / 255.,
+                                       dtype=torch.float).permute(0, 3, 1, 2)
 
-    mse = torch.square(images_gt_pt - images_noisy_pt).mean()
-    ssim = SSIM(images_gt_pt, images_noisy_pt)
-    psnr = PSNR(mse)
-    print('Image', i, '-', ssim.item(), '-', psnr.item())
-    total_ssim += ssim.item()
-    total_psnr += psnr.item()
+        mse = torch.square(images_gt_pt - images_noisy_pt).mean()
+        ssim = SSIM(images_gt_pt, images_noisy_pt)
+        psnr = PSNR(mse)
+        print('Image', i, '-', j, ':', ssim.item(), '-', psnr.item())
+        total_ssim += ssim.item()
+        total_psnr += psnr.item()
+    print()
 
-total_ssim /= size[0]
-total_psnr /= size[0]
+total_ssim /= size[0] * 2
+total_psnr /= size[0] * 2
 
 print('TOTAL:', total_ssim, '-', total_psnr)
