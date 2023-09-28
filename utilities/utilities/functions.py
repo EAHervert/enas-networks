@@ -175,6 +175,17 @@ def gaussian_add_weights(state_dict, k=1, device='cpu'):
 
     return state_dict_out
 
+def clip_weights(state_dict, k=1, device='cpu'):
+    state_dict_out = state_dict.copy()
+
+    for key in state_dict.keys():
+        tensor = state_dict_out[key]
+        std = tensor.std().item()
+        tensor = torch.clamp(tensor, -k * std, k * std)
+
+        state_dict_out[key] = tensor
+
+    return state_dict_out
 
 def get_out(out_tensor):
     out_np = out_tensor.permute(0, 2, 3, 1).cpu().numpy()[:, :, :, ::-1]

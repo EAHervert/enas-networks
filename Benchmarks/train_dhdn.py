@@ -12,7 +12,7 @@ import visdom
 import argparse
 
 from utilities.utils import CSVLogger, Logger
-from utilities.functions import SSIM, PSNR, generate_loggers, drop_weights, gaussian_add_weights
+from utilities.functions import SSIM, PSNR, generate_loggers, drop_weights, gaussian_add_weights, clip_weights
 
 current_time = datetime.datetime.now()
 d1 = current_time.strftime('%Y_%m_%d__%H_%M_%S')
@@ -239,10 +239,10 @@ for epoch in range(config['Training']['Epochs']):
 
     # Save every 10 instances
     if epoch > 0 and not epoch % 10:
-        model_path_0 = dir_current + '/models/{date}_dhdn_SIDD.pth'.format(date=d1)
+        model_path_0 = dir_current + '/models/{date}_dhdn_SIDD_{epoch}.pth'.format(date=d1, epoch=epoch)
         torch.save(dhdn.state_dict(), model_path_0)
         # modify weights to avoid overfitting
-        state_dict_dhdn = drop_weights(dhdn.state_dict(), p=0.9, device=device)
+        state_dict_dhdn = clip_weights(dhdn.state_dict(), k=3, device=device)
         dhdn.load_state_dict(state_dict_dhdn)
 
 # Save final model
