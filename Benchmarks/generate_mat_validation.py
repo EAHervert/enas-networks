@@ -1,5 +1,4 @@
 import os
-import copy
 import datetime
 import json
 from scipy.io import loadmat
@@ -50,10 +49,7 @@ edhdn.to(device1)
 dhdn.load_state_dict(torch.load(model_dhdn, map_location=device0))
 edhdn.load_state_dict(torch.load(model_edhdn, map_location=device1))
 
-# Get the outputs
-
 SIDD_validation = dataset.DatasetSIDDMAT(mat_noisy_file=mat_file, mat_gt_file=mat_file_gt)
-
 dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=config['Training']['Validation_Batch_Size'],
                                         shuffle=False, num_workers=8)
 

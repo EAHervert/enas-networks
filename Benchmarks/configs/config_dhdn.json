@@ -10,8 +10,8 @@
     "Load_Previous_Model": false,
     "Model_Path_DHDN": "/models/2023_09_26__17_17_26_dhdn_SIDD.pth",
     "Model_Path_EDHDN": "/models/2023_09_21__15_51_56_edhdn_SIDD.pth",
-    "Epochs": 40,
-    "Train_Batch_Size": 64,
+    "Epochs": 25,
+    "Train_Batch_Size": 16,
     "Validation_Batch_Size": 16,
     "Learning_Rate": 1e-4,
     "Number_Images": 320

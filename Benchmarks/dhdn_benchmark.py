@@ -36,8 +36,9 @@ if not os.path.exists(dir_current + '/models/'):
 
 # Noise Dataset
 if args.noise == 'SIDD':
-    path_training = dir_current + '/instances/sidd_np_instances_064.csv'
-    path_validation = dir_current + '/instances/sidd_np_instances_256.csv'
+    path_training = dir_current + config['Locations']['Training_File']
+    path_validation_noisy = dir_current + config['Locations']['Validation_Noisy']
+    path_validation_gt = dir_current + config['Locations']['Validation_GT']
     Result_Path = dir_current + '/SIDD/{date}/'.format(date=d1)
 elif args.noise in ['GAUSSIAN_10', 'GAUSSIAN_25', 'GAUSSIAN_50', 'RAIN', 'SALT_PEPPER', 'MIXED']:
     path_training = dir_current + '/instances/davis_np_instances_128.csv'
@@ -130,11 +131,8 @@ psnr_batch_val_0, psnr_original_batch_val = loggers0[1][4:]
 loss_batch_val_1, _, ssim_batch_val_1, _, psnr_batch_val_1, _ = loggers1[1]
 
 # Load the Training and Validation Data:
-index_validation = config['Training']['List_Validation']
-index_training = [i for i in range(config['Training']['Number_Images']) if i not in index_validation]
-SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing(),
-                                    index_set=index_training)
-SIDD_validation = dataset.DatasetSIDD(csv_file=path_validation, index_set=index_validation)
+SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing())
+SIDD_validation = dataset.DatasetSIDDMAT(mat_noisy_file=path_validation_noisy, mat_gt_file=path_validation_gt)
 
 dataloader_sidd_training = DataLoader(dataset=SIDD_training, batch_size=config['Training']['Train_Batch_Size'],
                                       shuffle=True, num_workers=16)
@@ -217,24 +215,8 @@ for epoch in range(config['Training']['Epochs']):
             psnr_batch_val_1.update(PSNR(MSE(y_v1, t_v.to(device_1))).item())
             psnr_original_batch_val.update(PSNR(MSE(x_v.to(device_0), t_v.to(device_0))).item())
 
-        # Save results as np array for analysis
-        y_v0_out = torch.clip(y_v0.clone().detach().permute(0, 3, 1, 2) * 255, 0, 255)
-        y_v1_out = torch.clip(y_v1.clone().detach().permute(0, 3, 1, 2) * 255, 0, 255)
-
-        y_v0_out_np = y_v0_out.numpy().astype(np.uint)
-        y_v1_out_np = y_v1_out.numpy().astype(np.uint)
-
-        np.save(Result_Path + 'validation_np/dhdn_{epoch}-{i_val}.npy'.format(epoch=epoch, i_val=i_validation),
-                y_v0_out_np)
-        np.save(Result_Path + 'validation_np/edhdn_{epoch}-{i_val}.npy'.format(epoch=epoch, i_val=i_validation),
-                y_v1_out_np)
-
         # Free up space in GPU
         del x_v, y_v0, y_v1, t_v
-
-        # Only do up to 100 passes for Validation
-        if i_validation > 100:
-            break
 
     Display_Loss = "Loss_DHDN: %.6f" % loss_batch_val_0.val + "\tLoss_eDHDN: %.6f" % loss_batch_val_1.val + \
                    "\tLoss_Original: %.6f" % loss_original_batch_val.val
@@ -309,8 +291,13 @@ for epoch in range(config['Training']['Epochs']):
     scheduler_1.step()
 
     if epoch > 0 and not epoch % 10:
-
-        model_path_0 = dir_current + '/models/{date}_dhdn_SIDD.pth'.format(date=d1)
-        model_path_1 = dir_current + '/models/{date}_edhdn_SIDD.pth'.format(date=d1)
+        model_path_0 = dir_current + '/models/{date}_dhdn_SIDD_{epoch}.pth'.format(date=d1, epoch=epoch)
+        model_path_1 = dir_current + '/models/{date}_edhdn_SIDD_{epoch}.pth'.format(date=d1, epoch=epoch)
         torch.save(dhdn.state_dict(), model_path_0)
         torch.save(edhdn.state_dict(), model_path_1)
+
+# Save final model
+model_path_0 = dir_current + '/models/{date}_dhdn_SIDD.pth'.format(date=d1)
+model_path_1 = dir_current + '/models/{date}_edhdn_SIDD.pth'.format(date=d1)
+torch.save(dhdn.state_dict(), model_path_0)
+torch.save(edhdn.state_dict(), model_path_1)
