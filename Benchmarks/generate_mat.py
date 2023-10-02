@@ -75,7 +75,7 @@ for i_batch, sample_batch in enumerate(dataloader_sidd_validation):
                                             r=4 - transform[0], s=transform[1])
         y_dhdn_plus /= 8
 
-        i_image = i_batch / 2
+        i_image = i_batch // 2
         i_split = i_batch % 2
         print('Batch {i}-{j} processed.'.format(i=i_image, j=i_split))
 
