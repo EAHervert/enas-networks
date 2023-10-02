@@ -7,9 +7,9 @@
     "Output_File": "DHDN_SIDD_Vanilla"
   },
   "Training": {
-    "Load_Previous_Model": false,
-    "Model_Path_DHDN": "/models/2023_09_26__17_17_26_dhdn_SIDD.pth",
-    "Model_Path_EDHDN": "/models/2023_09_21__15_51_56_edhdn_SIDD.pth",
+    "Load_Previous_Model": true,
+    "Model_Path_DHDN": "/models/2023_09_28__13_23_58_dhdn_SIDD.pth",
+    "Model_Path_EDHDN": "/models/2023_09_28__13_23_58_edhdn_SIDD.pth",
     "Epochs": 25,
     "Train_Batch_Size": 16,
     "Validation_Batch_Size": 16,
