@@ -57,6 +57,8 @@ dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=conf
 y_dhdn_final = []
 y_dhdn_final_plus = []
 transforms = [[1, 0], [2, 0], [3, 0], [0, 1], [1, 1], [2, 1], [3, 1]]
+out_temp = []
+out_temp_plus = []
 for i_batch, sample_batch in enumerate(dataloader_sidd_validation):
     x_sample_pt = sample_batch['NOISY']
     with torch.no_grad():
@@ -74,8 +76,16 @@ for i_batch, sample_batch in enumerate(dataloader_sidd_validation):
     y_dhdn_out = get_out(y_dhdn)
     y_dhdn_out_plus = get_out(y_dhdn_plus)
 
-    y_dhdn_final.append(y_dhdn_out)
-    y_dhdn_final_plus.append(y_dhdn_out_plus)
+    if len(out_temp) == 0:
+        out_temp.append(y_dhdn_out)
+        out_temp_plus.append(y_dhdn_out_plus)
+    else:
+        out_temp.append(y_dhdn_out)
+        out_temp_plus.append(y_dhdn_out_plus)
+        y_dhdn_final.append(np.concatenate(out_temp))
+        y_dhdn_final_plus.append(np.concatenate(out_temp_plus))
+        out_temp = []
+        out_temp_plus = []
 
     del x_sample_pt
     del y_dhdn
