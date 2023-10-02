@@ -25,7 +25,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--name', default='test', type=str)  # Name of the folder to save
 parser.add_argument('--device', default='cuda:0', type=str)  # Which device to use to generate .mat file
 parser.add_argument('--architecture', default='DHDN', type=str)  # DHDN or EDHDN
-parser.add_argument('--model_path', default='models/model.pth', type=str)  # Model path to weights
+parser.add_argument('--model_file', default='model.pth', type=str)  # Model path to weights
 args = parser.parse_args()
 
 # Load benchmark data for processing
@@ -35,15 +35,18 @@ mat = loadmat(mat_file)
 mat_gt = loadmat(mat_file_gt)
 
 # Get the model paths
-model_dhdn = os.getcwd() + args.model_path
+model_dhdn = os.getcwd() + '/models/' + args.model_file
 # Cast to relevant device
 device0 = torch.device('cuda:0')
 
 # Model architectures and parameters
 if args.architecture == 'DHDN':
-    architecture = [0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-elif args.architecture == 'EDHDN':
     architecture = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+elif args.architecture == 'EDHDN':
+    architecture = [0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+else:
+    print('Invalid Architecture!')
+    exit()
 dhdn = DHDN.SharedDHDN(architecture=architecture)
 dhdn.to(device0)
 
