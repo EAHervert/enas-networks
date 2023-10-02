@@ -104,7 +104,7 @@ class DatasetSIDDMAT(Dataset):
         if self.gt_avail:
             gt = self.mat_gt[idx_0, idx_1]
         else:
-            gt = 0.
+            gt = np.zeros_like(noisy)
 
         # Numpy HxWxC -> Torch CxHxW
         noisy_final = torch.tensor(noisy).permute(2, 0, 1)

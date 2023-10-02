@@ -37,7 +37,7 @@ mat_gt = loadmat(mat_file_gt)
 # Get the model paths
 model_dhdn = os.getcwd() + '/models/' + args.model_file
 # Cast to relevant device
-device0 = torch.device('cuda:0')
+device0 = torch.device(args.device)
 
 # Model architectures and parameters
 if args.architecture == 'DHDN':
@@ -97,19 +97,19 @@ for i_batch, sample_batch in enumerate(dataloader_sidd_validation):
     del x_sample_pt
     del y_dhdn
 
-if not os.path.exists(dir_current + '/results/single/'):
-    os.makedirs(dir_current + '/results/single/')
-if not os.path.exists(dir_current + '/results/self-ensemble/'):
-    os.makedirs(dir_current + '/results/self-ensemble/')
+if not os.path.exists(dir_current + '/results/single/{name}/.format(name=args.name)'):
+    os.makedirs(dir_current + '/results/single/{name}/.format(name=args.name)')
+if not os.path.exists(dir_current + '/results/self-ensemble/{name}/.format(name=args.name)'):
+    os.makedirs(dir_current + '/results/self-ensemble/{name}/.format(name=args.name)')
 
 y_dhdn_final = np.array(y_dhdn_final, dtype=np.uint8)
-file_dhdn = 'results/single/{name}/SubmitSrgb.mat'.format(name=args.name)
+file_dhdn = 'results/single/{name}/ValidationSubmitSrgb.mat'.format(name=args.name)
 mat_dhdn = copy.deepcopy(mat)
-mat_dhdn['BenchmarkNoisyBlocksSrgb'] = y_dhdn_final
+mat_dhdn['ValidationNoisyBlocksSrgb'] = y_dhdn_final
 savemat(file_dhdn, mat_dhdn)
 
 y_dhdn_final_plus = np.array(y_dhdn_final_plus, dtype=np.uint8)
-file_dhdn_plus = 'results/self-ensemble/{name}/SubmitSrgb.mat'.format(name=args.name)
+file_dhdn_plus = 'results/self-ensemble/{name}/ValidationSubmitSrgb.mat'.format(name=args.name)
 mat_dhdn_plus = copy.deepcopy(mat)
-mat_dhdn_plus['BenchmarkNoisyBlocksSrgb'] = y_dhdn_final_plus
+mat_dhdn_plus['ValidationNoisyBlocksSrgb'] = y_dhdn_final_plus
 savemat(file_dhdn_plus, mat_dhdn_plus)

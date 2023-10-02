@@ -4,6 +4,7 @@
     "Training_File": "/instances/sidd_np_instances_064.csv",
     "Validation_Noisy": "/data/ValidationNoisyBlocksSrgb.mat",
     "Validation_GT": "/data/ValidationGtBlocksSrgb.mat",
+    "Benchmark": "/data/BenchmarkNoisyBlocksSrgb.mat",
     "Output_File": "DHDN_SIDD_Vanilla"
   },
   "Training": {

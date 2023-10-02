@@ -29,7 +29,7 @@ args = parser.parse_args()
 
 # Hyperparameters
 dir_current = os.getcwd()
-config_path = dir_current + '/configs/config_dhdn.json'
+config_path = dir_current + '/configs/config_compare_size.json'
 config = json.load(open(config_path))
 if not os.path.exists(dir_current + '/models/'):
     os.makedirs(dir_current + '/models/')
@@ -118,7 +118,7 @@ vis = visdom.Visdom(
 )
 
 # Display the data to the window:
-vis.env = 'DHDN_Compare_Size_' + str(args.Noise)
+vis.env = 'DHDN_Compare_Size_' + str(args.noise)
 vis_window = {'SSIM': None, 'PSNR': None}
 
 # Define the optimizers:
