@@ -175,6 +175,7 @@ def gaussian_add_weights(state_dict, k=1, device='cpu'):
 
     return state_dict_out
 
+
 def clip_weights(state_dict, k=1, device='cpu'):
     state_dict_out = state_dict.copy()
 
@@ -187,8 +188,9 @@ def clip_weights(state_dict, k=1, device='cpu'):
 
     return state_dict_out
 
+
 def get_out(out_tensor):
-    out_np = out_tensor.permute(0, 2, 3, 1).cpu().numpy()[:, :, :, ::-1]
+    out_np = out_tensor.permute(0, 2, 3, 1).cpu().numpy()[:, :, :, :]
     out = np.clip((out_np * 255).round(), 0, 255).astype(np.uint8).tolist()
 
     return out
