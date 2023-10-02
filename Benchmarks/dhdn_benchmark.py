@@ -296,7 +296,7 @@ for epoch in range(config['Training']['Epochs']):
         torch.save(dhdn.state_dict(), model_path_0)
         torch.save(edhdn.state_dict(), model_path_1)
         state_dict_dhdn = clip_weights(dhdn.state_dict(), k=3, device=device_0)
-        state_dict_dhdn = clip_weights(edhdn.state_dict(), k=3, device=device_1)
+        state_dict_edhdn = clip_weights(edhdn.state_dict(), k=3, device=device_1)
         dhdn.load_state_dict(state_dict_dhdn)
         edhdn.load_state_dict(state_dict_edhdn)
 
