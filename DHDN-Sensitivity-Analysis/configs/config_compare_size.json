@@ -8,10 +8,10 @@
     "Output_File": "DHDN_Compare_Size"
   },
   "Training": {
-    "Load_Previous_Model": false,
-    "Model_Path_DHDN_5": "/models/XXX.pth",
-    "Model_Path_DHDN_7": "/models/XXX.pth",
-    "Model_Path_DHDN_9": "/models/XXX.pth",
+    "Load_Previous_Model": true,
+    "Model_Path_DHDN_5": "/models/2023_10_02_size_5_SIDD.pth",
+    "Model_Path_DHDN_7": "/models/2023_10_02_size_7_SIDD.pth",
+    "Model_Path_DHDN_9": "/models/2023_10_02_size_9_SIDD.pth",
     "Epochs": 25,
     "Train_Batch_Size": 16,
     "Validation_Batch_Size": 16,
