@@ -25,6 +25,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to train on
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--gaussian', default='-1', type=float)  # Gaussian noise addition for model weight # initialization
+parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
 args = parser.parse_args()
 
 # Hyperparameters
@@ -91,10 +92,10 @@ dhdn_5 = dhdn_5.to(device_0)
 dhdn_7 = dhdn_7.to(device_0)
 dhdn_9 = dhdn_9.to(device_1)
 
-if config['Training']['Load_Previous_Model']:
+if args.load_models:
     state_dict_dhdn_5 = torch.load(dir_current + config['Training']['Model_Path_DHDN_5'], map_location=device_0)
     state_dict_dhdn_7 = torch.load(dir_current + config['Training']['Model_Path_DHDN_7'], map_location=device_0)
-    state_dict_dhdn_9 = torch.load(dir_current + config['Training']['Model_Path_DHDN_9'], map_location=device_0)
+    state_dict_dhdn_9 = torch.load(dir_current + config['Training']['Model_Path_DHDN_9'], map_location=device_1)
 
     if args.drop > 0:
         state_dict_dhdn_5 = drop_weights(state_dict_dhdn_5, p=args.drop, device=device_0)
@@ -103,7 +104,7 @@ if config['Training']['Load_Previous_Model']:
     if args.gaussian > 0:
         state_dict_dhdn_5 = gaussian_add_weights(state_dict_dhdn_5, k=args.gaussian, device=device_0)
         state_dict_dhdn_7 = gaussian_add_weights(state_dict_dhdn_7, k=args.gaussian, device=device_0)
-        state_dict_dhdn_9 = gaussian_add_weights(state_dict_dhdn_9, k=args.gaussian, device=device_0)
+        state_dict_dhdn_9 = gaussian_add_weights(state_dict_dhdn_9, k=args.gaussian, device=device_1)
 
     dhdn_5.load_state_dict(state_dict_dhdn_5)
     dhdn_7.load_state_dict(state_dict_dhdn_7)
