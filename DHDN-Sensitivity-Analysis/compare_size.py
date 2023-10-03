@@ -346,12 +346,12 @@ for epoch in range(config['Training']['Epochs']):
     scheduler_9.step()
 
     if epoch > 0 and not epoch % 10:
-        model_path_5 = dir_current + '/models/{date}_dhdn_size_5_{noise}_{epoch}.pth'.format(date=d1, noise=args.noise,
-                                                                                             epoch=epoch)
-        model_path_7 = dir_current + '/models/{date}_dhdn_size_7_{noise}_{epoch}.pth'.format(date=d1, noise=args.noise,
-                                                                                             epoch=epoch)
-        model_path_9 = dir_current + '/models/{date}_dhdn_size_9_{noise}_{epoch}.pth'.format(date=d1, noise=args.noise,
-                                                                                             epoch=epoch)
+        model_path_5 = dir_current + '/models/compare_size/{date}_dhdn_size_5_{noise}_{epoch}.pth'.format(
+            date=d1, noise=args.noise, epoch=epoch)
+        model_path_7 = dir_current + '/models/compare_size/{date}_dhdn_size_7_{noise}_{epoch}.pth'.format(
+            date=d1, noise=args.noise, epoch=epoch)
+        model_path_9 = dir_current + '/models/compare_size/{date}_dhdn_size_9_{noise}_{epoch}.pth'.format(
+            date=d1, noise=args.noise, epoch=epoch)
 
         torch.save(dhdn_5.state_dict(), model_path_5)
         torch.save(dhdn_7.state_dict(), model_path_7)
@@ -366,9 +366,9 @@ for epoch in range(config['Training']['Epochs']):
         dhdn_9.load_state_dict(state_dict_dhdn_9)
 
 # Save final model
-model_path_5 = dir_current + '/models/{date}_dhdn_size_5_{noise}.pth'.format(date=d1, noise=args.noise)
-model_path_7 = dir_current + '/models/{date}_dhdn_size_7_{noise}.pth'.format(date=d1, noise=args.noise)
-model_path_9 = dir_current + '/models/{date}_dhdn_size_9_{noise}.pth'.format(date=d1, noise=args.noise)
+model_path_5 = dir_current + '/models/compare_size/{date}_dhdn_size_5_{noise}.pth'.format(date=d1, noise=args.noise)
+model_path_7 = dir_current + '/models/compare_size/{date}_dhdn_size_7_{noise}.pth'.format(date=d1, noise=args.noise)
+model_path_9 = dir_current + '/models/compare_size/{date}_dhdn_size_9_{noise}.pth'.format(date=d1, noise=args.noise)
 
 torch.save(dhdn_5.state_dict(), model_path_5)
 torch.save(dhdn_7.state_dict(), model_path_7)

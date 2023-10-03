@@ -58,16 +58,13 @@ SIDD_validation = dataset.DatasetSIDDMAT(mat_noisy_file=mat_file, mat_gt_file=No
 dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=config['Training']['Validation_Batch_Size'],
                                         shuffle=False, num_workers=8)
 
-y_dhdn_final = []
-y_dhdn_final_plus = []
+y_dhdn_final, y_dhdn_final_plus = [], []
 transforms = [[1, 0], [2, 0], [3, 0], [0, 1], [1, 1], [2, 1], [3, 1]]
-out_temp = []
-out_temp_plus = []
+out_temp, out_temp_plus = [], []
 for i_batch, sample_batch in enumerate(dataloader_sidd_validation):
     x_sample_pt = sample_batch['NOISY']
     with torch.no_grad():
         y_dhdn = dhdn(x_sample_pt.to(device0))
-
         y_dhdn_plus = y_dhdn.detach().clone()
         for transform in transforms:
             y_dhdn_plus += transform_tensor(dhdn(transform_tensor(x_sample_pt,
@@ -75,8 +72,7 @@ for i_batch, sample_batch in enumerate(dataloader_sidd_validation):
                                             r=4 - transform[0], s=transform[1])
         y_dhdn_plus /= 8
 
-        i_image = i_batch // 2
-        i_split = i_batch % 2
+        i_image, i_split = i_batch // 2, i_batch % 2
         print('Batch {i}-{j} processed.'.format(i=i_image, j=i_split))
 
     y_dhdn_out = get_out(y_dhdn)
@@ -90,19 +86,17 @@ for i_batch, sample_batch in enumerate(dataloader_sidd_validation):
         out_temp_plus.append(y_dhdn_out_plus)
         y_dhdn_final.append(np.concatenate(out_temp))
         y_dhdn_final_plus.append(np.concatenate(out_temp_plus))
-        out_temp = []
-        out_temp_plus = []
+        out_temp, out_temp_plus = [], []
 
-    del x_sample_pt
-    del y_dhdn
+    del x_sample_pt, y_dhdn, y_dhdn_plus
 
-if not os.path.exists(dir_current + '/results/{type}/single/{name}/'.format(name=args.name, type=args.type)):
-    os.makedirs(dir_current + '/results/{type}/single/{name}/'.format(name=args.name, type=args.type))
-if not os.path.exists(dir_current + '/results/{type}/self-ensemble/{name}/'.format(name=args.name, type=args.type)):
-    os.makedirs(dir_current + '/results/{type}/self-ensemble/{name}/'.format(name=args.name, type=args.type))
+if not os.path.exists(dir_current + '/results/single-model/{type}/single/{name}/'.format(name=args.name, type=args.type)):
+    os.makedirs(dir_current + '/results/single-model/{type}/single/{name}/'.format(name=args.name, type=args.type))
+if not os.path.exists(dir_current + '/results/single-model/{type}/self-ensemble/{name}/'.format(name=args.name, type=args.type)):
+    os.makedirs(dir_current + '/results/single-model/{type}/self-ensemble/{name}/'.format(name=args.name, type=args.type))
 
 y_dhdn_final = np.array(y_dhdn_final, dtype=np.uint8)
-file_dhdn = 'results/{type}/single/{name}/SubmitSrgb.mat'.format(name=args.name, type=args.type)
+file_dhdn = 'results/single-model/{type}/single/{name}/SubmitSrgb.mat'.format(name=args.name, type=args.type)
 mat_dhdn = copy.deepcopy(mat)
 if args.type == 'validation':
     mat_dhdn['ValidationNoisyBlocksSrgb'] = y_dhdn_final
@@ -111,7 +105,7 @@ else:
 savemat(file_dhdn, mat_dhdn)
 
 y_dhdn_final_plus = np.array(y_dhdn_final_plus, dtype=np.uint8)
-file_dhdn_plus = 'results/{type}/self-ensemble/{name}/SubmitSrgb.mat'.format(name=args.name, type=args.type)
+file_dhdn_plus = 'results/single-model/{type}/self-ensemble/{name}/SubmitSrgb.mat'.format(name=args.name, type=args.type)
 mat_dhdn_plus = copy.deepcopy(mat)
 if args.type == 'validation':
     mat_dhdn_plus['ValidationNoisyBlocksSrgb'] = y_dhdn_final_plus

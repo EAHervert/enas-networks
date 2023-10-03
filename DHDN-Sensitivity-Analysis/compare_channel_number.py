@@ -334,18 +334,15 @@ for epoch in range(config['Training']['Epochs']):
     scheduler_160.step()
 
     if epoch > 0 and not epoch % 10:
-        model_path_096 = dir_current + '/models/{date}_dhdn_channel_number_096_{noise}_{epoch}.pth'.format(date=d1,
-                                                                                                           noise=
-                                                                                                           args.noise,
-                                                                                                           epoch=epoch)
-        model_path_128 = dir_current + '/models/{date}_dhdn_channel_number_128_{noise}_{epoch}.pth'.format(date=d1,
-                                                                                                           noise=
-                                                                                                           args.noise,
-                                                                                                           epoch=epoch)
-        model_path_160 = dir_current + '/models/{date}_dhdn_channel_number_160_{noise}_{epoch}.pth'.format(date=d1,
-                                                                                                           noise=
-                                                                                                           args.noise,
-                                                                                                           epoch=epoch)
+        model_path_096 = dir_current + \
+                         '/models/compare_channel_number/{date}_dhdn_channel_number_096_{noise}_{epoch}.pth'.format(
+                             date=d1, noise=args.noise, epoch=epoch)
+        model_path_128 = dir_current + \
+                         '/models/compare_channel_number/{date}_dhdn_channel_number_128_{noise}_{epoch}.pth'.format(
+                             date=d1, noise=args.noise, epoch=epoch)
+        model_path_160 = dir_current + \
+                         '/models/compare_channel_number/{date}_dhdn_channel_number_160_{noise}_{epoch}.pth'.format(
+                             date=d1, noise=args.noise, epoch=epoch)
 
         torch.save(dhdn_096.state_dict(), model_path_096)
         torch.save(dhdn_128.state_dict(), model_path_128)
@@ -360,9 +357,15 @@ for epoch in range(config['Training']['Epochs']):
         dhdn_160.load_state_dict(state_dict_dhdn_160)
 
 # Save final model
-model_path_096 = dir_current + '/models/{date}_dhdn_channel_number_096_{noise}.pth'.format(date=d1, noise=args.noise)
-model_path_128 = dir_current + '/models/{date}_dhdn_channel_number_128_{noise}.pth'.format(date=d1, noise=args.noise)
-model_path_160 = dir_current + '/models/{date}_dhdn_channel_number_160_{noise}.pth'.format(date=d1, noise=args.noise)
+model_path_096 = dir_current + \
+                 '/models/compare_channel_number/{date}_dhdn_channel_number_096_{noise}.pth'.format(date=d1,
+                                                                                                    noise=args.noise)
+model_path_128 = dir_current + \
+                 '/models/compare_channel_number/{date}_dhdn_channel_number_128_{noise}.pth'.format(date=d1,
+                                                                                                    noise=args.noise)
+model_path_160 = dir_current + \
+                 '/models/compare_channel_number/{date}_dhdn_channel_number_160_{noise}.pth'.format(date=d1,
+                                                                                                    noise=args.noise)
 
 torch.save(dhdn_096.state_dict(), model_path_096)
 torch.save(dhdn_128.state_dict(), model_path_128)
