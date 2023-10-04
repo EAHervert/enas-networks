@@ -32,8 +32,8 @@ args = parser.parse_args()
 dir_current = os.getcwd()
 config_path = dir_current + '/configs/config_compare_channel_number.json'
 config = json.load(open(config_path))
-if not os.path.exists(dir_current + '/models/'):
-    os.makedirs(dir_current + '/models/')
+if not os.path.exists(dir_current + '/models/compare_channel_number/'):
+    os.makedirs(dir_current + '/models/compare_channel_number/')
 
 # Noise Dataset
 if args.noise == 'SIDD':
@@ -108,7 +108,7 @@ vis = visdom.Visdom(
 
 # Display the data to the window:
 vis.env = 'DHDN_Compare_Channel_Number_' + str(args.noise)
-vis_window = {'SSIM': None, 'PSNR': None}
+vis_window = {'SSIM_{date}'.format(date=d1): None, 'PSNR_{date}'.format(date=d1): None}
 
 # Define the optimizers:
 optimizer_096 = torch.optim.Adam(dhdn_096.parameters(), config['Training']['Learning_Rate'])
