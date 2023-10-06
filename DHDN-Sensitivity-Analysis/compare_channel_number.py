@@ -72,9 +72,9 @@ device_1 = torch.device(config['CUDA']['Device1'])
 
 # Load the Models:
 architecture = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-dhdn_096 = DHDN.SharedDHDN(k_value=2, channels=96, architecture=architecture)  # 96 channels
+dhdn_096 = DHDN.SharedDHDN(k_value=3, channels=96, architecture=architecture)  # 96 channels
 dhdn_128 = DHDN.SharedDHDN(k_value=3, channels=128, architecture=architecture)  # 128 channels
-dhdn_160 = DHDN.SharedDHDN(k_value=4, channels=160, architecture=architecture)  # 160 channels
+dhdn_160 = DHDN.SharedDHDN(k_value=3, channels=160, architecture=architecture)  # 160 channels
 
 dhdn_096 = dhdn_096.to(device_0)
 dhdn_128 = dhdn_128.to(device_0)
