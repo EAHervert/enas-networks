@@ -298,22 +298,22 @@ for epoch in range(config['Training']['Epochs']):
     Legend = ['Size_5_Train', 'Size_7_Train', 'Size_9_Train', 'Orig_Train',
               'Size_5_Val', 'Size_7_Val', 'Size_9_Val', 'Orig_Val']
 
-    vis_window['SSIM'] = vis.line(
+    vis_window['SSIM_{date}'.format(date=d1)] = vis.line(
         X=np.column_stack([epoch] * 8),
         Y=np.column_stack([ssim_batch_5.avg, ssim_batch_7.avg, ssim_batch_9.avg, ssim_original_batch.avg,
                            ssim_batch_val_5.avg, ssim_batch_val_7.avg, ssim_batch_val_9.avg,
                            ssim_original_batch_val.avg]),
-        win=vis_window['SSIM'],
-        opts=dict(title='SSIM', xlabel='Epoch', ylabel='SSIM', legend=Legend),
+        win=vis_window['SSIM_{date}'.format(date=d1)],
+        opts=dict(title='SSIM_{date}'.format(date=d1), xlabel='Epoch', ylabel='SSIM', legend=Legend),
         update='append' if epoch > 0 else None)
 
-    vis_window['PSNR'] = vis.line(
+    vis_window['PSNR_{date}'.format(date=d1)] = vis.line(
         X=np.column_stack([epoch] * 8),
         Y=np.column_stack([psnr_batch_5.avg, psnr_batch_7.avg, psnr_batch_9.avg, psnr_original_batch.avg,
                            psnr_batch_val_5.avg, psnr_batch_val_7.avg, psnr_batch_val_9.avg,
                            psnr_original_batch_val.avg]),
-        win=vis_window['PSNR'],
-        opts=dict(title='PSNR', xlabel='Epoch', ylabel='PSNR', legend=Legend),
+        win=vis_window['PSNR_{date}'.format(date=d1)],
+        opts=dict(title='PSNR_{date}'.format(date=d1), xlabel='Epoch', ylabel='PSNR', legend=Legend),
         update='append' if epoch > 0 else None)
 
     loss_batch_5.reset()
