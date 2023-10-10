@@ -83,7 +83,7 @@ dhdn_160 = dhdn_160.to(device_1)
 if args.load_models:
     state_dict_dhdn_096 = torch.load(dir_current + config['Training']['Model_Path_DHDN_096'], map_location=device_0)
     state_dict_dhdn_128 = torch.load(dir_current + config['Training']['Model_Path_DHDN_128'], map_location=device_0)
-    state_dict_dhdn_160 = torch.load(dir_current + config['Training']['Model_Path_DHDN_160'], map_location=device_0)
+    state_dict_dhdn_160 = torch.load(dir_current + config['Training']['Model_Path_DHDN_160'], map_location=device_1)
 
     if args.drop > 0:
         state_dict_dhdn_096 = drop_weights(state_dict_dhdn_096, p=args.drop, device=device_0)
@@ -92,7 +92,7 @@ if args.load_models:
     if args.gaussian > 0:
         state_dict_dhdn_096 = gaussian_add_weights(state_dict_dhdn_096, k=args.gaussian, device=device_0)
         state_dict_dhdn_128 = gaussian_add_weights(state_dict_dhdn_128, k=args.gaussian, device=device_0)
-        state_dict_dhdn_160 = gaussian_add_weights(state_dict_dhdn_160, k=args.gaussian, device=device_0)
+        state_dict_dhdn_160 = gaussian_add_weights(state_dict_dhdn_160, k=args.gaussian, device=device_1)
 
     dhdn_096.load_state_dict(state_dict_dhdn_096)
     dhdn_128.load_state_dict(state_dict_dhdn_128)
