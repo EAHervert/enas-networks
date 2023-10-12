@@ -8,9 +8,9 @@
     "Output_File": "DHDN_Compare_Up"
   },
   "Training": {
-    "Model_Path_DHDN_PS": "/models/compare_up/2023_10_02_size_5_SIDD.pth",
-    "Model_Path_DHDN_TC": "/models/compare_up/2023_10_02_size_7_SIDD.pth",
-    "Model_Path_DHDN_BL": "/models/compare_up/2023_10_02_size_9_SIDD.pth",
+    "Model_Path_DHDN_PS": "/models/compare_up/2023_10_11__21_13_59_dhdn_up_PS_SIDD.pth",
+    "Model_Path_DHDN_TC": "/models/compare_up/2023_10_11__21_13_59_dhdn_up_TC_SIDD.pth",
+    "Model_Path_DHDN_BL": "/models/compare_up/2023_10_11__21_13_59_dhdn_up_BL_SIDD.pth",
     "Epochs": 25,
     "Train_Batch_Size": 16,
     "Validation_Batch_Size": 16,

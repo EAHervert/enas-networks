@@ -347,11 +347,11 @@ for epoch in range(config['Training']['Epochs']):
     scheduler_CNV.step()
 
     if epoch > 0 and not epoch % 10:
-        model_path_MAX = dir_current + '/models/compare_up/{date}_dhdn_down_MAX_{noise}_{epoch}.pth'.format(
+        model_path_MAX = dir_current + '/models/compare_down/{date}_dhdn_down_MAX_{noise}_{epoch}.pth'.format(
             date=d1, noise=args.noise, epoch=epoch)
-        model_path_AVG = dir_current + '/models/compare_up/{date}_dhdn_down_AVG_{noise}_{epoch}.pth'.format(
+        model_path_AVG = dir_current + '/models/compare_down/{date}_dhdn_down_AVG_{noise}_{epoch}.pth'.format(
             date=d1, noise=args.noise, epoch=epoch)
-        model_path_CNV = dir_current + '/models/compare_up/{date}_dhdn_down_CNV_{noise}_{epoch}.pth'.format(
+        model_path_CNV = dir_current + '/models/compare_down/{date}_dhdn_down_CNV_{noise}_{epoch}.pth'.format(
             date=d1, noise=args.noise, epoch=epoch)
 
         torch.save(dhdn_MAX.state_dict(), model_path_MAX)
@@ -367,9 +367,9 @@ for epoch in range(config['Training']['Epochs']):
         dhdn_CNV.load_state_dict(state_dict_dhdn_CNV)
 
 # Save final model
-model_path_MAX = dir_current + '/models/compare_up/{date}_dhdn_down_MAX_{noise}.pth'.format(date=d1, noise=args.noise)
-model_path_AVG = dir_current + '/models/compare_up/{date}_dhdn_down_AVG_{noise}.pth'.format(date=d1, noise=args.noise)
-model_path_CNV = dir_current + '/models/compare_up/{date}_dhdn_down_CNV_{noise}.pth'.format(date=d1, noise=args.noise)
+model_path_MAX = dir_current + '/models/compare_down/{date}_dhdn_down_MAX_{noise}.pth'.format(date=d1, noise=args.noise)
+model_path_AVG = dir_current + '/models/compare_down/{date}_dhdn_down_AVG_{noise}.pth'.format(date=d1, noise=args.noise)
+model_path_CNV = dir_current + '/models/compare_down/{date}_dhdn_down_CNV_{noise}.pth'.format(date=d1, noise=args.noise)
 
 torch.save(dhdn_MAX.state_dict(), model_path_MAX)
 torch.save(dhdn_AVG.state_dict(), model_path_AVG)
