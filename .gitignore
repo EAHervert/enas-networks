@@ -142,3 +142,4 @@ dmypy.json
 /Benchmarks/test_dhdn_visual.ipynb
 /Benchmarks/test_validation_local.py
 /Benchmarks/visualize_crops.ipynb
+/CycleGan-Benchmarks/Generator_Exploration.ipynb
