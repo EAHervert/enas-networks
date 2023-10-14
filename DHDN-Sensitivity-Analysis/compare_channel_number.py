@@ -245,12 +245,18 @@ for epoch in range(config['Training']['Epochs']):
         # Free up space in GPU
         del x_v, y_v_096, y_v_128, y_v_160, t_v
 
-    Display_Loss = "Loss_Size_096: %.6f" % loss_batch_val_096.val + "\tLoss_Size_128: %.6f" % loss_batch_val_128.val + \
-                   "\tLoss_Size_160: %.6f" % loss_batch_val_160.val + "\tLoss_Original: %.6f" % loss_original_batch_val.val
-    Display_SSIM = "SSIM_Size_096: %.6f" % ssim_batch_val_096.val + "\tSSIM_Size_128: %.6f" % ssim_batch_val_128.val + \
-                   "\tSSIM_Size_160: %.6f" % ssim_batch_val_160.val + "\tSSIM_Original: %.6f" % ssim_original_batch_val.val
-    Display_PSNR = "PSNR_Size_096: %.6f" % psnr_batch_val_096.val + "\tPSNR_Size_128: %.6f" % psnr_batch_val_128.val + \
-                   "\tPSNR_Size_160: %.6f" % psnr_batch_val_160.val + "\tPSNR_Original: %.6f" % psnr_original_batch_val.val
+    Display_Loss = "Loss_Size_096: %.6f" % loss_batch_val_096.avg + \
+                   "\tLoss_Size_128: %.6f" % loss_batch_val_128.avg + \
+                   "\tLoss_Size_160: %.6f" % loss_batch_val_160.avg + \
+                   "\tLoss_Original: %.6f" % loss_original_batch_val.avg
+    Display_SSIM = "SSIM_Size_096: %.6f" % ssim_batch_val_096.avg + \
+                   "\tSSIM_Size_128: %.6f" % ssim_batch_val_128.avg + \
+                   "\tSSIM_Size_160: %.6f" % ssim_batch_val_160.avg + \
+                   "\tSSIM_Original: %.6f" % ssim_original_batch_val.avg
+    Display_PSNR = "PSNR_Size_096: %.6f" % psnr_batch_val_096.avg + \
+                   "\tPSNR_Size_128: %.6f" % psnr_batch_val_128.avg + \
+                   "\tPSNR_Size_160: %.6f" % psnr_batch_val_160.avg + \
+                   "\tPSNR_Original: %.6f" % psnr_original_batch_val.avg
 
     print("Validation Data for Epoch: ", epoch)
     print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')

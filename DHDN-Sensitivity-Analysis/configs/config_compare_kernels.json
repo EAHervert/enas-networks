@@ -8,9 +8,9 @@
     "Output_File": "DHDN_Compare_Kernels"
   },
   "Training": {
-    "Model_Path_DHDN_3x3": "/models/compare_kernels/2023_10_02_size_5_SIDD.pth",
-    "Model_Path_DHDN_5x5": "/models/compare_kernels/2023_10_02_size_7_SIDD.pth",
-    "Model_Path_DHDModel_Path_DHDN_RANN_9": "/models/compare_kernels/2023_10_02_size_9_SIDD.pth",
+    "Model_Path_DHDN_3x3": "/models/compare_kernels/2023_10_13__18_26_40_dhdn_3x3_SIDD.pth",
+    "Model_Path_DHDN_5x5": "/models/compare_kernels/2023_10_13__18_26_40_dhdn_5x5_SIDD.pth",
+    "Model_Path_DHDN_RAN": "/models/compare_kernels/2023_10_13__18_26_40_dhdn_RAN_SIDD.pth",
     "Epochs": 25,
     "Train_Batch_Size": 16,
     "Validation_Batch_Size": 16,

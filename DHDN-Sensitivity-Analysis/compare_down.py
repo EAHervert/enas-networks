@@ -258,12 +258,18 @@ for epoch in range(config['Training']['Epochs']):
         # Free up space in GPU
         del x_v, y_v_MAX, y_v_AVG, y_v_CNV, t_v
 
-    Display_Loss = "Loss_Size_MAX: %.6f" % loss_batch_val_MAX.val + "\tLoss_Size_AVG: %.6f" % loss_batch_val_AVG.val + \
-                   "\tLoss_Size_CNV: %.6f" % loss_batch_val_CNV.val + "\tLoss_Original: %.6f" % loss_original_batch_val.val
-    Display_SSIM = "SSIM_Size_MAX: %.6f" % ssim_batch_val_MAX.val + "\tSSIM_Size_AVG: %.6f" % ssim_batch_val_AVG.val + \
-                   "\tSSIM_Size_CNV: %.6f" % ssim_batch_val_CNV.val + "\tSSIM_Original: %.6f" % ssim_original_batch_val.val
-    Display_PSNR = "PSNR_Size_MAX: %.6f" % psnr_batch_val_MAX.val + "\tPSNR_Size_AVG: %.6f" % psnr_batch_val_AVG.val + \
-                   "\tPSNR_Size_CNV: %.6f" % psnr_batch_val_CNV.val + "\tPSNR_Original: %.6f" % psnr_original_batch_val.val
+    Display_Loss = "Loss_Size_MAX: %.6f" % loss_batch_val_MAX.avg + \
+                   "\tLoss_Size_AVG: %.6f" % loss_batch_val_AVG.avg + \
+                   "\tLoss_Size_CNV: %.6f" % loss_batch_val_CNV.avg + \
+                   "\tLoss_Original: %.6f" % loss_original_batch_val.avg
+    Display_SSIM = "SSIM_Size_MAX: %.6f" % ssim_batch_val_MAX.avg + \
+                   "\tSSIM_Size_AVG: %.6f" % ssim_batch_val_AVG.avg + \
+                   "\tSSIM_Size_CNV: %.6f" % ssim_batch_val_CNV.avg + \
+                   "\tSSIM_Original: %.6f" % ssim_original_batch_val.avg
+    Display_PSNR = "PSNR_Size_MAX: %.6f" % psnr_batch_val_MAX.avg + \
+                   "\tPSNR_Size_AVG: %.6f" % psnr_batch_val_AVG.val + \
+                   "\tPSNR_Size_CNV: %.6f" % psnr_batch_val_CNV.avg + \
+                   "\tPSNR_Original: %.6f" % psnr_original_batch_val.avg
 
     print("Validation Data for Epoch: ", epoch)
     print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
