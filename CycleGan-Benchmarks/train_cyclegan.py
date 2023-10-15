@@ -69,8 +69,8 @@ device_1 = torch.device(config['CUDA']['Device1'])
 # Load the Models:
 DX = Discriminator.NLayerDiscriminator(input_nc=3)
 DY = Discriminator.NLayerDiscriminator(input_nc=3)
-G = Generator.UnetGenerator(input_nc=3, output_nc=3, num_downs=5)  # G: X -> Y
-F = Generator.UnetGenerator(input_nc=3, output_nc=3, num_downs=5)  # F: Y -> X
+G = Generator.UnetGenerator(input_nc=3, output_nc=3, num_downs=6)  # G: X -> Y
+F = Generator.UnetGenerator(input_nc=3, output_nc=3, num_downs=6)  # F: Y -> X
 
 DX = DX.to(device_0)
 DY = DY.to(device_1)
