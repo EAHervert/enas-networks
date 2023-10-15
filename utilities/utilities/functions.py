@@ -184,9 +184,11 @@ def drop_weights(state_dict, p=0.8, device='cpu'):
 
     for key in state_dict.keys():
         tensor = state_dict_out[key]
-        mask = (torch.randn(tensor.size()) < p) * 1.
+        if tensor.dtype == torch.float32:
+            mask = (torch.randn(tensor.size()) < p) * 1.
+            tensor = torch.mul(tensor, mask.to(device))
 
-        state_dict_out[key] = torch.mul(tensor, mask.to(device))
+        state_dict_out[key] = tensor
 
     return state_dict_out
 
@@ -196,10 +198,12 @@ def gaussian_add_weights(state_dict, k=1, device='cpu'):
 
     for key in state_dict.keys():
         tensor = state_dict_out[key]
-        std = tensor.std().item()
-        noise = torch.clip(k * std * torch.randn(tensor.size()), -k * std, k * std)
+        if tensor.dtype == torch.float32:
+            std = tensor.std().item()
+            noise = torch.clip(k * std * torch.randn(tensor.size()), -k * std, k * std)
+            tensor += noise.to(device)
 
-        state_dict_out[key] = tensor + noise.to(device)
+        state_dict_out[key] = tensor
 
     return state_dict_out
 
@@ -209,8 +213,9 @@ def clip_weights(state_dict, k=1, device='cpu'):
 
     for key in state_dict.keys():
         tensor = state_dict_out[key]
-        std = tensor.std().item()
-        tensor = torch.clamp(tensor, -k * std, k * std)
+        if tensor.dtype == torch.float32:
+            std = tensor.std().item()
+            tensor = torch.clamp(tensor, -k * std, k * std)
 
         state_dict_out[key] = tensor
 

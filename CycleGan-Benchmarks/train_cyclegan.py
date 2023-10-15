@@ -23,8 +23,10 @@ parser = argparse.ArgumentParser(
     description='Training cyclegan with different parameters',
 )
 parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to train on
-parser.add_argument('--lambda_1', default=1.0, type=float)  # To include the cycle loss for the Generators
-parser.add_argument('--lambda_2', default=0.0, type=float)  # to include identity loss to avoid discoloring
+parser.add_argument('--lambda_11', default=1.0, type=float)  # Cycle loss X -> Y -> X
+parser.add_argument('--lambda_12', default=1.0, type=float)  # Cycle loss X -> Y -> X
+parser.add_argument('--lambda_21', default=0.0, type=float)  # Identity loss G(y) approx y
+parser.add_argument('--lambda_22', default=0.0, type=float)  # Identity loss F(x) approx x
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
 args = parser.parse_args()
@@ -201,8 +203,8 @@ for epoch in range(config['Training']['Epochs']):
         Loss_IX_calc = loss_0(F_x, x.to(device_0)).to(device_1)
         Loss_IY_calc = loss_1(G_y, y.to(device_1)).to(device_0)
 
-        Loss_G_calc = Loss_GANG_calc + args.lambda_1 * Loss_Cyc_calc + args.lambda_2 * Loss_IY_calc
-        Loss_F_calc = Loss_GANF_calc + args.lambda_1 * Loss_Cyc_calc_dev_1 + args.lambda_2 * Loss_IX_calc
+        Loss_G_calc = Loss_GANG_calc + args.lambda_11 * Loss_Cyc_calc + args.lambda_21 * Loss_IY_calc
+        Loss_F_calc = Loss_GANF_calc + args.lambda_12 * Loss_Cyc_calc_dev_1 + args.lambda_22 * Loss_IX_calc
 
         # Update the Generators:
         optimizer_G.zero_grad()
@@ -357,7 +359,6 @@ for epoch in range(config['Training']['Epochs']):
         torch.save(DY.state_dict(), model_path_DY)
         torch.save(F.state_dict(), model_path_F)
         torch.save(G.state_dict(), model_path_G)
-
 
         state_dict_DX = clip_weights(DX.state_dict(), k=3, device=device_0)
         state_dict_DY = clip_weights(DY.state_dict(), k=3, device=device_1)
