@@ -12,7 +12,7 @@ import visdom
 import argparse
 
 from utilities.utils import CSVLogger, Logger
-from utilities.functions import SSIM, PSNR, generate_loggers, drop_weights, gaussian_add_weights, clip_weights
+from utilities.functions import SSIM, PSNR, generate_loggers, drop_weights, clip_weights
 
 current_time = datetime.datetime.now()
 d1 = current_time.strftime('%Y_%m_%d__%H_%M_%S')
@@ -24,7 +24,6 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to train on
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
-parser.add_argument('--gaussian', default='-1', type=float)  # Gaussian noise addition for model weight # initialization
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
 args = parser.parse_args()
 
@@ -96,10 +95,6 @@ if args.load_models:
         state_dict_dhdn_3x3 = drop_weights(state_dict_dhdn_3x3, p=args.drop, device=device_0)
         state_dict_dhdn_5x5 = drop_weights(state_dict_dhdn_5x5, p=args.drop, device=device_0)
         state_dict_dhdn_RAN = drop_weights(state_dict_dhdn_RAN, p=args.drop, device=device_1)
-    if args.gaussian > 0:
-        state_dict_dhdn_3x3 = gaussian_add_weights(state_dict_dhdn_3x3, k=args.gaussian, device=device_0)
-        state_dict_dhdn_5x5 = gaussian_add_weights(state_dict_dhdn_5x5, k=args.gaussian, device=device_0)
-        state_dict_dhdn_RAN = gaussian_add_weights(state_dict_dhdn_RAN, k=args.gaussian, device=device_1)
 
     dhdn_3x3.load_state_dict(state_dict_dhdn_3x3)
     dhdn_5x5.load_state_dict(state_dict_dhdn_5x5)
@@ -128,27 +123,27 @@ scheduler_5x5 = torch.optim.lr_scheduler.StepLR(optimizer_5x5, 3, 0.5, -1)
 scheduler_RAN = torch.optim.lr_scheduler.StepLR(optimizer_RAN, 3, 0.5, -1)
 
 # Define the Loss and evaluation metrics:
-loss_3x3 = nn.L1Loss().to(device_0)
-loss_5x5 = nn.L1Loss().to(device_0)
-loss_RAN = nn.L1Loss().to(device_1)
-MSE = nn.MSELoss().to(device_1)
+loss_0 = nn.L1Loss().to(device_0)
+loss_1 = nn.L1Loss().to(device_0)
+mse_1 = nn.MSELoss().to(device_1)
 
 # Now, let us define our loggers:
-loggers5 = generate_loggers()
-loggers7 = generate_loggers()
-loggers9 = generate_loggers()
+loggers_3x3 = generate_loggers()
+loggers_5x5 = generate_loggers()
+loggers_RAN = generate_loggers()
 
 # Training Batches
-loss_batch_3x3, loss_original_batch, ssim_batch_3x3, ssim_original_batch, psnr_batch_3x3, psnr_original_batch = loggers5[0]
-loss_batch_5x5, _, ssim_batch_5x5, _, psnr_batch_5x5, _ = loggers7[0]
-loss_batch_RAN, _, ssim_batch_RAN, _, psnr_batch_RAN, _ = loggers9[0]
+loss_batch_3x3, loss_original_batch, ssim_batch_3x3, ssim_original_batch = loggers_3x3[0][0:4]
+psnr_batch_3x3, psnr_original_batch = loggers_3x3[0][4:]
+loss_batch_5x5, _, ssim_batch_5x5, _, psnr_batch_5x5, _ = loggers_5x5[0]
+loss_batch_RAN, _, ssim_batch_RAN, _, psnr_batch_RAN, _ = loggers_RAN[0]
 
 # Validation Batches
-loss_batch_val_3x3, loss_original_batch_val, ssim_batch_val_3x3, ssim_original_batch_val = loggers5[1][0:4]
-psnr_batch_val_3x3, psnr_original_batch_val = loggers5[1][4:]
+loss_batch_val_3x3, loss_original_batch_val, ssim_batch_val_3x3, ssim_original_batch_val = loggers_3x3[1][0:4]
+psnr_batch_val_3x3, psnr_original_batch_val = loggers_3x3[1][4:]
 
-loss_batch_val_5x5, _, ssim_batch_val_5x5, _, psnr_batch_val_5x5, _ = loggers7[1]
-loss_batch_val_RAN, _, ssim_batch_val_RAN, _, psnr_batch_val_RAN, _ = loggers9[1]
+loss_batch_val_5x5, _, ssim_batch_val_5x5, _, psnr_batch_val_5x5, _ = loggers_5x5[1]
+loss_batch_val_RAN, _, ssim_batch_val_RAN, _, psnr_batch_val_RAN, _ = loggers_RAN[1]
 
 # Load the Training and Validation Data:
 SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing())
@@ -163,31 +158,31 @@ for epoch in range(config['Training']['Epochs']):
 
     for i_batch, sample_batch in enumerate(dataloader_sidd_training):
         x = sample_batch['NOISY']
-        y5 = dhdn_3x3(x.to(device_0))
-        y7 = dhdn_5x5(x.to(device_0))
-        y9 = dhdn_RAN(x.to(device_1))
+        y_3x3 = dhdn_3x3(x.to(device_0))
+        y_5x5 = dhdn_5x5(x.to(device_0))
+        y_RAN = dhdn_RAN(x.to(device_1))
         t = sample_batch['GT']
 
-        loss_value_3x3 = loss_3x3(y5, t.to(device_0))
-        loss_value_5x5 = loss_5x5(y7, t.to(device_0))
-        loss_value_RAN = loss_RAN(y9, t.to(device_1))
+        loss_value_3x3 = loss_0(y_3x3, t.to(device_0))
+        loss_value_5x5 = loss_0(y_5x5, t.to(device_0))
+        loss_value_RAN = loss_1(y_RAN, t.to(device_1))
         loss_batch_3x3.update(loss_value_3x3.item())
         loss_batch_5x5.update(loss_value_5x5.item())
         loss_batch_RAN.update(loss_value_RAN.item())
 
         # Calculate values not needing to be backpropagated
         with torch.no_grad():
-            loss_original_batch.update(loss_RAN(x.to(device_1), t.to(device_1)).item())
+            loss_original_batch.update(loss_1(x.to(device_1), t.to(device_1)).item())
 
-            ssim_batch_3x3.update(SSIM(y5, t.to(device_0)).item())
-            ssim_batch_5x5.update(SSIM(y7, t.to(device_0)).item())
-            ssim_batch_RAN.update(SSIM(y9, t.to(device_1)).item())
+            ssim_batch_3x3.update(SSIM(y_3x3, t.to(device_0)).item())
+            ssim_batch_5x5.update(SSIM(y_5x5, t.to(device_0)).item())
+            ssim_batch_RAN.update(SSIM(y_RAN, t.to(device_1)).item())
             ssim_original_batch.update(SSIM(x, t).item())
 
-            psnr_batch_3x3.update(PSNR(MSE(y5, t.to(device_0))).item())
-            psnr_batch_5x5.update(PSNR(MSE(y7, t.to(device_0))).item())
-            psnr_batch_RAN.update(PSNR(MSE(y9, t.to(device_1))).item())
-            psnr_original_batch.update(PSNR(MSE(x.to(device_1), t.to(device_1))).item())
+            psnr_batch_3x3.update(PSNR(mse_1(y_3x3, t.to(device_0))).item())
+            psnr_batch_5x5.update(PSNR(mse_1(y_5x5, t.to(device_0))).item())
+            psnr_batch_RAN.update(PSNR(mse_1(y_RAN, t.to(device_1))).item())
+            psnr_original_batch.update(PSNR(mse_1(x.to(device_1), t.to(device_1))).item())
 
         # Backpropagate to train model
         optimizer_3x3.zero_grad()
@@ -220,7 +215,7 @@ for epoch in range(config['Training']['Epochs']):
             print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
 
         # Free up space in GPU
-        del x, y5, y7, y9, t
+        del x, y_3x3, y_5x5, y_RAN, t
 
     Display_Loss = "Loss_Size_3x3: %.6f" % loss_batch_3x3.avg + "\tLoss_Size_5x5: %.6f" % loss_batch_5x5.avg + \
                    "\tLoss_Size_RAN: %.6f" % loss_batch_RAN.avg + "\tLoss_Original: %.6f" % loss_original_batch.avg
@@ -236,27 +231,27 @@ for epoch in range(config['Training']['Epochs']):
         x_v = validation_batch['NOISY']
         t_v = validation_batch['GT']
         with torch.no_grad():
-            y_v5 = dhdn_3x3(x_v.to(device_0))
-            y_v7 = dhdn_5x5(x_v.to(device_0))
-            y_v9 = dhdn_RAN(x_v.to(device_1))
+            y_3x3_v = dhdn_3x3(x_v.to(device_0))
+            y_5x5_v = dhdn_5x5(x_v.to(device_0))
+            y_RAN_v = dhdn_RAN(x_v.to(device_1))
 
-            loss_batch_val_3x3.update(loss_3x3(y_v5, t_v.to(device_0)).item())
-            loss_batch_val_5x5.update(loss_5x5(y_v7, t_v.to(device_0)).item())
-            loss_batch_val_RAN.update(loss_RAN(y_v9, t_v.to(device_1)).item())
-            loss_original_batch_val.update(loss_RAN(x_v.to(device_1), t_v.to(device_1)).item())
+            loss_batch_val_3x3.update(loss_0(y_3x3_v, t_v.to(device_0)).item())
+            loss_batch_val_5x5.update(loss_0(y_5x5_v, t_v.to(device_0)).item())
+            loss_batch_val_RAN.update(loss_1(y_RAN_v, t_v.to(device_1)).item())
+            loss_original_batch_val.update(loss_1(x_v.to(device_1), t_v.to(device_1)).item())
 
-            ssim_batch_val_3x3.update(SSIM(y_v5, t_v.to(device_0)).item())
-            ssim_batch_val_5x5.update(SSIM(y_v7, t_v.to(device_0)).item())
-            ssim_batch_val_RAN.update(SSIM(y_v9, t_v.to(device_1)).item())
+            ssim_batch_val_3x3.update(SSIM(y_3x3_v, t_v.to(device_0)).item())
+            ssim_batch_val_5x5.update(SSIM(y_5x5_v, t_v.to(device_0)).item())
+            ssim_batch_val_RAN.update(SSIM(y_RAN_v, t_v.to(device_1)).item())
             ssim_original_batch_val.update(SSIM(x_v, t_v).item())
 
-            psnr_batch_val_3x3.update(PSNR(MSE(y_v5, t_v.to(device_0))).item())
-            psnr_batch_val_5x5.update(PSNR(MSE(y_v7, t_v.to(device_0))).item())
-            psnr_batch_val_RAN.update(PSNR(MSE(y_v9, t_v.to(device_1))).item())
-            psnr_original_batch_val.update(PSNR(MSE(x_v.to(device_1), t_v.to(device_1))).item())
+            psnr_batch_val_3x3.update(PSNR(mse_1(y_3x3_v, t_v.to(device_0))).item())
+            psnr_batch_val_5x5.update(PSNR(mse_1(y_5x5_v, t_v.to(device_0))).item())
+            psnr_batch_val_RAN.update(PSNR(mse_1(y_RAN_v, t_v.to(device_1))).item())
+            psnr_original_batch_val.update(PSNR(mse_1(x_v.to(device_1), t_v.to(device_1))).item())
 
         # Free up space in GPU
-        del x_v, y_v5, y_v7, y_v9, t_v
+        del x_v, y_3x3_v, y_5x5_v, y_RAN_v, t_v
 
     Display_Loss = "Loss_Size_3x3: %.6f" % loss_batch_val_3x3.avg + \
                    "\tLoss_Size_5x5: %.6f" % loss_batch_val_5x5.avg + \
