@@ -24,7 +24,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to train on
 parser.add_argument('--lambda_11', default=1.0, type=float)  # Cycle loss X -> Y -> X
-parser.add_argument('--lambda_12', default=1.0, type=float)  # Cycle loss X -> Y -> X
+parser.add_argument('--lambda_12', default=1.0, type=float)  # Cycle loss Y -> X -> Y
 parser.add_argument('--lambda_21', default=0.0, type=float)  # Identity loss G(y) approx y
 parser.add_argument('--lambda_22', default=0.0, type=float)  # Identity loss F(x) approx x
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
@@ -57,7 +57,7 @@ sys.stdout = Logger(Result_Path + '/' + config['Locations']['Output_File'] + '/l
 
 # Create the CSV Logger:
 File_Name = Result_Path + '/' + config['Locations']['Output_File'] + '/data.csv'
-Field_Names = ['Loss_DX', 'Loss_DY', 'Loss_GANG', 'Loss_GANF', 'Loss_Cyc', 'Loss_IX', 'Loss_IY',
+Field_Names = ['Loss_DX', 'Loss_DY', 'Loss_GANG', 'Loss_GANF', 'Loss_Cyc_XYX', 'Loss_Cyc_YXY', 'Loss_IX', 'Loss_IY',
                'SSIM_Batch', 'SSIM_Original_Train', 'SSIM_Val', 'SSIM_Original_Val',
                'PSNR_Batch', 'PSNR_Original_Train', 'PSNR_Val', 'PSNR_Original_Val']
 Logger = CSVLogger(fieldnames=Field_Names, filename=File_Name)
@@ -109,10 +109,14 @@ vis_window = {'Loss_{date}'.format(date=d1): None,
               'PSNR_{date}'.format(date=d1): None}
 
 # Define the optimizers:
-optimizer_DX = torch.optim.Adam(DX.parameters(), config['Training']['Learning_Rate'])
-optimizer_DY = torch.optim.Adam(DY.parameters(), config['Training']['Learning_Rate'])
-optimizer_F = torch.optim.Adam(F.parameters(), config['Training']['Learning_Rate'])
-optimizer_G = torch.optim.Adam(G.parameters(), config['Training']['Learning_Rate'])
+optimizer_DX = torch.optim.Adam(DX.parameters(), lr=config['Training']['Learning_Rate'],
+                                betas=(config['Training']['Beta_1'], config['Training']['Beta_2']))
+optimizer_DY = torch.optim.Adam(DY.parameters(), lr=config['Training']['Learning_Rate'],
+                                betas=(config['Training']['Beta_1'], config['Training']['Beta_2']))
+optimizer_F = torch.optim.Adam(F.parameters(), lr=config['Training']['Learning_Rate'],
+                               betas=(config['Training']['Beta_1'], config['Training']['Beta_2']))
+optimizer_G = torch.optim.Adam(G.parameters(), lr=config['Training']['Learning_Rate'],
+                               betas=(config['Training']['Beta_1'], config['Training']['Beta_2']))
 
 # Define the Scheduling:
 scheduler_DX = torch.optim.lr_scheduler.StepLR(optimizer_DX, 3, 0.5, -1)
@@ -129,7 +133,7 @@ mse_1 = nn.MSELoss().to(device_1)
 # Now, let us define our loggers:
 loggers = generate_cyclegan_loggers()
 ssim_meter_batch, ssim_original_meter_batch, psnr_meter_batch, psnr_original_meter_batch = loggers[0][0:4]
-loss_DX, loss_DY, loss_GANG, loss_GANF, loss_Cyc, loss_IX, loss_IY = loggers[0][4:]
+loss_DX, loss_DY, loss_GANG, loss_GANF, loss_Cyc_XYX, loss_Cyc_YXY, loss_IX, loss_IY = loggers[0][4:]
 ssim_meter_val, ssim_original_meter_val, psnr_meter_val, psnr_original_meter_val = loggers[1]
 
 # Load the Noisy and GT Data (X and Y):
@@ -183,10 +187,10 @@ for epoch in range(config['Training']['Epochs']):
         # Generator Operators
         F_y = F(y.to(device_1)).to(device_0)  # y -> F(y)
         G_x = G(x.to(device_0)).to(device_1)  # x -> G(x)
-        F_G_x_dev_0 = F(G_x).clone().detach().to(device_0)  # x -> G_x -> F_G_x
-        G_F_y_dev_0 = G(F_y.clone().detach()).to(device_0)  # y -> F_y -> G_F_y
-        F_G_x_dev_1 = F(G_x.clone().detach()).to(device_1)  # x -> G_x -> F_G_x
-        G_F_y_dev_1 = G(F_y).clone().detach().to(device_1)  # y -> F_y -> G_F_y
+        F_G_x__G = F(G_x).clone().detach().to(device_0)  # x -> G_x -> F_G_x (G Model)
+        F_G_x__F = F(G_x.clone().detach()).to(device_1)  # x -> G_x -> F_G_x (F Model)
+        G_F_y__G = G(F_y.clone().detach()).to(device_0)  # y -> F_y -> G_F_y
+        G_F_y__F = G(F_y).clone().detach().to(device_1)  # y -> F_y -> G_F_y
         F_x = F(x.to(device_1)).to(device_0)  # x -> F_x
         G_y = G(y.to(device_0)).to(device_1)  # y -> G_y
 
@@ -198,13 +202,17 @@ for epoch in range(config['Training']['Epochs']):
         # Calculate Losses (Generators):
         Loss_GANG_calc = mse_0(DY_G_x.to(device_0), Target_1.to(device_0))
         Loss_GANF_calc = mse_1(DX_F_y.to(device_1), Target_1.to(device_1))
-        Loss_Cyc_calc = loss_0(F_G_x_dev_0, x.to(device_0)) + loss_0(G_F_y_dev_0, y.to(device_0))
-        Loss_Cyc_calc_dev_1 = loss_1(F_G_x_dev_1, x.to(device_1)) + loss_1(G_F_y_dev_1, y.to(device_1))
+        Loss_Cyc_XYX_G_calc = loss_0(F_G_x__G, x.to(device_0))
+        Loss_Cyc_XYX_F_calc = loss_1(F_G_x__F, x.to(device_1))
+        Loss_Cyc_YXY_G_calc = loss_0(G_F_y__G, y.to(device_0))
+        Loss_Cyc_YXY_F_calc = loss_1(G_F_y__F, y.to(device_1))
         Loss_IX_calc = loss_0(F_x, x.to(device_0)).to(device_1)
         Loss_IY_calc = loss_1(G_y, y.to(device_1)).to(device_0)
 
-        Loss_G_calc = Loss_GANG_calc + args.lambda_11 * Loss_Cyc_calc + args.lambda_21 * Loss_IY_calc
-        Loss_F_calc = Loss_GANF_calc + args.lambda_12 * Loss_Cyc_calc_dev_1 + args.lambda_22 * Loss_IX_calc
+        Loss_G_calc = Loss_GANG_calc + args.lambda_11 * Loss_Cyc_XYX_G_calc + args.lambda_12 * Loss_Cyc_YXY_G_calc + \
+                      args.lambda_21 * Loss_IY_calc
+        Loss_F_calc = Loss_GANF_calc + args.lambda_11 * Loss_Cyc_XYX_F_calc + args.lambda_12 * Loss_Cyc_YXY_F_calc + \
+                      args.lambda_22 * Loss_IX_calc
 
         # Update the Generators:
         optimizer_G.zero_grad()
@@ -219,13 +227,14 @@ for epoch in range(config['Training']['Epochs']):
         loss_DY.update(Loss_DY_calc.item())
         loss_GANG.update(Loss_GANG_calc.item())
         loss_GANF.update(Loss_GANF_calc.item())
-        loss_Cyc.update(Loss_Cyc_calc.item())
+        loss_Cyc_XYX.update(Loss_Cyc_XYX_G_calc.item())
+        loss_Cyc_XYX.update(Loss_Cyc_YXY_F_calc.item())
         loss_IX.update(Loss_IX_calc.item())
         loss_IY.update(Loss_IY_calc.item())
 
         if i_batch % 100 == 0:
             Display_Loss_D = "Loss_DX: %.6f" % loss_DX.val + "\tLoss_DY: %.6f" % loss_DY.val
-            Display_Loss_Cyc = "Loss_Cyc: %.6f" % loss_Cyc.val
+            Display_Loss_Cyc = "loss_Cyc_XYX: %.6f" % loss_Cyc_XYX.val + "\tLoss_Cyc_YXY: %.6f" % loss_Cyc_YXY.val
             Display_Loss_G = "Loss_GANG: %.6f" % loss_GANG.val + "\tLoss_IY: %.6f" % loss_IY.val
             Display_Loss_F = "Loss_GANF: %.6f" % loss_GANF.val + "\tLoss_IX: %.6f" % loss_IX.val
             Display_SSIM = "SSIM_Batch: %.6f" % ssim_meter_batch.val + \
@@ -238,10 +247,10 @@ for epoch in range(config['Training']['Epochs']):
                   Display_SSIM + '\n' + Display_PSNR)
 
         # Free up space in GPU
-        del x, y, F_y, G_x, F_G_x_dev_0, G_F_y_dev_0, F_G_x_dev_1, G_F_y_dev_1, F_x, G_y, DX_F_y, DY_G_x
+        del x, y, F_y, G_x, F_G_x__G, F_G_x__F, G_F_y__G, G_F_y__F, F_x, G_y, DX_F_y, DY_G_x
 
     Display_Loss_D = "Loss_DX: %.6f" % loss_DX.avg + "\tLoss_DY: %.6f" % loss_DY.avg
-    Display_Loss_Cyc = "Loss_Cyc: %.6f" % loss_Cyc.avg
+    Display_Loss_Cyc = "loss_Cyc_XYX: %.6f" % loss_Cyc_XYX.val + "\tLoss_Cyc_YXY: %.6f" % loss_Cyc_YXY.val
     Display_Loss_G = "Loss_GANG: %.6f" % loss_GANG.avg + "\tLoss_IY: %.6f" % loss_IY.avg
     Display_Loss_F = "Loss_GANF: %.6f" % loss_GANF.avg + "\tLoss_IX: %.6f" % loss_IX.avg
     Display_SSIM = "SSIM_Batch: %.6f" % ssim_meter_batch.avg + \
@@ -260,17 +269,17 @@ for epoch in range(config['Training']['Epochs']):
         with torch.no_grad():
             G_x_v = G(x_v.to(device_0))
 
-            ssim_original_meter_val.update(SSIM(G_x_v, y_v.to(device_0)).item())
-            ssim_meter_val.update(SSIM(x_v.to(device_1), y_v.to(device_1)).item())
+            ssim_meter_val.update(SSIM(G_x_v, y_v.to(device_0)).item())
+            ssim_original_meter_val.update(SSIM(x_v.to(device_1), y_v.to(device_1)).item())
 
-            psnr_original_meter_val.update(PSNR(mse_0(G_x_v, y_v.to(device_0))).item())
-            psnr_meter_val.update(PSNR(mse_1(x_v.to(device_1), y_v.to(device_1))).item())
+            psnr_meter_val.update(PSNR(mse_0(G_x_v, y_v.to(device_0))).item())
+            psnr_original_meter_val.update(PSNR(mse_1(x_v.to(device_1), y_v.to(device_1))).item())
 
         # Free up space in GPU
         del x_v, y_v, G_x_v
 
     Display_SSIM = "SSIM: %.6f" % ssim_meter_val.avg + "\tSSIM_Original: %.6f" % ssim_original_meter_val.avg
-    Display_PSNR = "PSNR_Size_5: %.6f" % psnr_meter_val.avg + "\tPSNR_Original: %.6f" % psnr_original_meter_val.avg
+    Display_PSNR = "PSNR: %.6f" % psnr_meter_val.avg + "\tPSNR_Original: %.6f" % psnr_original_meter_val.avg
 
     print("Validation Data for Epoch: ", epoch)
     print(Display_SSIM + '\n' + Display_PSNR + '\n')
@@ -281,7 +290,8 @@ for epoch in range(config['Training']['Epochs']):
         'Loss_DY': loss_DY.avg,
         'Loss_GANG': loss_GANG.avg,
         'Loss_GANF': loss_GANF.avg,
-        'Loss_Cyc': loss_Cyc.avg,
+        'Loss_Cyc_XYX': loss_Cyc_XYX.avg,
+        'Loss_Cyc_YXY': loss_Cyc_YXY.avg,
         'Loss_IX': loss_IX.avg,
         'Loss_IY': loss_IY.avg,
         'SSIM_Batch': ssim_meter_batch.avg,
@@ -295,18 +305,17 @@ for epoch in range(config['Training']['Epochs']):
     })
 
     # Loss Plotting
-    Legend_Loss = ['Loss_DX', 'Loss_DY', 'Loss_GANG', 'Loss_GANF', 'Loss_Cyc', 'Loss_IX', 'Loss_IY']
+    Legend_Loss = ['Loss_DX', 'Loss_DY', 'Loss_GANG', 'Loss_GANF', 'Loss_Cyc_XYX', 'Loss_Cyc_YXY', 'Loss_IX', 'Loss_IY']
 
     vis_window['Loss_{date}'.format(date=d1)] = vis.line(
-        X=np.column_stack([epoch] * 7),
+        X=np.column_stack([epoch] * 8),
         Y=np.column_stack([loss_DX.avg, loss_DY.avg, loss_GANG.avg, loss_GANF.avg,
-                           loss_Cyc.avg, loss_IX.avg, loss_IY.avg]),
+                           loss_Cyc_XYX.avg, loss_Cyc_YXY.avg, loss_IX.avg, loss_IY.avg]),
         win=vis_window['Loss_{date}'.format(date=d1)],
         opts=dict(title='Loss_{date}'.format(date=d1), xlabel='Epoch', ylabel='Loss', legend=Legend_Loss),
         update='append' if epoch > 0 else None)
 
-    Legend = ['Train', 'Orig_Train',
-              'Val', 'Orig_Val']
+    Legend = ['Train', 'Orig_Train', 'Val', 'Orig_Val']
 
     vis_window['SSIM_{date}'.format(date=d1)] = vis.line(
         X=np.column_stack([epoch] * 4),
@@ -328,7 +337,8 @@ for epoch in range(config['Training']['Epochs']):
     loss_DY.reset()
     loss_GANG.reset()
     loss_GANF.reset()
-    loss_Cyc.reset()
+    loss_Cyc_XYX.reset()
+    loss_Cyc_YXY.reset()
     loss_IX.reset()
     loss_IY.reset()
     ssim_meter_batch.reset()
