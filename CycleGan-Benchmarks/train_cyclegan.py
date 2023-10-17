@@ -27,6 +27,7 @@ parser.add_argument('--lambda_11', default=1.0, type=float)  # Cycle loss X -> Y
 parser.add_argument('--lambda_12', default=1.0, type=float)  # Cycle loss Y -> X -> Y
 parser.add_argument('--lambda_21', default=0.0, type=float)  # Identity loss G(y) approx y
 parser.add_argument('--lambda_22', default=0.0, type=float)  # Identity loss F(x) approx x
+parser.add_argument('--lambda_3', default=0.0, type=float)  # Supervised loss G(x) approx y
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
 args = parser.parse_args()
@@ -58,7 +59,7 @@ sys.stdout = Logger(Result_Path + '/' + config['Locations']['Output_File'] + '/l
 # Create the CSV Logger:
 File_Name = Result_Path + '/' + config['Locations']['Output_File'] + '/data.csv'
 Field_Names = ['Loss_DX', 'Loss_DY', 'Loss_GANG', 'Loss_GANF', 'Loss_Cyc_XYX', 'Loss_Cyc_YXY', 'Loss_IX', 'Loss_IY',
-               'SSIM_Batch', 'SSIM_Original_Train', 'SSIM_Val', 'SSIM_Original_Val',
+               'Loss_Sup', 'SSIM_Batch', 'SSIM_Original_Train', 'SSIM_Val', 'SSIM_Original_Val',
                'PSNR_Batch', 'PSNR_Original_Train', 'PSNR_Val', 'PSNR_Original_Val']
 Logger = CSVLogger(fieldnames=Field_Names, filename=File_Name)
 
@@ -133,7 +134,7 @@ mse_1 = nn.MSELoss().to(device_1)
 # Now, let us define our loggers:
 loggers = generate_cyclegan_loggers()
 ssim_meter_batch, ssim_original_meter_batch, psnr_meter_batch, psnr_original_meter_batch = loggers[0][0:4]
-loss_DX, loss_DY, loss_GANG, loss_GANF, loss_Cyc_XYX, loss_Cyc_YXY, loss_IX, loss_IY = loggers[0][4:]
+loss_DX, loss_DY, loss_GANG, loss_GANF, loss_Cyc_XYX, loss_Cyc_YXY, loss_IX, loss_IY, loss_sup = loggers[0][4:]
 ssim_meter_val, ssim_original_meter_val, psnr_meter_val, psnr_original_meter_val = loggers[1]
 
 # Load the Noisy and GT Data (X and Y):
@@ -208,9 +209,10 @@ for epoch in range(config['Training']['Epochs']):
         Loss_Cyc_YXY_F_calc = loss_1(G_F_y__F, y.to(device_1))
         Loss_IX_calc = loss_0(F_x, x.to(device_0)).to(device_1)
         Loss_IY_calc = loss_1(G_y, y.to(device_1)).to(device_0)
+        Loss_Sup_calc = loss_1(G_x, y.to(device_1)).to(device_0)
 
         Loss_G_calc = Loss_GANG_calc + args.lambda_11 * Loss_Cyc_XYX_G_calc + args.lambda_12 * Loss_Cyc_YXY_G_calc + \
-                      args.lambda_21 * Loss_IY_calc
+                      args.lambda_21 * Loss_IY_calc + args.lambda_3 * Loss_Sup_calc
         Loss_F_calc = Loss_GANF_calc + args.lambda_11 * Loss_Cyc_XYX_F_calc + args.lambda_12 * Loss_Cyc_YXY_F_calc + \
                       args.lambda_22 * Loss_IX_calc
 
@@ -231,12 +233,14 @@ for epoch in range(config['Training']['Epochs']):
         loss_Cyc_XYX.update(Loss_Cyc_YXY_F_calc.item())
         loss_IX.update(Loss_IX_calc.item())
         loss_IY.update(Loss_IY_calc.item())
+        loss_sup.update(Loss_Sup_calc.item())
 
         if i_batch % 100 == 0:
             Display_Loss_D = "Loss_DX: %.6f" % loss_DX.val + "\tLoss_DY: %.6f" % loss_DY.val
             Display_Loss_Cyc = "loss_Cyc_XYX: %.6f" % loss_Cyc_XYX.val + "\tLoss_Cyc_YXY: %.6f" % loss_Cyc_YXY.val
             Display_Loss_G = "Loss_GANG: %.6f" % loss_GANG.val + "\tLoss_IY: %.6f" % loss_IY.val
             Display_Loss_F = "Loss_GANF: %.6f" % loss_GANF.val + "\tLoss_IX: %.6f" % loss_IX.val
+            Display_Loss_Sup = "Loss_Sup: %.6f" % loss_sup.val
             Display_SSIM = "SSIM_Batch: %.6f" % ssim_meter_batch.val + \
                            "\tSSIM_Original_Batch: %.6f" % ssim_original_meter_batch.val
             Display_PSNR = "PSNR_Batch: %.6f" % psnr_meter_batch.val + \
@@ -244,7 +248,7 @@ for epoch in range(config['Training']['Epochs']):
 
             print("Training Data for Epoch: ", epoch, "Image Batch: ", i_batch)
             print(Display_Loss_D + '\n' + Display_Loss_Cyc + '\n' + Display_Loss_G + '\n' + Display_Loss_F + '\n' +
-                  Display_SSIM + '\n' + Display_PSNR)
+                  Display_Loss_Sup + '\n' + Display_SSIM + '\n' + Display_PSNR)
 
         # Free up space in GPU
         del x, y, F_y, G_x, F_G_x__G, F_G_x__F, G_F_y__G, G_F_y__F, F_x, G_y, DX_F_y, DY_G_x
@@ -253,6 +257,7 @@ for epoch in range(config['Training']['Epochs']):
     Display_Loss_Cyc = "loss_Cyc_XYX: %.6f" % loss_Cyc_XYX.val + "\tLoss_Cyc_YXY: %.6f" % loss_Cyc_YXY.val
     Display_Loss_G = "Loss_GANG: %.6f" % loss_GANG.avg + "\tLoss_IY: %.6f" % loss_IY.avg
     Display_Loss_F = "Loss_GANF: %.6f" % loss_GANF.avg + "\tLoss_IX: %.6f" % loss_IX.avg
+    Display_Loss_Sup = "Loss_Sup: %.6f" % loss_sup.avg
     Display_SSIM = "SSIM_Batch: %.6f" % ssim_meter_batch.avg + \
                    "\tSSIM_Original_Batch: %.6f" % ssim_original_meter_batch.avg
     Display_PSNR = "PSNR_Batch: %.6f" % psnr_meter_batch.avg + \
@@ -260,7 +265,7 @@ for epoch in range(config['Training']['Epochs']):
 
     print("Training Data for Epoch: ", epoch)
     print(Display_Loss_D + '\n' + Display_Loss_Cyc + '\n' + Display_Loss_G + '\n' + Display_Loss_F + '\n' +
-          Display_SSIM + '\n' + Display_PSNR)
+          Display_Loss_Sup + '\n' + Display_SSIM + '\n' + Display_PSNR)
 
     for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
         x_v = validation_batch['NOISY']
@@ -294,6 +299,7 @@ for epoch in range(config['Training']['Epochs']):
         'Loss_Cyc_YXY': loss_Cyc_YXY.avg,
         'Loss_IX': loss_IX.avg,
         'Loss_IY': loss_IY.avg,
+        'Loss_Sup': loss_sup.avg,
         'SSIM_Batch': ssim_meter_batch.avg,
         'SSIM_Original_Train': ssim_original_meter_batch.avg,
         'SSIM_Val': ssim_meter_val.avg,
@@ -305,12 +311,13 @@ for epoch in range(config['Training']['Epochs']):
     })
 
     # Loss Plotting
-    Legend_Loss = ['Loss_DX', 'Loss_DY', 'Loss_GANG', 'Loss_GANF', 'Loss_Cyc_XYX', 'Loss_Cyc_YXY', 'Loss_IX', 'Loss_IY']
+    Legend_Loss = ['Loss_DX', 'Loss_DY', 'Loss_GANG', 'Loss_GANF', 'Loss_Cyc_XYX', 'Loss_Cyc_YXY', 'Loss_IX', 'Loss_IY',
+                   'Loss_Sup']
 
     vis_window['Loss_{date}'.format(date=d1)] = vis.line(
-        X=np.column_stack([epoch] * 8),
+        X=np.column_stack([epoch] * 9),
         Y=np.column_stack([loss_DX.avg, loss_DY.avg, loss_GANG.avg, loss_GANF.avg,
-                           loss_Cyc_XYX.avg, loss_Cyc_YXY.avg, loss_IX.avg, loss_IY.avg]),
+                           loss_Cyc_XYX.avg, loss_Cyc_YXY.avg, loss_IX.avg, loss_IY.avg, loss_sup.avg]),
         win=vis_window['Loss_{date}'.format(date=d1)],
         opts=dict(title='Loss_{date}'.format(date=d1), xlabel='Epoch', ylabel='Loss', legend=Legend_Loss),
         update='append' if epoch > 0 else None)
@@ -341,6 +348,7 @@ for epoch in range(config['Training']['Epochs']):
     loss_Cyc_YXY.reset()
     loss_IX.reset()
     loss_IY.reset()
+    loss_sup.reset()
     ssim_meter_batch.reset()
     ssim_original_meter_batch.reset()
     psnr_meter_batch.reset()
@@ -355,7 +363,7 @@ for epoch in range(config['Training']['Epochs']):
     scheduler_G.step()
     scheduler_F.step()
 
-    if epoch > 0 and not epoch % 10:
+    if epoch > 0 and not epoch % 5:
         model_path_DX = dir_current + '/models/{date}_DX_{noise}_{epoch}.pth'.format(date=d1, noise=args.noise,
                                                                                      epoch=epoch)
         model_path_DY = dir_current + '/models/{date}_DY_{noise}_{epoch}.pth'.format(date=d1, noise=args.noise,
