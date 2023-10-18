@@ -25,6 +25,8 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to train on
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--gaussian', default='-1', type=float)  # Gaussian noise addition for model weight # initialization
+parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
+parser.add_argument('--training_csv', default='sidd_np_instances_064.csv', type=str)  # training samples to use
 args = parser.parse_args()
 
 # Hyperparameters
@@ -36,14 +38,14 @@ if not os.path.exists(dir_current + '/models/'):
 
 # Noise Dataset
 if args.noise == 'SIDD':
-    path_training = dir_current + config['Locations']['Training_File']
+    path_training = dir_current + '/instances/' + args.training_csv
     path_validation_noisy = dir_current + config['Locations']['Validation_Noisy']
     path_validation_gt = dir_current + config['Locations']['Validation_GT']
-    Result_Path = dir_current + '/SIDD/{date}/'.format(date=d1)
+    Result_Path = dir_current + '/SIDD'
 elif args.noise in ['GAUSSIAN_10', 'GAUSSIAN_25', 'GAUSSIAN_50', 'RAIN', 'SALT_PEPPER', 'MIXED']:
     path_training = dir_current + '/instances/davis_np_instances_128.csv'
     path_validation = dir_current + '/instances/davis_np_instances_256.csv'
-    Result_Path = dir_current + '/{noise}/{date}/'.format(noise=args.noise, date=d1)
+    Result_Path = dir_current + '/{noise}'.format(noise=args.noise)
 else:
     print('Incorrect Noise Selection!')
     exit()
@@ -51,12 +53,13 @@ else:
 if not os.path.isdir(Result_Path):
     os.mkdir(Result_Path)
 
-if not os.path.isdir(Result_Path + '/' + config['Locations']['Output_File']):
-    os.mkdir(Result_Path + '/' + config['Locations']['Output_File'])
-sys.stdout = Logger(Result_Path + '/' + config['Locations']['Output_File'] + '/log.log')
+out_path = Result_Path + '/' + config['Locations']['Output_File'] + '/' + str(d1)
+if not os.path.isdir(out_path):
+    os.mkdir(out_path)
+sys.stdout = Logger(out_path + '/log.log')
 
 # Create the CSV Logger:
-File_Name = Result_Path + '/' + config['Locations']['Output_File'] + '/data.csv'
+File_Name = out_path + '/data.csv'
 Field_Names = ['Loss_Batch_0', 'Loss_Batch_1', 'Loss_Val_0', 'Loss_Val_1', 'Loss_Original_Train', 'Loss_Original_Val',
                'SSIM_Batch_0', 'SSIM_Batch_1', 'SSIM_Val_0', 'SSIM_Val_1', 'SSIM_Original_Train', 'SSIM_Original_Val',
                'PSNR_Batch_0', 'PSNR_Batch_1', 'PSNR_Val_0', 'PSNR_Val_1', 'PSNR_Original_Train', 'PSNR_Original_Val']
@@ -79,7 +82,7 @@ edhdn = DHDN.SharedDHDN(architecture=edhdn_architecture)
 dhdn.to(device_0)
 edhdn.to(device_1)
 
-if config['Training']['Load_Previous_Model']:
+if args.load_models:
     state_dict_dhdn = torch.load(dir_current + config['Training']['Model_Path_DHDN'], map_location=device_0)
     state_dict_edhdn = torch.load(dir_current + config['Training']['Model_Path_EDHDN'], map_location=device_1)
 
