@@ -1,7 +1,7 @@
 {
   "Description": "CycleGAN",
   "Locations": {
-    "Training_File": "/instances/sidd_np_instances_128_64.csv",
+    "Training_File": "/instances/sidd_np_instances_128_128.csv",
     "Validation_Noisy": "/data/ValidationNoisyBlocksSrgb.mat",
     "Validation_GT": "/data/ValidationGtBlocksSrgb.mat",
     "Benchmark": "/data/BenchmarkNoisyBlocksSrgb.mat",
