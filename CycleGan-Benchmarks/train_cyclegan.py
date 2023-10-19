@@ -28,6 +28,7 @@ parser.add_argument('--lambda_12', default=1.0, type=float)  # Cycle loss Y -> X
 parser.add_argument('--lambda_21', default=0.0, type=float)  # Identity loss G(y) approx y
 parser.add_argument('--lambda_22', default=0.0, type=float)  # Identity loss F(x) approx x
 parser.add_argument('--lambda_3', default=0.0, type=float)  # Supervised loss G(x) approx y
+parser.add_argument('--training_csv', default='sidd_np_instances_128_128.csv', type=str)  # training samples to use
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
 args = parser.parse_args()
@@ -41,10 +42,10 @@ if not os.path.exists(dir_current + '/models/'):
 
 # Noise Dataset
 if args.noise == 'SIDD':
-    path_training = dir_current + config['Locations']['Training_File']
+    path_training = dir_current + '/instances/' + args.training_csv
     path_validation_noisy = dir_current + config['Locations']['Validation_Noisy']
     path_validation_gt = dir_current + config['Locations']['Validation_GT']
-    Result_Path = dir_current + '/SIDD/{date}/'.format(date=d1)
+    Result_Path = dir_current + '/SIDD'
 else:
     print('Incorrect Noise Selection!')
     exit()
@@ -52,12 +53,13 @@ else:
 if not os.path.isdir(Result_Path):
     os.mkdir(Result_Path)
 
-if not os.path.isdir(Result_Path + '/' + config['Locations']['Output_File']):
-    os.mkdir(Result_Path + '/' + config['Locations']['Output_File'])
-sys.stdout = Logger(Result_Path + '/' + config['Locations']['Output_File'] + '/log.log')
+out_path = Result_Path + '/' + config['Locations']['Output_File'] + '/' + str(d1)
+if not os.path.isdir(out_path):
+    os.mkdir(out_path)
+sys.stdout = Logger(out_path + '/log.log')
 
 # Create the CSV Logger:
-File_Name = Result_Path + '/' + config['Locations']['Output_File'] + '/data.csv'
+File_Name = out_path + '/data.csv'
 Field_Names = ['Loss_DX', 'Loss_DY', 'Loss_GANG', 'Loss_GANF', 'Loss_Cyc_XYX', 'Loss_Cyc_YXY', 'Loss_IX', 'Loss_IY',
                'Loss_Sup', 'SSIM_Batch', 'SSIM_Original_Train', 'SSIM_Val', 'SSIM_Original_Val',
                'PSNR_Batch', 'PSNR_Original_Train', 'PSNR_Val', 'PSNR_Original_Val']

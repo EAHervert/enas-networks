@@ -293,7 +293,7 @@ for epoch in range(config['Training']['Epochs']):
     scheduler_0.step()
     scheduler_1.step()
 
-    if epoch > 0 and not epoch % 10:
+    if epoch > 0 and not epoch % 5:
         model_path_0 = dir_current + '/models/{date}_dhdn_SIDD_{epoch}.pth'.format(date=d1, epoch=epoch)
         model_path_1 = dir_current + '/models/{date}_edhdn_SIDD_{epoch}.pth'.format(date=d1, epoch=epoch)
 
