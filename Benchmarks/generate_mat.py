@@ -38,6 +38,7 @@ mat = loadmat(mat_file)
 
 # Get the model paths
 model_dhdn = os.getcwd() + '/' + args.model_file
+device_0 = torch.device(args.device)
 
 # Model architectures and parameters
 if args.architecture == 'DHDN':
@@ -45,7 +46,6 @@ if args.architecture == 'DHDN':
     dhdn = DHDN.SharedDHDN(architecture=architecture)
 
     # Cast to relevant device
-    device_0 = torch.device(args.device)
     dhdn.to(device_0)
     state_dict_dhdn = torch.load(model_dhdn, map_location=device_0)
 
@@ -54,7 +54,6 @@ elif args.architecture == 'EDHDN':
     dhdn = DHDN.SharedDHDN(architecture=architecture)
 
     # Cast to relevant device
-    device_0 = torch.device(args.device)
     dhdn.to(device_0)
     state_dict_dhdn = torch.load(model_dhdn, map_location=device_0)
 
@@ -64,7 +63,6 @@ elif args.architecture == 'DHDN_Color':
     state_dict_dhdn = dhdn.state_dict()  # state dict for dhdn in repo
 
     # Cast to relevant device
-    device_0 = torch.device(args.device)
     dhdn.to(device_0)
     state_dict_dhdn_weights = torch.load(model_dhdn, map_location=device_0)['model'].state_dict()  # weights
 
@@ -72,9 +70,6 @@ elif args.architecture == 'DHDN_Color':
     for i in state_dict_dhdn_weights.keys():
         key = i[7:]
         state_dict_dhdn[key] = state_dict_dhdn_weights[i].clone()
-
-    dhdn.load_state_dict(state_dict_dhdn)
-
 
 else:
     print('Invalid Architecture!')
