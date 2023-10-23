@@ -13,7 +13,7 @@
     "Model_Path_F": "/models/F.pth",
     "Model_Path_G": "/models/G.pth",
     "Epochs": 50,
-    "Train_Batch_Size": 64,
+    "Train_Batch_Size": 128,
     "Validation_Batch_Size": 32,
     "Learning_Rate": 2e-4,
     "Beta_1": 0.5,
