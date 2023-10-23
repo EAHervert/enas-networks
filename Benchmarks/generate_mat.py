@@ -6,7 +6,7 @@ from scipy.io import loadmat, savemat
 import numpy as np
 import torch
 from ENAS_DHDN import SHARED_DHDN as DHDN
-from srgb_conc_unet import Net as DHDN_COLOR
+import srgb_conc_unet
 from utilities.functions import transform_tensor, get_out
 import utilities.dataset as dataset
 from torch.utils.data import DataLoader
@@ -43,21 +43,44 @@ model_dhdn = os.getcwd() + '/' + args.model_file
 if args.architecture == 'DHDN':
     architecture = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     dhdn = DHDN.SharedDHDN(architecture=architecture)
+
+    # Cast to relevant device
+    device_0 = torch.device(args.device)
+    dhdn.to(device_0)
+    state_dict_dhdn = torch.load(model_dhdn, map_location=device_0)
+
 elif args.architecture == 'EDHDN':
     architecture = [0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     dhdn = DHDN.SharedDHDN(architecture=architecture)
+
+    # Cast to relevant device
+    device_0 = torch.device(args.device)
+    dhdn.to(device_0)
+    state_dict_dhdn = torch.load(model_dhdn, map_location=device_0)
+
 elif args.architecture == 'DHDN_Color':
     # Model architectures and parameters
-    dhdn = DHDN_COLOR()
+    dhdn = srgb_conc_unet.Net2()
+    state_dict_dhdn = dhdn.state_dict()  # state dict for dhdn in repo
+
+    # Cast to relevant device
+    device_0 = torch.device(args.device)
+    dhdn.to(device_0)
+    state_dict_dhdn_weights = torch.load(model_dhdn, map_location=device_0)['model'].state_dict()  # weights
+
+    # Transfer weights correctly
+    for i in state_dict_dhdn_weights.keys():
+        key = i[7:]
+        state_dict_dhdn[key] = state_dict_dhdn_weights[i].clone()
+
+    dhdn.load_state_dict(state_dict_dhdn)
+
+
 else:
     print('Invalid Architecture!')
     exit()
 
-# Cast to relevant device
-device_0 = torch.device(args.device)
-dhdn.to(device_0)
-
-dhdn.load_state_dict(torch.load(model_dhdn, map_location=device_0))
+dhdn.load_state_dict(state_dict_dhdn)
 
 SIDD_validation = dataset.DatasetSIDDMAT(mat_noisy_file=mat_file, mat_gt_file=None)
 dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=config['Training']['Validation_Batch_Size'],

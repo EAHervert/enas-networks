@@ -1,7 +1,7 @@
 {
   "Description": "CycleGAN",
   "Locations": {
-    "Training_File": "/instances/sidd_np_instances_128_128.csv",
+    "Training_File": "/instances/sidd_np_instances_128_256.csv",
     "Validation_Noisy": "/data/ValidationNoisyBlocksSrgb.mat",
     "Validation_GT": "/data/ValidationGtBlocksSrgb.mat",
     "Benchmark": "/data/BenchmarkNoisyBlocksSrgb.mat",
@@ -12,9 +12,9 @@
     "Model_Path_DY": "/models/DY.pth",
     "Model_Path_F": "/models/F.pth",
     "Model_Path_G": "/models/G.pth",
-    "Epochs": 35,
-    "Train_Batch_Size": 16,
-    "Validation_Batch_Size": 16,
+    "Epochs": 50,
+    "Train_Batch_Size": 64,
+    "Validation_Batch_Size": 32,
     "Learning_Rate": 2e-4,
     "Beta_1": 0.5,
     "Beta_2": 0.999,

@@ -145,3 +145,5 @@ dmypy.json
 /CycleGan-Benchmarks/Generator_Exploration.ipynb
 /Benchmarks/visualize_training_sidd.ipynb
 /Benchmarks/implementation/
+/Benchmarks/dhdn_color_pretrained.ipynb
+/Benchmarks/_M_block.patch
