@@ -27,6 +27,7 @@ parser.add_argument('--device', default='cuda:0', type=str)  # Which device to u
 parser.add_argument('--training_csv', default='sidd_np_instances_128_128.csv', type=str)  # training samples to use
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
+parser.add_argument('--model_size', default=7, type=int)  # Load previous models
 args = parser.parse_args()
 
 # Hyperparameters
@@ -65,7 +66,7 @@ Logger = CSVLogger(fieldnames=Field_Names, filename=File_Name)
 device_0 = torch.device(args.device)
 
 # Load the Models:
-G = Generator.UnetGenerator(input_nc=3, output_nc=3, num_downs=7)  # G: X -> Y
+G = Generator.UnetGenerator(input_nc=3, output_nc=3, num_downs=args.model_size)  # G: X -> Y
 G = G.to(device_0)
 if args.load_models:
     state_dict_G = torch.load(dir_current + config['Training']['Model_Path_G'], map_location=device_0)
@@ -134,7 +135,7 @@ for epoch in range(config['Training']['Epochs']):
 
         # Calculate raw values between x and y
         with torch.no_grad():
-            loss_original_meter_batch.update(loss_0(G_x, y.to(device_0)).item())
+            loss_original_meter_batch.update(loss_0(x.to(device_0), y.to(device_0)).item())
 
             ssim_original_meter_batch.update(SSIM(y, x).item())
             ssim_meter_batch.update(SSIM(x, G_x.to('cpu')).item())
