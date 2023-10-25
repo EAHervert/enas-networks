@@ -7,9 +7,7 @@
     "Output_File": "DHDN_SIDD_Vanilla"
   },
   "Training": {
-    "Model_Path_DHDN": "/models/2023_10_19__15_16_39_dhdn_SIDD.pth",
-    "Model_Path_EDHDN": "/models/2023_10_19__15_16_39_edhdn_SIDD.pth",
-    "Epochs": 30,
+    "Epochs": 25,
     "Train_Batch_Size": 16,
     "Validation_Batch_Size": 16,
     "Learning_Rate": 1e-4,

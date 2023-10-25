@@ -26,6 +26,8 @@ parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to tra
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--gaussian', default='-1', type=float)  # Gaussian noise addition for model weight # initialization
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
+parser.add_argument('--model_path_dhdn', default='2023_09_11_dhdn_SIDD.pth', type=bool)  # Load previous models
+parser.add_argument('--model_path_edhdn', default='2023_09_11_edhdn_SIDD.pth', type=bool)  # Load previous models
 parser.add_argument('--training_csv', default='sidd_np_instances_064.csv', type=str)  # training samples to use
 args = parser.parse_args()
 
@@ -82,9 +84,11 @@ edhdn = DHDN.SharedDHDN(architecture=edhdn_architecture)
 dhdn.to(device_0)
 edhdn.to(device_1)
 
+model_dhdn_path = '/models/' + args.model_path_dhdn
+model_edhdn_path = '/models/' + config['Training']['Model_Path_EDHDN']
 if args.load_models:
-    state_dict_dhdn = torch.load(dir_current + config['Training']['Model_Path_DHDN'], map_location=device_0)
-    state_dict_edhdn = torch.load(dir_current + config['Training']['Model_Path_EDHDN'], map_location=device_1)
+    state_dict_dhdn = torch.load(dir_current + model_dhdn_path, map_location=device_0)
+    state_dict_edhdn = torch.load(dir_current + model_edhdn_path, map_location=device_1)
 
     if args.drop > 0:
         state_dict_dhdn = drop_weights(state_dict_dhdn, p=args.drop, device=device_0)
@@ -294,11 +298,12 @@ for epoch in range(config['Training']['Epochs']):
     scheduler_1.step()
 
     if epoch > 0 and not epoch % 5:
-        model_path_0 = dir_current + '/models/{date}_dhdn_SIDD_{epoch}.pth'.format(date=d1, epoch=epoch)
-        model_path_1 = dir_current + '/models/{date}_edhdn_SIDD_{epoch}.pth'.format(date=d1, epoch=epoch)
+        if epoch % 10:
+            model_path_0 = dir_current + '/models/{date}_dhdn_SIDD_{epoch}.pth'.format(date=d1, epoch=epoch)
+            model_path_1 = dir_current + '/models/{date}_edhdn_SIDD_{epoch}.pth'.format(date=d1, epoch=epoch)
 
-        torch.save(dhdn.state_dict(), model_path_0)
-        torch.save(edhdn.state_dict(), model_path_1)
+            torch.save(dhdn.state_dict(), model_path_0)
+            torch.save(edhdn.state_dict(), model_path_1)
 
         state_dict_dhdn = clip_weights(dhdn.state_dict(), k=3, device=device_0)
         state_dict_edhdn = clip_weights(edhdn.state_dict(), k=3, device=device_1)
