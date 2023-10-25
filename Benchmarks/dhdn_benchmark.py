@@ -26,9 +26,10 @@ parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to tra
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--gaussian', default='-1', type=float)  # Gaussian noise addition for model weight # initialization
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
-parser.add_argument('--model_path_dhdn', default='2023_09_11_dhdn_SIDD.pth', type=bool)  # Load previous models
-parser.add_argument('--model_path_edhdn', default='2023_09_11_edhdn_SIDD.pth', type=bool)  # Load previous models
-parser.add_argument('--training_csv', default='sidd_np_instances_064.csv', type=str)  # training samples to use
+parser.add_argument('--model_path_dhdn', default='2023_09_11_dhdn_SIDD.pth', type=str)  # Model path dhdn
+parser.add_argument('--model_path_edhdn', default='2023_09_11_edhdn_SIDD.pth', type=str)  # Model path edhdn
+parser.add_argument('--training_csv', default='sidd_np_instances_064_128.csv', type=str)  # training samples to use
+parser.add_argument('--epochs', default=25, type=int)  # number of epochs to train on
 args = parser.parse_args()
 
 # Hyperparameters
@@ -85,7 +86,7 @@ dhdn.to(device_0)
 edhdn.to(device_1)
 
 model_dhdn_path = '/models/' + args.model_path_dhdn
-model_edhdn_path = '/models/' + config['Training']['Model_Path_EDHDN']
+model_edhdn_path = '/models/' + args.model_path_edhdn
 if args.load_models:
     state_dict_dhdn = torch.load(dir_current + model_dhdn_path, map_location=device_0)
     state_dict_edhdn = torch.load(dir_current + model_edhdn_path, map_location=device_1)
@@ -146,7 +147,7 @@ dataloader_sidd_training = DataLoader(dataset=SIDD_training, batch_size=config['
 dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=config['Training']['Validation_Batch_Size'],
                                         shuffle=False, num_workers=8)
 
-for epoch in range(config['Training']['Epochs']):
+for epoch in range(args.epochs):
     for i_batch, sample_batch in enumerate(dataloader_sidd_training):
         x = sample_batch['NOISY']
         y0 = dhdn(x.to(device_0))
