@@ -147,3 +147,4 @@ dmypy.json
 /Benchmarks/implementation/
 /Benchmarks/dhdn_color_pretrained.ipynb
 /Benchmarks/_M_block.patch
+/DHDN-Sensitivity-Analysis/Sensitivity_Analysis.ipynb
