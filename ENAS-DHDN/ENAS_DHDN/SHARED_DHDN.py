@@ -116,7 +116,8 @@ class SharedDHDN(nn.Module):
                 kernel_size=1,
                 stride=1,
                 padding=0
-            )
+            ),
+            nn.PReLU()
         )
 
     def forward(self, x, architecture=None):
