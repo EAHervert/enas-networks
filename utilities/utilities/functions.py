@@ -182,7 +182,7 @@ def drop_weights(state_dict, p=0.8, device='cpu'):
 
     for key in state_dict.keys():
         tensor = state_dict_out[key]
-        if tensor.dtype == torch.float32:
+        if tensor.dtype == torch.float32 and list(tensor.size()) != [1]:
             mask = (torch.randn(tensor.size()) < p) * 1.
             tensor = torch.mul(tensor, mask.to(device))
 
