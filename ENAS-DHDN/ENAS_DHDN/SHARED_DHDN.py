@@ -10,13 +10,15 @@ class SharedDHDN(nn.Module):
     def __init__(self,
                  k_value=3,
                  channels=128,
-                 architecture=None
+                 architecture=None,
+                 outer_sum=False
                  ):
         super(SharedDHDN, self).__init__()
 
         self.network_size = 2 * k_value + 1
         self.channels = channels
         self.architecture = architecture
+        self.outer_sum = outer_sum
 
         # Initial and final convolutions
         self.init_conv = nn.Sequential(
@@ -136,38 +138,34 @@ class SharedDHDN(nn.Module):
 
             # First the encoder:
             if i < (self.network_size // 2 + 1):
-                out_0 = out
-
                 # First Block:
                 a1 = architecture[k] % 2
-
                 if (architecture[k] == 1) or (architecture[k] == 5):
                     a2 = 1
                 else:
                     a2 = 0
-
                 a3 = architecture[k] // 4
                 out_1 = self.layers[k](out, [a1, a2, a3])
-                out_1 += out_0
+                if self.outer_sum:
+                    out_1 += out
                 k += 1
 
                 # Second Block:
                 a1 = architecture[k] % 2
-
                 if (architecture[k] == 1) or (architecture[k] == 5):
                     a2 = 1
                 else:
                     a2 = 0
-
                 a3 = architecture[k] // 4
-                out_2 = self.layers[k](out, [a1, a2, a3])
-                out = out_1 + out_2
+                out_2 = self.layers[k](out_1, [a1, a2, a3])
+                if self.outer_sum:
+                    out_2 += out_1
                 k += 1
-                skip.append(out)
+                skip.append(out_2)
 
                 if i < (self.network_size // 2):
                     # Downsample:
-                    out = self.layers[k](out, architecture[k])
+                    out = self.layers[k](out_2, architecture[k])
                     k += 1
 
             # Bottleneck Concatenation:
@@ -177,42 +175,36 @@ class SharedDHDN(nn.Module):
 
             # Now the decoder:
             if i >= (self.network_size // 2 + 1):
-
                 # Upsample:
-                out = self.layers[k](out, architecture[k])
+                out_1 = self.layers[k](out, architecture[k])
                 k += 1
 
                 # Concatenate:
-                out = torch.cat((out, skip[index]), dim=1)
+                out_1 = torch.cat((skip[index], out_1), dim=1)
                 index -= 1
 
                 # First Block:
-                out_0 = out
-
-                # First Block:
                 a1 = architecture[k] % 2
-
                 if (architecture[k] == 1) or (architecture[k] == 5):
                     a2 = 1
                 else:
                     a2 = 0
-
                 a3 = architecture[k] // 4
-                out_1 = self.layers[k](out, [a1, a2, a3])
-                out_1 += out_0
+                out_2 = self.layers[k](out_1, [a1, a2, a3])
+                if self.outer_sum:
+                    out_2 += out_1
                 k += 1
 
                 # Second Block:
                 a1 = architecture[k] % 2
-
                 if (architecture[k] == 1) or (architecture[k] == 5):
                     a2 = 1
                 else:
                     a2 = 0
-
                 a3 = architecture[k] // 4
-                out_2 = self.layers[k](out, [a1, a2, a3])
-                out = out_1 + out_2
+                out = self.layers[k](out_2, [a1, a2, a3])
+                if self.outer_sum:
+                    out += out_2
                 k += 1
 
         # Final Layer:

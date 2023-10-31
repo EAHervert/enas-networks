@@ -28,6 +28,7 @@ parser.add_argument('--gaussian', default='-1', type=float)  # Gaussian noise ad
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
 parser.add_argument('--model_path_dhdn', default='2023_09_11_dhdn_SIDD.pth', type=str)  # Model path dhdn
 parser.add_argument('--model_path_edhdn', default='2023_09_11_edhdn_SIDD.pth', type=str)  # Model path edhdn
+parser.add_argument('--outer_sum', default=False, type=bool)  # To do outer sums for models
 parser.add_argument('--training_csv', default='sidd_np_instances_064_128.csv', type=str)  # training samples to use
 parser.add_argument('--epochs', default=25, type=int)  # number of epochs to train on
 args = parser.parse_args()
@@ -79,8 +80,8 @@ bottleneck, decoder = [0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]
 dhdn_architecture = encoder_0 + bottleneck + decoder
 edhdn_architecture = encoder_1 + bottleneck + decoder
 
-dhdn = DHDN.SharedDHDN(architecture=dhdn_architecture)
-edhdn = DHDN.SharedDHDN(architecture=edhdn_architecture)
+dhdn = DHDN.SharedDHDN(architecture=dhdn_architecture, outer_sum=args.outer_sum)
+edhdn = DHDN.SharedDHDN(architecture=edhdn_architecture, outer_sum=args.outer_sum)
 
 dhdn.to(device_0)
 edhdn.to(device_1)
