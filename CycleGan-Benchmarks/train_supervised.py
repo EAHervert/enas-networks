@@ -27,7 +27,7 @@ parser.add_argument('--device', default='cuda:0', type=str)  # Which device to u
 parser.add_argument('--training_csv', default='sidd_np_instances_128_128.csv', type=str)  # training samples to use
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
-parser.add_argument('--model_size', default=7, type=int)  # Load previous models
+parser.add_argument('--model_size', default=6, type=int)  # Load previous models
 args = parser.parse_args()
 
 # Hyperparameters
