@@ -159,7 +159,8 @@ dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=conf
                                         shuffle=False, num_workers=8)
 
 for epoch in range(config['Training']['Epochs']):
-    for i_batch, sample_batch_1, sample_batch_2 in enumerate(dataloader_sidd_training_1, dataloader_sidd_training_2):
+    for i_batch, sample_batch_1, sample_batch_2 in enumerate(zip(dataloader_sidd_training_1,
+                                                                 dataloader_sidd_training_2)):
         x_1 = sample_batch_1['NOISY']
         y_1 = sample_batch_1['GT']
         x_2 = sample_batch_2['NOISY']
