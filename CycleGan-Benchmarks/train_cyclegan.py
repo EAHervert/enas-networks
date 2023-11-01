@@ -35,6 +35,7 @@ parser.add_argument('--training_csv_1', default='sidd_np_instances_064_128_1.csv
 parser.add_argument('--training_csv_2', default='sidd_np_instances_064_128_2.csv', type=str)  # training samples to use
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
+parser.add_argument('--model_size', default=6, type=int)  # Load previous models
 args = parser.parse_args()
 
 # Hyperparameters
@@ -77,8 +78,8 @@ device_1 = torch.device(config['CUDA']['Device1'])
 # Load the Models:
 DX = Discriminator.NLayerDiscriminator(input_nc=3)
 DY = Discriminator.NLayerDiscriminator(input_nc=3)
-G = Generator.UnetGenerator(input_nc=3, output_nc=3, num_downs=7)  # G: X -> Y
-F = Generator.UnetGenerator(input_nc=3, output_nc=3, num_downs=7)  # F: Y -> X
+G = Generator.UnetGenerator(input_nc=3, output_nc=3, num_downs=args.model_size)  # G: X -> Y
+F = Generator.UnetGenerator(input_nc=3, output_nc=3, num_downs=args.model_size)  # F: Y -> X
 
 DX = DX.to(device_0)
 DY = DY.to(device_1)
@@ -159,8 +160,8 @@ dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=conf
                                         shuffle=False, num_workers=8)
 
 for epoch in range(config['Training']['Epochs']):
-    for i_batch, sample_batch_1, sample_batch_2 in enumerate(zip(dataloader_sidd_training_1,
-                                                                 dataloader_sidd_training_2)):
+    for i_batch, (sample_batch_1, sample_batch_2) in enumerate(zip(dataloader_sidd_training_1,
+                                                                   dataloader_sidd_training_2)):
         x_1 = sample_batch_1['NOISY']
         y_1 = sample_batch_1['GT']
         x_2 = sample_batch_2['NOISY']
