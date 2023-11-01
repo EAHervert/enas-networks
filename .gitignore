@@ -149,3 +149,9 @@ dmypy.json
 /Benchmarks/_M_block.patch
 /DHDN-Sensitivity-Analysis/Sensitivity_Analysis.ipynb
 /Benchmarks/network_weights.ipynb
+/CycleGan-Benchmarks/data/
+/DHDN-Sensitivity-Analysis/SIDD/DHDN_Compare_Channel_Number/
+/DHDN-Sensitivity-Analysis/SIDD/DHDN_Compare_Down/
+/DHDN-Sensitivity-Analysis/SIDD/DHDN_Compare_Kernels/
+/DHDN-Sensitivity-Analysis/SIDD/DHDN_Compare_Size/
+/DHDN-Sensitivity-Analysis/SIDD/DHDN_Compare_Up/

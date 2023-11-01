@@ -259,10 +259,10 @@ for epoch in range(config['Training']['Epochs']):
     if epoch > 0 and not epoch % 5:
         model_path_G = dir_current + '/models/{date}_G_{noise}_{epoch}.pth'.format(date=d1, noise=args.noise,
                                                                                    epoch=epoch)
-
         torch.save(G.state_dict(), model_path_G)
-        state_dict_DX = clip_weights(G.state_dict(), k=3, device=device_0)
-        G.load_state_dict(state_dict_DX)
+        if epoch % 10:
+            state_dict_DX = clip_weights(G.state_dict(), k=3, device=device_0)
+            G.load_state_dict(state_dict_DX)
 
 # Save final model
 model_path_DX = dir_current + '/models/{date}_G_{noise}.pth'.format(date=d1, noise=args.noise)

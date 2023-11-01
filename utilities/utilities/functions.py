@@ -161,10 +161,12 @@ def generate_cyclegan_loggers():
     loss_Cyc_YXY = AverageMeter()
     loss_IX = AverageMeter()
     loss_IY = AverageMeter()
-    loss_Sup = AverageMeter()
+    loss_Sup_XY = AverageMeter()
+    loss_Sup_YX = AverageMeter()
 
     batch_loggers = (ssim_meter_batch, ssim_original_meter_batch, psnr_meter_batch, psnr_original_meter_batch,
-                     loss_DX, loss_DY, loss_GANG, loss_GANF, loss_Cyc_XYX, loss_Cyc_YXY, loss_IX, loss_IY, loss_Sup)
+                     loss_DX, loss_DY, loss_GANG, loss_GANF, loss_Cyc_XYX, loss_Cyc_YXY, loss_IX, loss_IY, loss_Sup_XY,
+                     loss_Sup_YX)
 
     # Validation
     ssim_meter_val = AverageMeter()
