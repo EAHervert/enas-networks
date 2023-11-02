@@ -155,3 +155,4 @@ dmypy.json
 /DHDN-Sensitivity-Analysis/SIDD/DHDN_Compare_Kernels/
 /DHDN-Sensitivity-Analysis/SIDD/DHDN_Compare_Size/
 /DHDN-Sensitivity-Analysis/SIDD/DHDN_Compare_Up/
+/utilities/test_lpips.py

@@ -1,0 +1,17 @@
+import setuptools
+
+setuptools.setup(
+    name='lpips',
+    version='0.1.4',
+    author="Richard Zhang",
+    author_email="rizhang@adobe.com",
+    description="LPIPS Similarity metric",
+    url="https://github.com/richzhang/PerceptualSimilarity",
+    package_data={'lpips': ['weights/v0.1/*.pth']},
+    include_package_data=True,
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: BSD License",
+        "Operating System :: OS Independent",
+    ],
+)

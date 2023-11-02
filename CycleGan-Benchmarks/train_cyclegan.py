@@ -7,7 +7,7 @@ import json
 import numpy as np
 import torch
 import torch.nn as nn
-from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity as lpips
+import utilities.lpips as lpips
 from torch.utils.data import DataLoader
 import visdom
 import argparse
@@ -67,7 +67,7 @@ sys.stdout = Logger(out_path + '/log.log')
 # Create the CSV Logger:
 File_Name = out_path + '/data.csv'
 Field_Names = ['Loss_DX', 'Loss_DY', 'Loss_GANG', 'Loss_GANF', 'Loss_Cyc_XYX', 'Loss_Cyc_YXY', 'Loss_IX', 'Loss_IY',
-               'Loss_Sup_XY', 'Loss_Sup_XY', 'SSIM_Batch', 'SSIM_Original_Train', 'SSIM_Val', 'SSIM_Original_Val',
+               'Loss_Sup_XY', 'Loss_Sup_YX', 'SSIM_Batch', 'SSIM_Original_Train', 'SSIM_Val', 'SSIM_Original_Val',
                'PSNR_Batch', 'PSNR_Original_Train', 'PSNR_Val', 'PSNR_Original_Val']
 Logger = CSVLogger(fieldnames=Field_Names, filename=File_Name)
 
@@ -138,7 +138,7 @@ loss_0 = nn.L1Loss().to(device_0)
 loss_1 = nn.L1Loss().to(device_1)
 mse_0 = nn.MSELoss().to(device_0)
 mse_1 = nn.MSELoss().to(device_1)
-loss_fn_alex = lpips(net_type='alex')  # best forward scores
+loss_fn_alex = lpips.LPIPS(net='alex')  # best forward scores
 
 # Now, let us define our loggers:
 loggers = generate_cyclegan_loggers()
