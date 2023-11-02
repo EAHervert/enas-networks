@@ -12,7 +12,7 @@ import visdom
 import argparse
 
 from utilities.utils import CSVLogger, Logger
-from utilities.functions import SSIM, PSNR, generate_loggers, drop_weights, gaussian_add_weights, clip_weights
+from utilities.functions import SSIM, PSNR, generate_loggers, drop_weights, clip_weights
 
 current_time = datetime.datetime.now()
 d1 = current_time.strftime('%Y_%m_%d__%H_%M_%S')
@@ -56,12 +56,12 @@ else:
 if not os.path.isdir(Result_Path):
     os.mkdir(Result_Path)
 
-if not os.path.isdir(Result_Path + '/' + config['Locations']['Output_File']):
-    os.mkdir(Result_Path + '/' + config['Locations']['Output_File'])
-sys.stdout = Logger(Result_Path + '/' + config['Locations']['Output_File'] + '/log.log')
+if not os.path.isdir(Result_Path + '/' + config['Locations']['Output_File'] + '_' + args.tag):
+    os.mkdir(Result_Path + '/' + config['Locations']['Output_File'] + '_' + args.tag)
+sys.stdout = Logger(Result_Path + '/' + config['Locations']['Output_File'] + '_' + args.tag + '/log.log')
 
 # Create the CSV Logger:
-File_Name = Result_Path + '/' + config['Locations']['Output_File'] + '/data.csv'
+File_Name = Result_Path + '/' + config['Locations']['Output_File'] + '_' + args.tag + '/data.csv'
 Field_Names = ['Loss_Batch_{tag_1}', 'Loss_Batch_{tag_2}', 'Loss_Batch_{tag_3}', 'Loss_Original_Train',
                'Loss_Val_{tag_1}', 'Loss_Val_{tag_2}', 'Loss_Val_{tag_3}', 'Loss_Original_Val',
                'SSIM_Batch_{tag_1}', 'SSIM_Batch_{tag_2}', 'SSIM_Batch_{tag_3}', 'SSIM_Original_Train',
@@ -89,7 +89,6 @@ architecture_3 = architecture_3[0] + architecture_3[1] + architecture_3[2]
 dhdn_1 = DHDN.SharedDHDN(channels=channels_1, k_value=k_value_1, architecture=architecture_1)
 dhdn_2 = DHDN.SharedDHDN(channels=channels_2, k_value=k_value_2, architecture=architecture_2)
 dhdn_3 = DHDN.SharedDHDN(channels=channels_3, k_value=k_value_3, architecture=architecture_3)
-
 
 dhdn_1 = dhdn_1.to(device_0)
 dhdn_2 = dhdn_2.to(device_0)
@@ -121,7 +120,9 @@ vis = visdom.Visdom(
 
 # Display the data to the window:
 vis.env = 'DHDN_Compare_' + args.tag + '_' + str(args.noise)
-vis_window = {'SSIM_{date}'.format(date=d1): None, 'PSNR_{date}'.format(date=d1): None}
+vis_window = {'Loss_{date}'.format(date=d1): None,
+              'SSIM_{date}'.format(date=d1): None,
+              'PSNR_{date}'.format(date=d1): None}
 
 # Define the optimizers:
 optimizer_1 = torch.optim.Adam(dhdn_1.parameters(), config['Training']['Learning_Rate'])
@@ -136,7 +137,8 @@ scheduler_3 = torch.optim.lr_scheduler.StepLR(optimizer_3, 3, 0.5, -1)
 # Define the Loss and evaluation metrics:
 loss_0 = nn.L1Loss().to(device_0)
 loss_1 = nn.L1Loss().to(device_1)
-MSE = nn.MSELoss().to(device_1)
+mse_0 = nn.MSELoss().to(device_0)
+mse_1 = nn.MSELoss().to(device_1)
 
 # Now, let us define our loggers:
 loggers_1 = generate_loggers()
@@ -190,10 +192,10 @@ for epoch in range(config['Training']['Epochs']):
             ssim_batch_3.update(SSIM(y_3, t.to(device_1)).item())
             ssim_original_batch.update(SSIM(x, t).item())
 
-            psnr_batch_1.update(PSNR(MSE(y_1, t.to(device_0))).item())
-            psnr_batch_2.update(PSNR(MSE(y_2, t.to(device_0))).item())
-            psnr_batch_3.update(PSNR(MSE(y_3, t.to(device_1))).item())
-            psnr_original_batch.update(PSNR(MSE(x.to(device_1), t.to(device_1))).item())
+            psnr_batch_1.update(PSNR(mse_0(y_1, t.to(device_0))).item())
+            psnr_batch_2.update(PSNR(mse_0(y_2, t.to(device_0))).item())
+            psnr_batch_3.update(PSNR(mse_1(y_3, t.to(device_1))).item())
+            psnr_original_batch.update(PSNR(mse_1(x.to(device_1), t.to(device_1))).item())
 
         # Backpropagate to train model
         optimizer_1.zero_grad()
@@ -211,7 +213,7 @@ for epoch in range(config['Training']['Epochs']):
         if i_batch % 100 == 0:
             Display_Loss = "Loss_Size_{tag_1}: %.6f" % loss_batch_1.val + \
                            "\tLoss_Size_{tag_2}: %.6f" % loss_batch_2.val + \
-                           "\tLoss_Size_{tag_3: %.6f" % loss_batch_3.val + \
+                           "\tLoss_Size_{tag_3}: %.6f" % loss_batch_3.val + \
                            "\tLoss_Original: %.6f" % loss_original_batch.val
             Display_SSIM = "SSIM_Size_{tag_1}: %.6f" % ssim_batch_1.val + \
                            "\tSSIM_Size_{tag_2}: %.6f" % ssim_batch_2.val + \
@@ -231,7 +233,7 @@ for epoch in range(config['Training']['Epochs']):
         del x, y_1, y_2, y_3, t
 
     Display_Loss = "Loss_Size_{tag_1}: %.6f" % loss_batch_1.avg + "\tLoss_Size_{tag_2}: %.6f" % loss_batch_2.avg + \
-                   "\tLoss_Size_{tag_3: %.6f" % loss_batch_3.avg + "\tLoss_Original: %.6f" % loss_original_batch.avg
+                   "\tLoss_Size_{tag_3}: %.6f" % loss_batch_3.avg + "\tLoss_Original: %.6f" % loss_original_batch.avg
     Display_SSIM = "SSIM_Size_{tag_1}: %.6f" % ssim_batch_1.avg + "\tSSIM_Size_{tag_2}: %.6f" % ssim_batch_2.avg + \
                    "\tSSIM_Size_{tag_3}: %.6f" % ssim_batch_3.avg + "\tSSIM_Original: %.6f" % ssim_original_batch.avg
     Display_PSNR = "PSNR_Size_{tag_1}: %.6f" % psnr_batch_1.avg + "\tPSNR_Size_{tag_2}: %.6f" % psnr_batch_2.avg + \
@@ -260,10 +262,10 @@ for epoch in range(config['Training']['Epochs']):
             ssim_batch_val_3.update(SSIM(y_v_3, t_v.to(device_1)).item())
             ssim_original_batch_val.update(SSIM(x_v, t_v).item())
 
-            psnr_batch_val_1.update(PSNR(MSE(y_v_1, t_v.to(device_0))).item())
-            psnr_batch_val_2.update(PSNR(MSE(y_v_2, t_v.to(device_0))).item())
-            psnr_batch_val_3.update(PSNR(MSE(y_v_3, t_v.to(device_1))).item())
-            psnr_original_batch_val.update(PSNR(MSE(x_v.to(device_1), t_v.to(device_1))).item())
+            psnr_batch_val_1.update(PSNR(mse_0(y_v_1, t_v.to(device_0))).item())
+            psnr_batch_val_2.update(PSNR(mse_0(y_v_2, t_v.to(device_0))).item())
+            psnr_batch_val_3.update(PSNR(mse_1(y_v_3, t_v.to(device_1))).item())
+            psnr_original_batch_val.update(PSNR(mse_1(x_v.to(device_1), t_v.to(device_1))).item())
 
         # Free up space in GPU
         del x_v, y_v_1, y_v_2, y_v_3, t_v
@@ -271,7 +273,7 @@ for epoch in range(config['Training']['Epochs']):
     print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
     Display_Loss = "Loss_Size_{tag_1}: %.6f" % loss_batch_val_1.avg + \
                    "\tLoss_Size_{tag_2}: %.6f" % loss_batch_val_2.avg + \
-                   "\tLoss_Size_{tag_3: %.6f" % loss_batch_val_3.avg + \
+                   "\tLoss_Size_{tag_3}: %.6f" % loss_batch_val_3.avg + \
                    "\tLoss_Original: %.6f" % loss_original_batch_val.avg
     Display_SSIM = "SSIM_Size_{tag_1}: %.6f" % ssim_batch_val_1.avg + \
                    "\tSSIM_Size_{tag_2}: %.6f" % ssim_batch_val_2.avg + \
@@ -316,8 +318,18 @@ for epoch in range(config['Training']['Epochs']):
         'PSNR_Original_Val': psnr_original_batch_val.avg
     })
 
-    Legend = ['Size_PS_Train', 'Size_TC_Train', 'Size_BL_Train', 'Orig_Train',
-              'Size_PS_Val', 'Size_TC_Val', 'Size_BL_Val', 'Orig_Val']
+    Legend = ['{tag_1}_Train', '{tag_2}_Train', '{tag_3}_Train', 'Orig_Train',
+              '{tag_1}_Val', '{tag_2}_Val', '{tag_3}_Val', 'Orig_Val']
+    Legend = [name.format(tag_1=tag_1, tag_2=tag_2, tag_3=tag_3) for name in Legend]
+
+    vis_window['Loss_{date}'.format(date=d1)] = vis.line(
+        X=np.column_stack([epoch] * 8),
+        Y=np.column_stack([loss_batch_1.avg, loss_batch_2.avg, loss_batch_3.avg, loss_original_batch.avg,
+                           loss_batch_val_1.avg, loss_batch_val_2.avg, loss_batch_val_3.avg,
+                           loss_original_batch_val.avg]),
+        win=vis_window['Loss_{date}'.format(date=d1)],
+        opts=dict(title='Loss_{date}'.format(date=d1), xlabel='Epoch', ylabel='Loss', legend=Legend),
+        update='append' if epoch > 0 else None)
 
     vis_window['SSIM_{date}'.format(date=d1)] = vis.line(
         X=np.column_stack([epoch] * 8),
@@ -367,12 +379,12 @@ for epoch in range(config['Training']['Epochs']):
     scheduler_3.step()
 
     if epoch > 0 and not epoch % 10:
-        model_path_1 = dir_current + '/models/compare_up/{date}_dhdn_up_PS_{noise}_{epoch}.pth'.format(
-            date=d1, noise=args.noise, epoch=epoch)
-        model_path_2 = dir_current + '/models/compare_up/{date}_dhdn_up_TC_{noise}_{epoch}.pth'.format(
-            date=d1, noise=args.noise, epoch=epoch)
-        model_path_3 = dir_current + '/models/compare_up/{date}_dhdn_up_BL_{noise}_{epoch}.pth'.format(
-            date=d1, noise=args.noise, epoch=epoch)
+        model_path_1 = dir_current + model_folder + '{date}_dhdn_{tag}_{noise}_{epoch}.pth'.format(
+            date=d1, noise=args.noise, epoch=epoch, tag=tag_1)
+        model_path_2 = dir_current + model_folder + '{date}_dhdn_{tag}_{noise}_{epoch}.pth'.format(
+            date=d1, noise=args.noise, epoch=epoch, tag=tag_2)
+        model_path_3 = dir_current + model_folder + '{date}_dhdn_{tag}_{noise}_{epoch}.pth'.format(
+            date=d1, noise=args.noise, epoch=epoch, tag=tag_3)
 
         torch.save(dhdn_1.state_dict(), model_path_1)
         torch.save(dhdn_2.state_dict(), model_path_2)
@@ -387,9 +399,9 @@ for epoch in range(config['Training']['Epochs']):
         dhdn_3.load_state_dict(state_dict_dhdn_3)
 
 # Save final model
-model_path_1 = dir_current + '/models/compare_up/{date}_dhdn_up_PS_{noise}.pth'.format(date=d1, noise=args.noise)
-model_path_2 = dir_current + '/models/compare_up/{date}_dhdn_up_TC_{noise}.pth'.format(date=d1, noise=args.noise)
-model_path_3 = dir_current + '/models/compare_up/{date}_dhdn_up_BL_{noise}.pth'.format(date=d1, noise=args.noise)
+model_path_1 = dir_current + model_folder + '{date}_dhdn_{tag}_{noise}.pth'.format(date=d1, noise=args.noise, tag=tag_1)
+model_path_2 = dir_current + model_folder + '{date}_dhdn_{tag}_{noise}.pth'.format(date=d1, noise=args.noise, tag=tag_2)
+model_path_3 = dir_current + model_folder + '{date}_dhdn_{tag}_{noise}.pth'.format(date=d1, noise=args.noise, tag=tag_3)
 
 torch.save(dhdn_1.state_dict(), model_path_1)
 torch.save(dhdn_2.state_dict(), model_path_2)

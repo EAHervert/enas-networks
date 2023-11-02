@@ -5,7 +5,7 @@
     "Validation_Noisy": "/data/ValidationNoisyBlocksSrgb.mat",
     "Validation_GT": "/data/ValidationGtBlocksSrgb.mat",
     "Benchmark": "/data/BenchmarkNoisyBlocksSrgb.mat",
-    "Output_File": "DHDN_Compare_Up"
+    "Output_File": "DHDN_Compare"
   },
   "Training": {
     "Upsample": {
