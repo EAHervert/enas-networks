@@ -27,6 +27,7 @@ parser.add_argument('--tag', default='Upsample', type=str)  # Which dataset to t
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--gaussian', default='-1', type=float)  # Gaussian noise addition for model weight # initialization
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
+parser.add_argument('--epochs', default=25, type=int)  # number of epochs to train on
 args = parser.parse_args()
 
 # Hyperparameters
@@ -34,7 +35,7 @@ dir_current = os.getcwd()
 config_path = dir_current + '/configs/config_compare.json'
 config = json.load(open(config_path))
 
-model_folder = '/models/compare_{tag}/'.tag(args.tag)
+model_folder = '/models/compare_{tag}/'.format(tag=args.tag)
 tag_1, tag_2, tag_3 = config['Training'][args.tag]['Tags']
 if not os.path.exists(dir_current + model_folder):
     os.makedirs(dir_current + model_folder)
@@ -167,7 +168,7 @@ dataloader_sidd_training = DataLoader(dataset=SIDD_training, batch_size=config['
 dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=config['Training']['Validation_Batch_Size'],
                                         shuffle=False, num_workers=8)
 
-for epoch in range(config['Training']['Epochs']):
+for epoch in range(args.epochs):
 
     for i_batch, sample_batch in enumerate(dataloader_sidd_training):
         x = sample_batch['NOISY']

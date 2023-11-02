@@ -23,7 +23,6 @@
       "Channels": [128, 128, 128],
       "K_Value": [3, 3, 3]
     },
-    "Epochs": 25,
     "Train_Batch_Size": 16,
     "Validation_Batch_Size": 16,
     "Learning_Rate": 1e-4,
