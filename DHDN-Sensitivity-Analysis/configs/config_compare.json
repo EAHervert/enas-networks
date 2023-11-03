@@ -1,7 +1,6 @@
 {
   "Description": "DHDN_Compare",
   "Locations": {
-    "Training_File": "/instances/sidd_np_instances_064_128.csv",
     "Validation_Noisy": "/data/ValidationNoisyBlocksSrgb.mat",
     "Validation_GT": "/data/ValidationGtBlocksSrgb.mat",
     "Benchmark": "/data/BenchmarkNoisyBlocksSrgb.mat",
@@ -21,6 +20,66 @@
         [[0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0], [2, 0, 0, 2, 0, 0, 2, 0, 0]]
       ],
       "Channels": [128, 128, 128],
+      "K_Value": [3, 3, 3]
+    },
+    "Downsample": {
+      "Tags": ["MAX", "AVG", "CNV"],
+      "Models": [
+        "/models/compare_down/2023_10_11__21_12_21_dhdn_down_MAX_SIDD.pth",
+        "/models/compare_down/2023_10_11__21_12_21_dhdn_down_AVG_SIDD.pth",
+        "/models/compare_down/2023_10_11__21_12_21_dhdn_down_CNV_SIDD.pth"],
+      "Architecture":
+      [
+        [[0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]],
+        [[1, 0, 0, 1, 0, 0, 1, 0, 0], [0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]],
+        [[2, 0, 0, 2, 0, 0, 2, 0, 0], [0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]]
+      ],
+      "Channels": [128, 128, 128],
+      "K_Value": [3, 3, 3]
+    },
+    "Kernels": {
+      "Tags": ["3x3", "5x5", "RAN"],
+      "Models": [
+        "/models/compare_kernels/2023_10_13__18_26_40_dhdn_3x3_SIDD.pth",
+        "/models/compare_kernels/2023_10_13__18_26_40_dhdn_5x5_SIDD.pth",
+        "/models/compare_kernels/2023_10_13__18_26_40_dhdn_RAN_SIDD.pth"],
+      "Architecture":
+      [
+        [[0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]],
+        [[7, 7, 0, 7, 7, 0, 7, 7, 0], [7, 7], [0, 7, 7, 0, 7, 7, 0, 7, 7]],
+        [[3, 5, 0, 7, 4, 0, 0, 5, 0], [3, 4], [0, 4, 7, 0, 7, 2, 0, 0, 6]]
+      ],
+      "Channels": [128, 128, 128],
+      "K_Value": [3, 3, 3]
+    },
+    "Size": {
+      "Tags": ["5", "7", "9"],
+      "Models": [
+        "/models/compare_size/2023_10_02_size_5_SIDD.pth",
+        "/models/compare_size/2023_10_02_size_7_SIDD.pth",
+        "/models/compare_size/2023_10_02_size_9_SIDD.pth"],
+      "Architecture":
+      [
+        [[0, 0, 0, 0, 0, 0], [0, 0], [0, 0, 0, 0, 0, 0]],
+        [[0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]],
+        [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+      ],
+      "Channels": [128, 128, 128],
+      "K_Value": [2, 3, 4]
+    },
+    "Channel_Number": {
+      "Tags": ["096", "128", "160"],
+      "Models": [
+        "/models/compare_channel_number/2023_10_08__14_10_25_dhdn_channel_number_096_SIDD.pth",
+        "/models/compare_channel_number/2023_10_08__14_10_25_dhdn_channel_number_128_SIDD.pth",
+        "/models/compare_channel_number/2023_10_08__14_10_25_dhdn_channel_number_160_SIDD.pth"],
+      "Architecture":
+      [
+        [[0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]],
+        [[0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]],
+        [[0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]]
+      ],
+      "Channels": [96, 128, 160],
       "K_Value": [3, 3, 3]
     },
     "Train_Batch_Size": 16,

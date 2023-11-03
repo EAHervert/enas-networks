@@ -27,6 +27,7 @@ parser.add_argument('--tag', default='Upsample', type=str)  # Which dataset to t
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--gaussian', default='-1', type=float)  # Gaussian noise addition for model weight # initialization
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
+parser.add_argument('--training_csv', default='sidd_np_instances_064_64.csv', type=str)  # training samples to use
 parser.add_argument('--epochs', default=25, type=int)  # number of epochs to train on
 args = parser.parse_args()
 
@@ -42,7 +43,7 @@ if not os.path.exists(dir_current + model_folder):
 
 # Noise Dataset
 if args.noise == 'SIDD':
-    path_training = dir_current + config['Locations']['Training_File']
+    path_training = dir_current + '/instances/' + args.training_csv
     path_validation_noisy = dir_current + config['Locations']['Validation_Noisy']
     path_validation_gt = dir_current + config['Locations']['Validation_GT']
     Result_Path = dir_current + '/SIDD/{date}/'.format(date=d1)
