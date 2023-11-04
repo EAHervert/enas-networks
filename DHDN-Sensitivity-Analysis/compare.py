@@ -29,6 +29,7 @@ parser.add_argument('--gaussian', default='-1', type=float)  # Gaussian noise ad
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
 parser.add_argument('--training_csv', default='sidd_np_instances_064_64.csv', type=str)  # training samples to use
 parser.add_argument('--epochs', default=25, type=int)  # number of epochs to train on
+parser.add_argument('--learning_rate', default=1e-4, type=float)  # number of epochs to train on
 args = parser.parse_args()
 
 # Hyperparameters
@@ -127,9 +128,9 @@ vis_window = {'Loss_{date}'.format(date=d1): None,
               'PSNR_{date}'.format(date=d1): None}
 
 # Define the optimizers:
-optimizer_1 = torch.optim.Adam(dhdn_1.parameters(), config['Training']['Learning_Rate'])
-optimizer_2 = torch.optim.Adam(dhdn_2.parameters(), config['Training']['Learning_Rate'])
-optimizer_3 = torch.optim.Adam(dhdn_3.parameters(), config['Training']['Learning_Rate'])
+optimizer_1 = torch.optim.Adam(dhdn_1.parameters(), args.learning_rate)
+optimizer_2 = torch.optim.Adam(dhdn_2.parameters(), args.learning_rate)
+optimizer_3 = torch.optim.Adam(dhdn_3.parameters(), args.learning_rate)
 
 # Define the Scheduling:
 scheduler_1 = torch.optim.lr_scheduler.StepLR(optimizer_1, 3, 0.5, -1)
