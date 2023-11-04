@@ -138,7 +138,8 @@ loss_0 = nn.L1Loss().to(device_0)
 loss_1 = nn.L1Loss().to(device_1)
 mse_0 = nn.MSELoss().to(device_0)
 mse_1 = nn.MSELoss().to(device_1)
-loss_fn_alex = lpips.LPIPS(net='alex')  # best forward scores
+loss_fn_alex_0 = lpips.LPIPS(net='alex').to(device_0)  # best forward scores
+loss_fn_alex_1 = lpips.LPIPS(net='alex').to(device_1)  # best forward scores
 
 # Now, let us define our loggers:
 loggers = generate_cyclegan_loggers()
@@ -187,8 +188,8 @@ for epoch in range(config['Training']['Epochs']):
         Target_1 = torch.ones_like(DX_x)
 
         # Calculate Losses (Discriminators):
-        Loss_DX_calc = mse_0(DX_x, Target_1.to(device_0)) + mse_1(DX_F_y, Target_1.to(device_0))
-        Loss_DY_calc = mse_0(DY_y, Target_1.to(device_1)) + mse_1(DY_G_x, Target_1.to(device_1))
+        Loss_DX_calc = mse_0(DX_x, Target_1.to(device_0)) + mse_0(DX_F_y, Target_1.to(device_0) * 0)
+        Loss_DY_calc = mse_1(DY_y, Target_1.to(device_1)) + mse_1(DY_G_x, Target_1.to(device_1) * 0)
 
         # Update the Discriminators:
         optimizer_DX.zero_grad()
@@ -204,12 +205,12 @@ for epoch in range(config['Training']['Epochs']):
         # Generator Operators
         F_y = F(y_2.to(device_1)).to(device_0)  # y -> F(y)
         G_x = G(x_1.to(device_0)).to(device_1)  # x -> G(x)
-        F_G_x__G = F(G_x).clone().detach().to(device_0)  # x -> G_x -> F_G_x (G Model)
-        F_G_x__F = F(G_x.clone().detach()).to(device_1)  # x -> G_x -> F_G_x (F Model)
-        G_F_y__G = G(F_y.clone().detach()).to(device_0)  # y -> F_y -> G_F_y
-        G_F_y__F = G(F_y).clone().detach().to(device_1)  # y -> F_y -> G_F_y
-        F_x = F(x_1.to(device_1)).to(device_0)  # x -> F_x
-        G_y = G(y_2.to(device_0)).to(device_1)  # y -> G_y
+        F_G_x__G = F(G_x).clone().detach().to(device_0)  # x -> G(x) -> F(G(x)) (G Model)
+        F_G_x__F = F(G_x.clone().detach()).to(device_1)  # x -> G(x) -> F(G(x)) (F Model)
+        G_F_y__G = G(F_y.clone().detach()).to(device_0)  # y -> F(y) -> G(F(y))
+        G_F_y__F = G(F_y).clone().detach().to(device_1)  # y -> F(y) -> G(F(y))
+        F_x = F(x_1.to(device_1)).to(device_0)  # x -> F(x)
+        G_y = G(y_2.to(device_0)).to(device_1)  # y -> G(y)
 
         # Updated Discriminator Operations
         DX_F_y = DX(F_y)
@@ -231,19 +232,19 @@ for epoch in range(config['Training']['Epochs']):
             Loss_Cyc_YXY_G_calc = 1 - SSIM(G_F_y__G, y_2.to(device_0))
             Loss_Cyc_YXY_F_calc = 1 - SSIM(G_F_y__F, y_2.to(device_1))
         elif args.cycle_loss == 'LPIPS':
-            Loss_Cyc_XYX_G_calc = loss_fn_alex(F_G_x__G, x_1.to(device_0))
-            Loss_Cyc_XYX_F_calc = loss_fn_alex(F_G_x__F, x_1.to(device_1))
-            Loss_Cyc_YXY_G_calc = loss_fn_alex(G_F_y__G, y_2.to(device_0))
-            Loss_Cyc_YXY_F_calc = loss_fn_alex(G_F_y__F, y_2.to(device_1))
+            Loss_Cyc_XYX_G_calc = loss_fn_alex_0(F_G_x__G, x_1.to(device_0))
+            Loss_Cyc_XYX_F_calc = loss_fn_alex_1(F_G_x__F, x_1.to(device_1))
+            Loss_Cyc_YXY_G_calc = loss_fn_alex_0(G_F_y__G, y_2.to(device_0))
+            Loss_Cyc_YXY_F_calc = loss_fn_alex_1(G_F_y__F, y_2.to(device_1))
         elif args.cycle_loss == 'Custom':
             Loss_Cyc_XYX_G_calc = loss_0(F_G_x__G, x_1.to(device_0)) + (1 - SSIM(F_G_x__G, x_1.to(device_0))) + \
-                                  loss_fn_alex(F_G_x__G, x_1.to(device_0))
+                                  loss_fn_alex_0(F_G_x__G, x_1.to(device_0))
             Loss_Cyc_XYX_F_calc = loss_1(F_G_x__F, x_1.to(device_1)) + (1 - SSIM(F_G_x__F, x_1.to(device_1))) + \
-                                  loss_fn_alex(F_G_x__F, x_1.to(device_1))
+                                  loss_fn_alex_1(F_G_x__F, x_1.to(device_1))
             Loss_Cyc_YXY_G_calc = loss_0(G_F_y__G, y_2.to(device_0)) + (1 - SSIM(G_F_y__G, y_2.to(device_0))) + \
-                                  loss_fn_alex(G_F_y__G, y_2.to(device_0))
+                                  loss_fn_alex_0(G_F_y__G, y_2.to(device_0))
             Loss_Cyc_YXY_F_calc = loss_1(G_F_y__F, y_2.to(device_1)) + (1 - SSIM(G_F_y__F, y_2.to(device_1))) + \
-                                  loss_fn_alex(G_F_y__F, y_2.to(device_1))
+                                  loss_fn_alex_1(G_F_y__F, y_2.to(device_1))
         else:  # L1 Loss (default)
             Loss_Cyc_XYX_G_calc = loss_0(F_G_x__G, x_1.to(device_0))
             Loss_Cyc_XYX_F_calc = loss_1(F_G_x__F, x_1.to(device_1))
@@ -331,6 +332,7 @@ for epoch in range(config['Training']['Epochs']):
     Display_SSIM = "SSIM: %.6f" % ssim_meter_val.avg + "\tSSIM_Original: %.6f" % ssim_original_meter_val.avg
     Display_PSNR = "PSNR: %.6f" % psnr_meter_val.avg + "\tPSNR_Original: %.6f" % psnr_original_meter_val.avg
 
+    print('\n' + '-' * 160 + '\n')
     print("Validation Data for Epoch: ", epoch)
     print(Display_SSIM + '\n' + Display_PSNR + '\n')
     print('-' * 160 + '\n')

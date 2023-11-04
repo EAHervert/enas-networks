@@ -1,0 +1,24 @@
+{
+  "Description": "CycleGAN",
+  "Locations": {
+    "Training_File": "/instances/sidd_np_instances_128_256.csv",
+    "Validation_Noisy": "/data/ValidationNoisyBlocksSrgb.mat",
+    "Validation_GT": "/data/ValidationGtBlocksSrgb.mat",
+    "Benchmark": "/data/BenchmarkNoisyBlocksSrgb.mat",
+    "Output_File": "Train_CycleGAN"
+  },
+  "Training": {
+    "Model_Path_D": "/models/DX.pth",
+    "Model_Path_G": "/models/G.pth",
+    "Epochs": 40,
+    "Train_Batch_Size": 64,
+    "Validation_Batch_Size": 32,
+    "Learning_Rate": 2e-4,
+    "Beta_1": 0.5,
+    "Beta_2": 0.999,
+    "Number_Images_DAVIS": 320,
+    "List_Validation_DAVIS": [121, 45, 168, 92, 119, 306, 195, 198, 275, 120, 219, 78, 59, 307, 281, 97, 299, 160, 190, 199,
+      97, 80, 4, 198, 45, 21, 286, 265, 195, 170, 142, 276, 4, 150, 3, 258, 287, 226, 309, 287, 116, 56, 29, 124, 102,
+      101, 93, 306, 134, 2, 94, 291, 102, 36, 276, 214, 30, 273, 221, 189, 83, 176, 81, 34]
+  }
+}

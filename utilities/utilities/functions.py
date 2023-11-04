@@ -179,6 +179,31 @@ def generate_cyclegan_loggers():
     return batch_loggers, val_loggers
 
 
+def generate_gan_loggers():
+    # Image Batches
+    ssim_meter_batch = AverageMeter()
+    ssim_original_meter_batch = AverageMeter()
+    psnr_meter_batch = AverageMeter()
+    psnr_original_meter_batch = AverageMeter()
+    loss_D = AverageMeter()
+    loss_GANG = AverageMeter()
+    loss_IY = AverageMeter()
+    loss_Sup_XY = AverageMeter()
+
+    batch_loggers = (ssim_meter_batch, ssim_original_meter_batch, psnr_meter_batch, psnr_original_meter_batch,
+                     loss_D, loss_GANG, loss_IY, loss_Sup_XY)
+
+    # Validation
+    ssim_meter_val = AverageMeter()
+    ssim_original_meter_val = AverageMeter()
+    psnr_meter_val = AverageMeter()
+    psnr_original_meter_val = AverageMeter()
+
+    val_loggers = (ssim_meter_val, ssim_original_meter_val, psnr_meter_val, psnr_original_meter_val)
+
+    return batch_loggers, val_loggers
+
+
 def drop_weights(state_dict, p=0.8, device='cpu'):
     state_dict_out = state_dict.copy()
 
