@@ -155,8 +155,8 @@ for epoch in range(config['Training']['Epochs']):
             psnr_meter_batch.update(PSNR(mse_0(y_1.to(device_0), G_x.to(device_0))).item())
 
         # Discriminator Operators
-        D_y = D(y_2.to(device_0))
-        D_G_x = D(G_x)
+        D_y = D(y_2.to(device_0))  # True clean images
+        D_G_x = D(G_x)  # Denoised images
         Target_1 = torch.ones_like(D_y)
 
         # Calculate Losses (Discriminators):

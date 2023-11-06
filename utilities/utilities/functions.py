@@ -223,7 +223,7 @@ def gaussian_add_weights(state_dict, k=1, device='cpu'):
 
     for key in state_dict.keys():
         tensor = state_dict_out[key]
-        if tensor.dtype == torch.float32:
+        if tensor.dtype == torch.float32 and list(tensor.size()) != [1]:
             std = tensor.std().item()
             noise = torch.clip(k * std * torch.randn(tensor.size()), -k * std, k * std)
             tensor += noise.to(device)

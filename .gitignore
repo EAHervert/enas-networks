@@ -156,3 +156,4 @@ dmypy.json
 /DHDN-Sensitivity-Analysis/SIDD/Old/DHDN_Compare_Size/
 /DHDN-Sensitivity-Analysis/SIDD/Old/DHDN_Compare_Up/
 /utilities/test_lpips.py
+/Benchmarks/dhdn_training_size_analysis.ipynb

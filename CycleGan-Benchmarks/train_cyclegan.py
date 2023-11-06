@@ -112,7 +112,7 @@ vis = visdom.Visdom(
 )
 
 # Display the data to the window:
-vis.env = 'CycleGAN' + str(args.noise)
+vis.env = 'CycleGAN_' + str(args.noise)
 vis_window = {'Loss_{date}'.format(date=d1): None,
               'SSIM_{date}'.format(date=d1): None,
               'PSNR_{date}'.format(date=d1): None}

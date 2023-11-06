@@ -137,6 +137,7 @@ class LPIPS(nn.Module):
         for l in range(self.L):
             val += res[l]
 
+        # Todo: Make this value s.t. it can be backpropagated on
         if retPerLayer:
             return val, res
         else:
