@@ -185,10 +185,10 @@ for epoch in range(config['Training']['Epochs']):
         # Calculate Losses (Discriminators):
         Loss_DX_calc = mse_0(DX_x, Target_1.to(device_0)) + mse_0(DX_F_y, Target_1.to(device_0) * 0)
         Loss_DY_calc = mse_1(DY_y, Target_1.to(device_1)) + mse_1(DY_G_x, Target_1.to(device_1) * 0)
-        TP.append(loss_1(DY_y, Target_1.to(device_1)).item())
-        FP.append(loss_0(DY_G_x, Target_1.to(device_1)).item())
-        FN.append(loss_0(DY_y, Target_1.to(device_1) * 0).item())
-        TN.append(loss_0(DY_G_x, Target_1.to(device_1) * 0).item())
+        TP.append(((DY_y >= 0.5) * 1.).mean().item())
+        FP.append(((DY_G_x >= 0.5) * 1.).mean().item())
+        FN.append(((DY_y < 0.5) * 1.).mean().item())
+        TN.append(((DY_G_x < 0.5) * 1.).mean().item())
 
         # Update the Discriminators:
         optimizer_DX.zero_grad()
@@ -281,6 +281,10 @@ for epoch in range(config['Training']['Epochs']):
         loss_sup_YX.update(Loss_Sup_YX_calc.item())
 
         if i_batch % 100 == 0:
+            Confusion_Matrix = "True Positive: %.6f" % TP[-1] + \
+                               "\tFalse Positive: %.6f" % FP[-1] + \
+                               "\nFalse Negative: %.6f" % FN[-1] + \
+                               "\tTrue Negative: %.6f" % TN[-1]
             Display_Loss_D = "Loss_DX: %.6f" % loss_DX.val + "\tLoss_DY: %.6f" % loss_DY.val
             Display_Loss_Cyc = "loss_Cyc_XYX: %.6f" % loss_Cyc_XYX.val + "\tLoss_Cyc_YXY: %.6f" % loss_Cyc_YXY.val
             Display_Loss_G = "Loss_GANG: %.6f" % loss_GANG.val + "\tLoss_IY: %.6f" % loss_IY.val
@@ -292,12 +296,16 @@ for epoch in range(config['Training']['Epochs']):
                            "\tPSNR_Original_Batch: %.6f" % psnr_original_meter_batch.val
 
             print("Training Data for Epoch: ", epoch, "Image Batch: ", i_batch)
-            print(Display_Loss_D + '\n' + Display_Loss_Cyc + '\n' + Display_Loss_G + '\n' + Display_Loss_F + '\n' +
-                  Display_Loss_Sup + '\n' + Display_SSIM + '\n' + Display_PSNR)
+            print(Confusion_Matrix + '\n' + Display_Loss_D + '\n' + Display_Loss_Cyc + '\n' + Display_Loss_G + '\n' +
+                  Display_Loss_F + '\n' + Display_Loss_Sup + '\n' + Display_SSIM + '\n' + Display_PSNR)
 
         # Free up space in GPU
         del x_1, y_1, x_2, y_2, F_y, G_x, F_G_x__G, F_G_x__F, G_F_y__G, G_F_y__F, F_x, G_y, DX_F_y, DY_G_x
 
+    Confusion_Matrix = "True Positive: %.6f" % np.array(TP).mean() + \
+                       "\tFalse Positive: %.6f" % np.array(FP).mean() + \
+                       "\nFalse Negative: %.6f" % np.array(FN).mean() + \
+                       "\tTrue Negative: %.6f" % np.array(TN).mean()
     Display_Loss_D = "Loss_DX: %.6f" % loss_DX.avg + "\tLoss_DY: %.6f" % loss_DY.avg
     Display_Loss_Cyc = "loss_Cyc_XYX: %.6f" % loss_Cyc_XYX.val + "\tLoss_Cyc_YXY: %.6f" % loss_Cyc_YXY.val
     Display_Loss_G = "Loss_GANG: %.6f" % loss_GANG.avg + "\tLoss_IY: %.6f" % loss_IY.avg
@@ -309,8 +317,8 @@ for epoch in range(config['Training']['Epochs']):
                    "\tPSNR_Original_Batch: %.6f" % psnr_original_meter_batch.avg
 
     print("Training Data for Epoch: ", epoch)
-    print(Display_Loss_D + '\n' + Display_Loss_Cyc + '\n' + Display_Loss_G + '\n' + Display_Loss_F + '\n' +
-          Display_Loss_Sup + '\n' + Display_SSIM + '\n' + Display_PSNR)
+    print(Confusion_Matrix + '\n' + Display_Loss_D + '\n' + Display_Loss_Cyc + '\n' + Display_Loss_G + '\n' +
+          Display_Loss_F + '\n' + Display_Loss_Sup + '\n' + Display_SSIM + '\n' + Display_PSNR)
 
     for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
         x_v = validation_batch['NOISY']

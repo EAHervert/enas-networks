@@ -158,10 +158,10 @@ for epoch in range(config['Training']['Epochs']):
 
         # Calculate Losses (Discriminators):
         Loss_D_calc = mse_0(D_y, Target_1.to(device_0)) + mse_0(D_G_x, Target_1.to(device_0) * 0)
-        TP.append(loss_0(D_y, Target_1.to(device_0)).item())
-        FP.append(loss_0(D_G_x, Target_1.to(device_0)).item())
-        FN.append(loss_0(D_y, Target_1.to(device_0) * 0).item())
-        TN.append(loss_0(D_G_x, Target_1.to(device_0) * 0).item())
+        TP.append(((D_y >= 0.5) * 1.).mean().item())
+        FP.append(((D_G_x >= 0.5) * 1.).mean().item())
+        FN.append(((D_y < 0.5) * 1.).mean().item())
+        TN.append(((D_G_x < 0.5) * 1.).mean().item())
 
         # Update the Discriminators:
         optimizer_D.zero_grad()
