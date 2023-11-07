@@ -127,12 +127,6 @@ optimizer_F = torch.optim.Adam(F.parameters(), lr=config['Training']['Learning_R
 optimizer_G = torch.optim.Adam(G.parameters(), lr=config['Training']['Learning_Rate'],
                                betas=(config['Training']['Beta_1'], config['Training']['Beta_2']))
 
-# Define the Scheduling:
-scheduler_DX = torch.optim.lr_scheduler.StepLR(optimizer_DX, 3, 0.5, -1)
-scheduler_DY = torch.optim.lr_scheduler.StepLR(optimizer_DY, 3, 0.5, -1)
-scheduler_F = torch.optim.lr_scheduler.StepLR(optimizer_F, 3, 0.5, -1)
-scheduler_G = torch.optim.lr_scheduler.StepLR(optimizer_G, 3, 0.5, -1)
-
 # Define the Loss and evaluation metrics:
 loss_0 = nn.L1Loss().to(device_0)
 loss_1 = nn.L1Loss().to(device_1)
@@ -161,6 +155,7 @@ dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=conf
                                         shuffle=False, num_workers=8)
 
 for epoch in range(config['Training']['Epochs']):
+    TP, FP, FN, TN = [], [], [], []
     for i_batch, (sample_batch_1, sample_batch_2) in enumerate(zip(dataloader_sidd_training_1,
                                                                    dataloader_sidd_training_2)):
         x_1 = sample_batch_1['NOISY']
@@ -175,7 +170,7 @@ for epoch in range(config['Training']['Epochs']):
         # Calculate raw values between x and y
         with torch.no_grad():
             ssim_original_meter_batch.update(SSIM(y_1, x_1).item())
-            ssim_meter_batch.update(SSIM(x_1, G_x.to('cpu')).item())
+            ssim_meter_batch.update(SSIM(y_1, G_x.to('cpu')).item())
 
             psnr_original_meter_batch.update(PSNR(mse_0(y_1.to(device_0), x_1.to(device_0))).item())
             psnr_meter_batch.update(PSNR(mse_1(y_1.to(device_1), G_x.to(device_1))).item())
@@ -190,6 +185,10 @@ for epoch in range(config['Training']['Epochs']):
         # Calculate Losses (Discriminators):
         Loss_DX_calc = mse_0(DX_x, Target_1.to(device_0)) + mse_0(DX_F_y, Target_1.to(device_0) * 0)
         Loss_DY_calc = mse_1(DY_y, Target_1.to(device_1)) + mse_1(DY_G_x, Target_1.to(device_1) * 0)
+        TP.append(loss_1(DY_y, Target_1.to(device_1)).item())
+        FP.append(loss_0(DY_G_x, Target_1.to(device_1)).item())
+        FN.append(loss_0(DY_y, Target_1.to(device_1) * 0).item())
+        TN.append(loss_0(DY_G_x, Target_1.to(device_1) * 0).item())
 
         # Update the Discriminators:
         optimizer_DX.zero_grad()
@@ -408,11 +407,6 @@ for epoch in range(config['Training']['Epochs']):
     psnr_meter_val.reset()
     psnr_original_meter_val.reset()
 
-    scheduler_DX.step()
-    scheduler_DY.step()
-    scheduler_G.step()
-    scheduler_F.step()
-
     if epoch > 0 and not epoch % 5:
         model_path_DX = dir_current + '/models/{date}_DX_{noise}_{epoch}.pth'.format(date=d1, noise=args.noise,
                                                                                      epoch=epoch)
@@ -428,15 +422,20 @@ for epoch in range(config['Training']['Epochs']):
         torch.save(F.state_dict(), model_path_F)
         torch.save(G.state_dict(), model_path_G)
 
-        state_dict_DX = clip_weights(DX.state_dict(), k=3, device=device_0)
-        state_dict_DY = clip_weights(DY.state_dict(), k=3, device=device_1)
-        state_dict_F = clip_weights(F.state_dict(), k=3, device=device_0)
-        state_dict_G = clip_weights(G.state_dict(), k=3, device=device_1)
+        if not epoch % 10:
+            state_dict_DX = clip_weights(DX.state_dict(), k=3, device=device_0)
+            state_dict_DX = drop_weights(state_dict_DX, p=0.95, device=device_0)
+            state_dict_DY = clip_weights(DY.state_dict(), k=3, device=device_0)
+            state_dict_DY = drop_weights(state_dict_DY, p=0.95, device=device_0)
+            state_dict_G = clip_weights(G.state_dict(), k=3, device=device_0)
+            state_dict_G = drop_weights(state_dict_G, p=0.95, device=device_0)
+            state_dict_F = clip_weights(F.state_dict(), k=3, device=device_0)
+            state_dict_F = drop_weights(state_dict_F, p=0.95, device=device_0)
 
-        DX.load_state_dict(state_dict_DX)
-        DY.load_state_dict(state_dict_DY)
-        F.load_state_dict(state_dict_F)
-        G.load_state_dict(state_dict_G)
+            DX.load_state_dict(state_dict_DX)
+            DY.load_state_dict(state_dict_DY)
+            F.load_state_dict(state_dict_F)
+            G.load_state_dict(state_dict_G)
 
 # Save final model
 model_path_DX = dir_current + '/models/{date}_DX_{noise}.pth'.format(date=d1, noise=args.noise)

@@ -157,3 +157,7 @@ dmypy.json
 /DHDN-Sensitivity-Analysis/SIDD/Old/DHDN_Compare_Up/
 /utilities/test_lpips.py
 /Benchmarks/dhdn_training_size_analysis.ipynb
+/Benchmarks/GAN_analysis.ipynb
+/Benchmarks/CycleGAN_analysis.ipynb
+/DHDN-Sensitivity-Analysis/SIDD/
+/CycleGan-Benchmarks/models/

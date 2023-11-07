@@ -23,8 +23,9 @@ parser = argparse.ArgumentParser(
     description='Training supervised denoiser for comparison',
 )
 parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to train on
+parser.add_argument('--lambda_1', default=0.0, type=float)  # Identity loss G(y) approx y
 parser.add_argument('--device', default='cuda:0', type=str)  # Which device to use to generate .mat file
-parser.add_argument('--training_csv', default='sidd_np_instances_128_128.csv', type=str)  # training samples to use
+parser.add_argument('--training_csv', default='sidd_np_instances_128_64.csv', type=str)  # training samples to use
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
 parser.add_argument('--model_size', default=6, type=int)  # Load previous models
@@ -94,9 +95,6 @@ vis_window = {'Loss_{date}'.format(date=d1): None,
 optimizer_G = torch.optim.Adam(G.parameters(), lr=config['Training']['Learning_Rate'],
                                betas=(config['Training']['Beta_1'], config['Training']['Beta_2']))
 
-# Define the Scheduling:
-scheduler_G = torch.optim.lr_scheduler.StepLR(optimizer_G, 3, 0.5, -1)
-
 # Define the Loss and evaluation metrics:
 loss_0 = nn.L1Loss().to(device_0)
 mse_0 = nn.MSELoss().to(device_0)
@@ -128,9 +126,10 @@ for epoch in range(config['Training']['Epochs']):
 
         # Generator Operations
         G_x = G(x.to(device_0))  # x -> G(x)
+        G_y = G(y.to(device_0))  # y -> G(y)
 
         # Calculate Losses (Generator):
-        Loss_G_calc = loss_0(G_x, y.to(device_0))
+        Loss_G_calc = loss_0(G_x, y.to(device_0)) + args.lambda_1 * loss_0(G_y, y.to(device_0))
         loss_meter_batch.update(Loss_G_calc.item())
 
         # Calculate raw values between x and y
@@ -138,7 +137,7 @@ for epoch in range(config['Training']['Epochs']):
             loss_original_meter_batch.update(loss_0(x.to(device_0), y.to(device_0)).item())
 
             ssim_original_meter_batch.update(SSIM(y, x).item())
-            ssim_meter_batch.update(SSIM(x, G_x.to('cpu')).item())
+            ssim_meter_batch.update(SSIM(y, G_x.to('cpu')).item())
 
             psnr_original_meter_batch.update(PSNR(mse_0(y.to(device_0), x.to(device_0))).item())
             psnr_meter_batch.update(PSNR(mse_0(y.to(device_0), G_x.to(device_0))).item())
@@ -254,15 +253,14 @@ for epoch in range(config['Training']['Epochs']):
     psnr_meter_val.reset()
     psnr_original_meter_val.reset()
 
-    scheduler_G.step()
-
     if epoch > 0 and not epoch % 5:
         model_path_G = dir_current + '/models/{date}_G_{noise}_{epoch}.pth'.format(date=d1, noise=args.noise,
                                                                                    epoch=epoch)
         torch.save(G.state_dict(), model_path_G)
-        if epoch % 10:
-            state_dict_DX = clip_weights(G.state_dict(), k=3, device=device_0)
-            G.load_state_dict(state_dict_DX)
+        if not epoch % 10:
+            state_dict_G = clip_weights(state_dict=G.state_dict(), k=3, device=device_0)
+            state_dict_G = drop_weights(state_dict=state_dict_G, p=0.95, device=device_0)
+            G.load_state_dict(state_dict_G)
 
 # Save final model
 model_path_DX = dir_current + '/models/{date}_G_{noise}.pth'.format(date=d1, noise=args.noise)

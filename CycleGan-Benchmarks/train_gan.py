@@ -108,10 +108,6 @@ optimizer_D = torch.optim.Adam(D.parameters(), lr=config['Training']['Learning_R
 optimizer_G = torch.optim.Adam(G.parameters(), lr=config['Training']['Learning_Rate'],
                                betas=(config['Training']['Beta_1'], config['Training']['Beta_2']))
 
-# Define the Scheduling:
-scheduler_D = torch.optim.lr_scheduler.StepLR(optimizer_D, 3, 0.5, -1)
-scheduler_G = torch.optim.lr_scheduler.StepLR(optimizer_G, 3, 0.5, -1)
-
 # Define the Loss and evaluation metrics:
 loss_0 = nn.L1Loss().to(device_0)
 mse_0 = nn.MSELoss().to(device_0)
@@ -136,6 +132,7 @@ dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=conf
                                         shuffle=False, num_workers=8)
 
 for epoch in range(config['Training']['Epochs']):
+    TP, FP, FN, TN = [], [], [], []
     for i_batch, (sample_batch_1, sample_batch_2) in enumerate(zip(dataloader_sidd_training_1,
                                                                    dataloader_sidd_training_2)):
         x_1 = sample_batch_1['NOISY']
@@ -149,7 +146,7 @@ for epoch in range(config['Training']['Epochs']):
         # Calculate raw values between x and y
         with torch.no_grad():
             ssim_original_meter_batch.update(SSIM(y_1, x_1).item())
-            ssim_meter_batch.update(SSIM(x_1, G_x.to('cpu')).item())
+            ssim_meter_batch.update(SSIM(y_1, G_x.to('cpu')).item())
 
             psnr_original_meter_batch.update(PSNR(mse_0(y_1.to(device_0), x_1.to(device_0))).item())
             psnr_meter_batch.update(PSNR(mse_0(y_1.to(device_0), G_x.to(device_0))).item())
@@ -161,6 +158,10 @@ for epoch in range(config['Training']['Epochs']):
 
         # Calculate Losses (Discriminators):
         Loss_D_calc = mse_0(D_y, Target_1.to(device_0)) + mse_0(D_G_x, Target_1.to(device_0) * 0)
+        TP.append(loss_0(D_y, Target_1.to(device_0)).item())
+        FP.append(loss_0(D_G_x, Target_1.to(device_0)).item())
+        FN.append(loss_0(D_y, Target_1.to(device_0) * 0).item())
+        TN.append(loss_0(D_G_x, Target_1.to(device_0) * 0).item())
 
         # Update the Discriminators:
         optimizer_D.zero_grad()
@@ -196,6 +197,10 @@ for epoch in range(config['Training']['Epochs']):
         loss_sup_XY.update(Loss_Sup_XY_calc.item())
 
         if i_batch % 100 == 0:
+            Confusion_Matrix = "True Positive: %.6f" % TP[-1] + \
+                               "\tFalse Positive: %.6f" % FP[-1] + \
+                               "\nFalse Negative: %.6f" % FN[-1] + \
+                               "\tTrue Negative: %.6f" % TN[-1]
             Display_Loss_D = "Loss_D: %.6f" % loss_D.val
             Display_Loss_G = "Loss_GANG: %.6f" % loss_GANG.val + "\tLoss_IY: %.6f" % loss_IY.val
             Display_Loss_Sup = "Loss_Sup: %.6f" % loss_sup_XY.val
@@ -205,12 +210,16 @@ for epoch in range(config['Training']['Epochs']):
                            "\tPSNR_Original_Batch: %.6f" % psnr_original_meter_batch.val
 
             print("Training Data for Epoch: ", epoch, "Image Batch: ", i_batch)
-            print(Display_Loss_D + '\n' + Display_Loss_G + '\n' + Display_Loss_Sup + '\n' + Display_SSIM + '\n' +
-                  Display_PSNR)
+            print(Confusion_Matrix + '\n' + Display_Loss_D + '\n' + Display_Loss_G + '\n' + Display_Loss_Sup + '\n' +
+                  Display_SSIM + '\n' + Display_PSNR)
 
         # Free up space in GPU
         del x_1, y_1, x_2, y_2, G_x, G_y, D_y, D_G_x
 
+    Confusion_Matrix = "True Positive: %.6f" % np.array(TP).mean() + \
+                       "\tFalse Positive: %.6f" % np.array(FP).mean() + \
+                       "\nFalse Negative: %.6f" % np.array(FN).mean() + \
+                       "\tTrue Negative: %.6f" % np.array(TN).mean()
     Display_Loss_D = "Loss_D: %.6f" % loss_D.avg
     Display_Loss_G = "Loss_GANG: %.6f" % loss_GANG.avg + "\tLoss_IY: %.6f" % loss_IY.avg
     Display_Loss_Sup = "Loss_Sup: %.6f" % loss_sup_XY.avg
@@ -220,7 +229,8 @@ for epoch in range(config['Training']['Epochs']):
                    "\tPSNR_Original_Batch: %.6f" % psnr_original_meter_batch.avg
 
     print("Training Data for Epoch: ", epoch)
-    print(Display_Loss_D + '\n' + Display_Loss_G + '\n' + Display_Loss_Sup + '\n' + Display_SSIM + '\n' + Display_PSNR)
+    print(Confusion_Matrix + '\n' + Display_Loss_D + '\n' + Display_Loss_G + '\n' + Display_Loss_Sup + '\n' +
+          Display_SSIM + '\n' + Display_PSNR)
 
     for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
         x_v = validation_batch['NOISY']
@@ -302,9 +312,6 @@ for epoch in range(config['Training']['Epochs']):
     psnr_meter_val.reset()
     psnr_original_meter_val.reset()
 
-    scheduler_D.step()
-    scheduler_G.step()
-
     if epoch > 0 and not epoch % 5:
         model_path_D = dir_current + '/models/{date}_D_{noise}_{epoch}.pth'.format(date=d1, noise=args.noise,
                                                                                    epoch=epoch)
@@ -316,7 +323,9 @@ for epoch in range(config['Training']['Epochs']):
 
         if not epoch % 10:
             state_dict_D = clip_weights(D.state_dict(), k=3, device=device_0)
+            state_dict_D = drop_weights(state_dict_D, p=0.95, device=device_0)
             state_dict_G = clip_weights(G.state_dict(), k=3, device=device_0)
+            state_dict_G = drop_weights(state_dict_G, p=0.95, device=device_0)
 
             D.load_state_dict(state_dict_D)
             G.load_state_dict(state_dict_G)
