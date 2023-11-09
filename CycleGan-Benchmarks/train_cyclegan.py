@@ -433,12 +433,12 @@ for epoch in range(config['Training']['Epochs']):
         if not epoch % 10:
             state_dict_DX = clip_weights(DX.state_dict(), k=3, device=device_0)
             state_dict_DX = drop_weights(state_dict_DX, p=0.95, device=device_0)
-            state_dict_DY = clip_weights(DY.state_dict(), k=3, device=device_0)
-            state_dict_DY = drop_weights(state_dict_DY, p=0.95, device=device_0)
+            state_dict_DY = clip_weights(DY.state_dict(), k=3, device=device_1)
+            state_dict_DY = drop_weights(state_dict_DY, p=0.95, device=device_1)
             state_dict_G = clip_weights(G.state_dict(), k=3, device=device_0)
             state_dict_G = drop_weights(state_dict_G, p=0.95, device=device_0)
-            state_dict_F = clip_weights(F.state_dict(), k=3, device=device_0)
-            state_dict_F = drop_weights(state_dict_F, p=0.95, device=device_0)
+            state_dict_F = clip_weights(F.state_dict(), k=3, device=device_1)
+            state_dict_F = drop_weights(state_dict_F, p=0.95, device=device_1)
 
             DX.load_state_dict(state_dict_DX)
             DY.load_state_dict(state_dict_DY)
