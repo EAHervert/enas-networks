@@ -31,8 +31,8 @@ parser.add_argument('--lambda_21', default=0.0, type=float)  # Identity loss G(y
 parser.add_argument('--lambda_22', default=0.0, type=float)  # Identity loss F(x) approx x
 parser.add_argument('--lambda_31', default=0.0, type=float)  # Supervised loss G(x) approx y
 parser.add_argument('--lambda_32', default=0.0, type=float)  # Supervised loss F(y) approx x
-parser.add_argument('--training_csv_1', default='sidd_np_instances_064_128_1.csv', type=str)  # training samples to use
-parser.add_argument('--training_csv_2', default='sidd_np_instances_064_128_2.csv', type=str)  # training samples to use
+parser.add_argument('--training_csv_1', default='sidd_np_instances_128_128_1.csv', type=str)  # training samples to use
+parser.add_argument('--training_csv_2', default='sidd_np_instances_128_128_2.csv', type=str)  # training samples to use
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
 parser.add_argument('--model_size', default=6, type=int)  # Load previous models
@@ -274,7 +274,7 @@ for epoch in range(config['Training']['Epochs']):
         loss_GANG.update(Loss_GANG_calc.item())
         loss_GANF.update(Loss_GANF_calc.item())
         loss_Cyc_XYX.update(Loss_Cyc_XYX_G_calc.item())
-        loss_Cyc_XYX.update(Loss_Cyc_YXY_F_calc.item())
+        loss_Cyc_YXY.update(Loss_Cyc_YXY_F_calc.item())
         loss_IX.update(Loss_IX_calc.item())
         loss_IY.update(Loss_IY_calc.item())
         loss_sup_XY.update(Loss_Sup_XY_calc.item())
@@ -289,7 +289,7 @@ for epoch in range(config['Training']['Epochs']):
             Display_Loss_Cyc = "loss_Cyc_XYX: %.6f" % loss_Cyc_XYX.val + "\tLoss_Cyc_YXY: %.6f" % loss_Cyc_YXY.val
             Display_Loss_G = "Loss_GANG: %.6f" % loss_GANG.val + "\tLoss_IY: %.6f" % loss_IY.val
             Display_Loss_F = "Loss_GANF: %.6f" % loss_GANF.val + "\tLoss_IX: %.6f" % loss_IX.val
-            Display_Loss_Sup = "Loss_Sup: %.6f" % loss_sup_XY.val + "\tLoss_Sup: %.6f" % loss_sup_YX.val
+            Display_Loss_Sup = "Loss_Sup_XY: %.6f" % loss_sup_XY.val + "\tLoss_Sup_YX: %.6f" % loss_sup_YX.val
             Display_SSIM = "SSIM_Batch: %.6f" % ssim_meter_batch.val + \
                            "\tSSIM_Original_Batch: %.6f" % ssim_original_meter_batch.val
             Display_PSNR = "PSNR_Batch: %.6f" % psnr_meter_batch.val + \
@@ -307,10 +307,10 @@ for epoch in range(config['Training']['Epochs']):
                        "\nFalse Negative: %.6f" % np.array(FN).mean() + \
                        "\tTrue Negative: %.6f" % np.array(TN).mean()
     Display_Loss_D = "Loss_DX: %.6f" % loss_DX.avg + "\tLoss_DY: %.6f" % loss_DY.avg
-    Display_Loss_Cyc = "loss_Cyc_XYX: %.6f" % loss_Cyc_XYX.val + "\tLoss_Cyc_YXY: %.6f" % loss_Cyc_YXY.val
+    Display_Loss_Cyc = "loss_Cyc_XYX: %.6f" % loss_Cyc_XYX.avg + "\tLoss_Cyc_YXY: %.6f" % loss_Cyc_YXY.avg
     Display_Loss_G = "Loss_GANG: %.6f" % loss_GANG.avg + "\tLoss_IY: %.6f" % loss_IY.avg
     Display_Loss_F = "Loss_GANF: %.6f" % loss_GANF.avg + "\tLoss_IX: %.6f" % loss_IX.avg
-    Display_Loss_Sup = "Loss_Sup: %.6f" % loss_sup_XY.avg + "\tLoss_Sup: %.6f" % loss_sup_YX.avg
+    Display_Loss_Sup = "Loss_Sup_XY: %.6f" % loss_sup_XY.avg + "\tLoss_Sup_YX: %.6f" % loss_sup_YX.avg
     Display_SSIM = "SSIM_Batch: %.6f" % ssim_meter_batch.avg + \
                    "\tSSIM_Original_Batch: %.6f" % ssim_original_meter_batch.avg
     Display_PSNR = "PSNR_Batch: %.6f" % psnr_meter_batch.avg + \

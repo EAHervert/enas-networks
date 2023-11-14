@@ -26,8 +26,8 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to train on
 parser.add_argument('--lambda_1', default=0.0, type=float)  # Identity loss G(y) approx y
 parser.add_argument('--lambda_2', default=0.0, type=float)  # Supervised loss G(x) approx y
-parser.add_argument('--training_csv_1', default='sidd_np_instances_064_128_1.csv', type=str)  # training samples to use
-parser.add_argument('--training_csv_2', default='sidd_np_instances_064_128_2.csv', type=str)  # training samples to use
+parser.add_argument('--training_csv_1', default='sidd_np_instances_128_128_1.csv', type=str)  # training samples to use
+parser.add_argument('--training_csv_2', default='sidd_np_instances_128_128_2.csv', type=str)  # training samples to use
 parser.add_argument('--device', default='cuda:0', type=str)  # Which device to use to generate .mat file
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models

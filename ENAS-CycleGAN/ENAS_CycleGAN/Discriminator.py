@@ -5,7 +5,7 @@ import functools
 class NLayerDiscriminator(nn.Module):
     """Defines a PatchGAN discriminator"""
 
-    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d):
+    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, sigmoid=False):
         """Construct a PatchGAN discriminator
 
         Parameters:
@@ -14,6 +14,8 @@ class NLayerDiscriminator(nn.Module):
             n_layers (int)  -- the number of conv layers in the discriminator
             norm_layer      -- normalization layer
         """
+
+        self.sigmoid = sigmoid
         super(NLayerDiscriminator, self).__init__()
         if type(norm_layer) == functools.partial:  # no need to use bias as BatchNorm2d has affine parameters
             use_bias = norm_layer.func == nn.InstanceNorm2d
@@ -46,7 +48,8 @@ class NLayerDiscriminator(nn.Module):
         # prediction map
 
         # Sigmoid to have outputs in [0, 1]
-        sequence += [nn.Sigmoid()]
+        if self.sigmoid:
+            sequence += [nn.Sigmoid()]
         self.model = nn.Sequential(*sequence)
 
     def forward(self, input):
