@@ -18,6 +18,10 @@ dir_current = os.getcwd()
 config_path = dir_current + '/configs/config_dhdn.json'
 config = json.load(open(config_path))
 
+# Define a custom argument type for a list of integers
+def list_of_ints(arg):
+    return list(map(int, arg.split(',')))
+
 parser = argparse.ArgumentParser(
     prog='Mat_Generation_'.format(date=d1),
     description='Generates .mat file for testing model performance',
@@ -26,6 +30,11 @@ parser.add_argument('--name', default='test', type=str)  # Name of the folder to
 parser.add_argument('--type', default='validation', type=str)  # Name of the folder to save
 parser.add_argument('--device', default='cuda:0', type=str)  # Which device to use to generate .mat file
 parser.add_argument('--architecture', default='DHDN', type=str)  # DHDN, EDHDN, or DHDN_Color
+parser.add_argument('--encoder', default=[0, 0, 0, 0, 0, 0, 0, 0], type=list_of_ints)  # Encoder of the DHDN
+parser.add_argument('--bottleneck', default=[0, 0], type=list_of_ints)  # Bottleneck of the Encoder
+parser.add_argument('--decoder', default=[0, 0, 0, 0, 0, 0, 0, 0], type=list_of_ints)  # Decoder of the DHDN
+parser.add_argument('--channels', default=128, type=int)  # Channel Number for DHDN
+parser.add_argument('--k_value', default=3, type=int)  # Size of encoder and decoder
 parser.add_argument('--model_file', default='models/model.pth', type=str)  # Model path to weights
 args = parser.parse_args()
 
@@ -42,8 +51,8 @@ device_0 = torch.device(args.device)
 
 # Model architectures and parameters
 if args.architecture == 'DHDN':
-    architecture = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    dhdn = DHDN.SharedDHDN(architecture=architecture)
+    architecture = args.encoder + args.bottleneck + args.decoder
+    dhdn = DHDN.SharedDHDN(architecture=architecture, channels=args.channels, k_value=args.k_value)
 
     # Cast to relevant device
     dhdn.to(device_0)
