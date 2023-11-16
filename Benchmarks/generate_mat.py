@@ -18,9 +18,11 @@ dir_current = os.getcwd()
 config_path = dir_current + '/configs/config_dhdn.json'
 config = json.load(open(config_path))
 
+
 # Define a custom argument type for a list of integers
 def list_of_ints(arg):
     return list(map(int, arg.split(',')))
+
 
 parser = argparse.ArgumentParser(
     prog='Mat_Generation_'.format(date=d1),

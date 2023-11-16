@@ -262,3 +262,31 @@ def transform_tensor(in_tensor, r=0, s=0):
         out_tensor = torch.rot90(out_tensor, k=r, dims=[2, 3])
 
     return out_tensor
+
+
+def image_np_to_tensor(np_array):
+    np_array_pt = torch.zeros(9, 15, 3, 256, 256)
+    for i in range(9):
+        for j in range(15):
+            sample = torch.tensor(np_array[i * 256:(i + 1) * 256,
+                                  j * 256:(j + 1) * 256, :] / 255).permute(2, 0, 1)
+            np_array_pt[i, j, :, :sample.size()[1], :sample.size()[2]] = sample
+
+    return np_array_pt
+
+
+def tensor_to_np_image(tensor):
+    np_out = np.zeros([2160, 3840, 3])
+
+    for i in range(9):
+        for j in range(15):
+            sample = tensor[i, j, :, :, :].permute(1, 2, 0) * 255
+            sample = np.round(sample.numpy())
+
+            if i < 8:
+                np_out[i * 256:(i + 1) * 256, j * 256:(j + 1) * 256, :] = sample
+            else:
+                final = 2160 - i * 256
+                np_out[i * 256:, j * 256:(j + 1) * 256, :] = sample[:final, :, :]
+
+    return np_out
