@@ -29,6 +29,7 @@ parser.add_argument('--load_models', default=False, type=bool)  # Load previous 
 parser.add_argument('--model_path_dhdn', default='2023_09_11_dhdn_SIDD.pth', type=str)  # Model path dhdn
 parser.add_argument('--model_path_edhdn', default='2023_09_11_edhdn_SIDD.pth', type=str)  # Model path edhdn
 parser.add_argument('--outer_sum', default=False, type=bool)  # To do outer sums for models
+parser.add_argument('--weight_adjust', default=False, type=bool)  # To Adjust the weights
 parser.add_argument('--training_csv', default='sidd_np_instances_064_128.csv', type=str)  # training samples to use
 parser.add_argument('--epochs', default=25, type=int)  # number of epochs to train on
 args = parser.parse_args()
@@ -202,8 +203,10 @@ for epoch in range(args.epochs):
     Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch_0.avg + "\tPSNR_eDHDN: %.6f" % psnr_batch_1.avg + \
                    "\tPSNR_Original: %.6f" % psnr_original_batch.avg
 
-    print("\nTotal Training Data for Epoch: ", epoch)
+    print('\n' + '-' * 160)
+    print("Training Data for Epoch: ", epoch)
     print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
+    print('-' * 160 + '\n')
 
     for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
         x_v = validation_batch['NOISY']
@@ -234,6 +237,7 @@ for epoch in range(args.epochs):
     Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch_val_0.avg + "\tPSNR_eDHDN: %.6f" % psnr_batch_val_1.avg + \
                    "\tPSNR_Original: %.6f" % psnr_original_batch_val.avg
 
+    print('\n' + '-' * 160)
     print("Validation Data for Epoch: ", epoch)
     print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
     print('-' * 160 + '\n')

@@ -30,9 +30,9 @@ parser.add_argument('--name', default='test', type=str)  # Name of the folder to
 parser.add_argument('--type', default='validation', type=str)  # Name of the folder to save
 parser.add_argument('--device', default='cuda:0', type=str)  # Which device to use to generate .mat file
 parser.add_argument('--architecture', default='DHDN', type=str)  # DHDN, EDHDN, or DHDN_Color
-parser.add_argument('--encoder', default=[0, 0, 0, 0, 0, 0, 0, 0], type=list_of_ints)  # Encoder of the DHDN
+parser.add_argument('--encoder', default=[0, 0, 0, 0, 0, 0, 0, 0, 0], type=list_of_ints)  # Encoder of the DHDN
 parser.add_argument('--bottleneck', default=[0, 0], type=list_of_ints)  # Bottleneck of the Encoder
-parser.add_argument('--decoder', default=[0, 0, 0, 0, 0, 0, 0, 0], type=list_of_ints)  # Decoder of the DHDN
+parser.add_argument('--decoder', default=[0, 0, 0, 0, 0, 0, 0, 0, 0], type=list_of_ints)  # Decoder of the DHDN
 parser.add_argument('--channels', default=128, type=int)  # Channel Number for DHDN
 parser.add_argument('--k_value', default=3, type=int)  # Size of encoder and decoder
 parser.add_argument('--model_file', default='models/model.pth', type=str)  # Model path to weights
