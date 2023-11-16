@@ -10,9 +10,9 @@
     "Upsample": {
       "Tags": ["PS", "TC", "BL"],
       "Models": [
-        "/models/compare_Upsample/dhdn_PS_SIDD.pth",
-        "/models/compare_Upsample/dhdn_TC_SIDD.pth",
-        "/models/compare_Upsample/dhdn_BL_SIDD.pth"],
+        "/models/compare_Upsample/dhdn_PS_1_SIDD.pth",
+        "/models/compare_Upsample/dhdn_TC_1_SIDD.pth",
+        "/models/compare_Upsample/dhdn_BL_1_SIDD.pth"],
       "Architecture":
       [
         [[0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]],
@@ -25,9 +25,9 @@
     "Downsample": {
       "Tags": ["MAX", "AVG", "CNV"],
       "Models": [
-        "/models/compare_Downsample/dhdn_MAX_SIDD.pth",
-        "/models/compare_Downsample/dhdn_AVG_SIDD.pth",
-        "/models/compare_Downsample/dhdn_CNV_SIDD.pth"],
+        "/models/compare_Downsample/dhdn_MAX_1_SIDD.pth",
+        "/models/compare_Downsample/dhdn_AVG_1_SIDD.pth",
+        "/models/compare_Downsample/dhdn_CNV_1_SIDD.pth"],
       "Architecture":
       [
         [[0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]],
@@ -40,9 +40,9 @@
     "Kernels": {
       "Tags": ["3x3", "5x5", "RAN"],
       "Models": [
-        "/models/compare_Kernels/dhdn_3x3_SIDD.pth",
-        "/models/compare_Kernels/dhdn_5x5_SIDD.pth",
-        "/models/compare_Kernels/dhdn_RAN_SIDD.pth"],
+        "/models/compare_Kernels/dhdn_3x3_1_SIDD.pth",
+        "/models/compare_Kernels/dhdn_5x5_1_SIDD.pth",
+        "/models/compare_Kernels/dhdn_RAN_1_SIDD.pth"],
       "Architecture":
       [
         [[0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]],
@@ -55,9 +55,9 @@
     "Size": {
       "Tags": ["5", "7", "9"],
       "Models": [
-        "/models/compare_Size/dhdn_5_SIDD.pth",
-        "/models/compare_Size/dhdn_7_SIDD.pth",
-        "/models/compare_Size/dhdn_9_SIDD.pth"],
+        "/models/compare_Size/dhdn_5_1_SIDD.pth",
+        "/models/compare_Size/dhdn_7_1_SIDD.pth",
+        "/models/compare_Size/dhdn_9_1_SIDD.pth"],
       "Architecture":
       [
         [[0, 0, 0, 0, 0, 0], [0, 0], [0, 0, 0, 0, 0, 0]],
@@ -70,9 +70,9 @@
     "Channel_Number": {
       "Tags": ["096", "128", "160"],
       "Models": [
-        "/models/compare_Channel_Number/dhdn_096_SIDD.pth",
-        "/models/compare_Channel_Number/dhdn_128_SIDD.pth",
-        "/models/compare_Channel_Number/dhdn_160_SIDD.pth"],
+        "/models/compare_Channel_Number/dhdn_096_1_SIDD.pth",
+        "/models/compare_Channel_Number/dhdn_128_1_SIDD.pth",
+        "/models/compare_Channel_Number/dhdn_160_1_SIDD.pth"],
       "Architecture":
       [
         [[0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]],

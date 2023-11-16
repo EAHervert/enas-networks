@@ -242,10 +242,12 @@ for epoch in range(args.epochs):
     Display_PSNR = "PSNR_Size_{tag_1}: %.6f" % psnr_batch_1.avg + "\tPSNR_Size_{tag_2}: %.6f" % psnr_batch_2.avg + \
                    "\tPSNR_Size_{tag_3}: %.6f" % psnr_batch_3.avg + "\tPSNR_Original: %.6f" % psnr_original_batch.avg
 
+    print('\n' + '-' * 160)
     print("Training Data for Epoch: ", epoch)
     print(Display_Loss.format(tag_1=tag_1, tag_2=tag_2, tag_3=tag_3) + '\n'
           + Display_SSIM.format(tag_1=tag_1, tag_2=tag_2, tag_3=tag_3) + '\n'
           + Display_PSNR.format(tag_1=tag_1, tag_2=tag_2, tag_3=tag_3))
+    print('-' * 160 + '\n')
 
     for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
         x_v = validation_batch['NOISY']
@@ -273,7 +275,6 @@ for epoch in range(args.epochs):
         # Free up space in GPU
         del x_v, y_v_1, y_v_2, y_v_3, t_v
 
-    print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
     Display_Loss = "Loss_Size_{tag_1}: %.6f" % loss_batch_val_1.avg + \
                    "\tLoss_Size_{tag_2}: %.6f" % loss_batch_val_2.avg + \
                    "\tLoss_Size_{tag_3}: %.6f" % loss_batch_val_3.avg + \
