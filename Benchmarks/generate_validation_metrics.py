@@ -28,9 +28,9 @@ parser.add_argument('--path', default='results/denoise_test.mat', type=str)  # p
 args = parser.parse_args()
 
 # Load benchmark data for processing
-mat_gt_file = os.getcwd() + '/data/ValidationGtBlocksSrgb.mat'
-mat_noisy_file = os.getcwd() + '/data/ValidationNoisyBlocksSrgb.mat'
-mat_denoise_file = os.getcwd() + args.path
+mat_gt_file = dir_current + '/data/ValidationGtBlocksSrgb.mat'
+mat_noisy_file = dir_current + '/data/ValidationNoisyBlocksSrgb.mat'
+mat_denoise_file = dir_current + args.path
 mat_gt = loadmat(mat_gt_file)
 mat_noisy = loadmat(mat_noisy_file)
 mat_denoise = loadmat(mat_noisy_file)

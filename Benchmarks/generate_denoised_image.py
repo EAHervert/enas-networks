@@ -38,7 +38,7 @@ parser.add_argument('--model_file', default='models/model.pth', type=str)  # Mod
 args = parser.parse_args()
 
 # Get the model paths
-model_dhdn = os.getcwd() + '/' + args.model_file
+model_dhdn = dir_current + '/' + args.model_file
 device_0 = torch.device(args.device)
 
 # Model architectures and parameters
@@ -77,9 +77,9 @@ else:
     exit()
 
 dhdn.load_state_dict(state_dict_dhdn)
-noisy = np.array(cv2.imread(os.getcwd() + '/' + args.image_path, cv2.IMREAD_COLOR), dtype=np.single)[:, :, ::-1]
+noisy = np.array(cv2.imread(dir_current + '/' + args.image_path, cv2.IMREAD_COLOR), dtype=np.single)[:, :, ::-1]
 image_path_gt = args.image_path[:-6] + 'gt.png'
-gt = np.array(cv2.imread(os.getcwd() + '/' + image_path_gt, cv2.IMREAD_COLOR), dtype=np.single)[:, :, ::-1]
+gt = np.array(cv2.imread(dir_current + '/' + image_path_gt, cv2.IMREAD_COLOR), dtype=np.single)[:, :, ::-1]
 
 # Transformed to Tensor
 noisy_pt = image_np_to_tensor(noisy)
@@ -95,8 +95,5 @@ for i in range(noisy_pt.size()[0]):
 # transform back to np array
 denoised = tensor_to_np_image(denoised_pt)
 
-if not os.path.exists(dir_current + '/results/images/{name}/'.format(name=args.name)):
-    os.makedirs(dir_current + '/results/images/{name}/'.format(name=args.name))
-
-output_file = args.image_path[:-6] + 'dn.png'
-cv2.imwrite(output_file, denoised[:, :, ::-1])
+output_file = args.image_path[:-6] + 'dn_' + args.name + '.png'
+cv2.imwrite(dir_current + '/' + output_file, denoised[:, :, ::-1])

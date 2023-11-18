@@ -42,13 +42,13 @@ args = parser.parse_args()
 
 # Load benchmark data for processing
 if args.type == 'validation':
-    mat_file = os.getcwd() + config['Locations']['Validation_Noisy']
+    mat_file = dir_current + config['Locations']['Validation_Noisy']
 else:
-    mat_file = os.getcwd() + config['Locations']['Benchmark']
+    mat_file = dir_current + config['Locations']['Benchmark']
 mat = loadmat(mat_file)
 
 # Get the model paths
-model_dhdn = os.getcwd() + '/' + args.model_file
+model_dhdn = dir_current + '/' + args.model_file
 device_0 = torch.device(args.device)
 
 # Model architectures and parameters
