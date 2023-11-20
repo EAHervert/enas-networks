@@ -25,8 +25,9 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to train on
 parser.add_argument('--lambda_1', default=0.0, type=float)  # Identity loss G(y) approx y
 parser.add_argument('--device', default='cuda:0', type=str)  # Which device to use to generate .mat file
-parser.add_argument('--training_csv', default='sidd_np_instances_128_64.csv', type=str)  # training samples to use
+parser.add_argument('--training_csv', default='sidd_np_instances_128_128.csv', type=str)  # training samples to use
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
+parser.add_argument('--weight_adjust', default=False, type=bool)  # To Adjust the weights
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
 parser.add_argument('--model_size', default=6, type=int)  # Load previous models
 args = parser.parse_args()
@@ -257,7 +258,7 @@ for epoch in range(config['Training']['Epochs']):
         model_path_G = dir_current + '/models/{date}_G_{noise}_{epoch}.pth'.format(date=d1, noise=args.noise,
                                                                                    epoch=epoch)
         torch.save(G.state_dict(), model_path_G)
-        if not epoch % 10:
+        if not epoch % 10 and args.weight_adjust:
             state_dict_G = clip_weights(state_dict=G.state_dict(), k=3, device=device_0)
             state_dict_G = drop_weights(state_dict=state_dict_G, p=0.95, device=device_0)
             G.load_state_dict(state_dict_G)
