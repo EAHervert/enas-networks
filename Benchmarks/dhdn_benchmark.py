@@ -32,6 +32,7 @@ parser.add_argument('--outer_sum', default=False, type=bool)  # To do outer sums
 parser.add_argument('--weight_adjust', default=False, type=bool)  # To Adjust the weights
 parser.add_argument('--training_csv', default='sidd_np_instances_064_128.csv', type=str)  # training samples to use
 parser.add_argument('--epochs', default=25, type=int)  # number of epochs to train on
+parser.add_argument('--learning_rate', default=1e-4, type=float)  # Learning Rate
 args = parser.parse_args()
 
 # Hyperparameters
@@ -116,8 +117,8 @@ vis.env = config['Locations']['Output_File']
 vis_window = {'SSIM_{date}'.format(date=d1): None, 'PSNR_{date}'.format(date=d1): None}
 
 # Training Optimization and Scheduling:
-optimizer_0 = torch.optim.Adam(dhdn.parameters(), config['Training']['Learning_Rate'])
-optimizer_1 = torch.optim.Adam(edhdn.parameters(), config['Training']['Learning_Rate'])
+optimizer_0 = torch.optim.Adam(dhdn.parameters(), args.learning_rate)
+optimizer_1 = torch.optim.Adam(edhdn.parameters(), args.learning_rate)
 scheduler_0 = torch.optim.lr_scheduler.StepLR(optimizer_0, 3, 0.5, -1)
 scheduler_1 = torch.optim.lr_scheduler.StepLR(optimizer_1, 3, 0.5, -1)
 

@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name='utilities',
-      version='3.3.0',
+      version='3.4.0',
       description='methods and transforms for image processing and analysis',
       author='Esau Hervert Hernandez',
       author_email='eah170630@utdallas.edu'
