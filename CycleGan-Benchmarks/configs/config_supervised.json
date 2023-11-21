@@ -8,7 +8,6 @@
   },
   "Training": {
     "Model_Path": "/models/DX.pth",
-    "Epochs": 40,
     "Train_Batch_Size": 16,
     "Validation_Batch_Size": 32,
     "Learning_Rate": 2e-4,

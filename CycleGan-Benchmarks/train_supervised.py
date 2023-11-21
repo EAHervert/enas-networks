@@ -30,6 +30,7 @@ parser.add_argument('--drop', default='-1', type=float)  # Drop weights for mode
 parser.add_argument('--weight_adjust', default=False, type=bool)  # To Adjust the weights
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
 parser.add_argument('--model_size', default=6, type=int)  # Load previous models
+parser.add_argument('--epochs', default=40, type=int)  # number of epochs to train on
 args = parser.parse_args()
 
 # Hyperparameters
@@ -120,7 +121,7 @@ dataloader_sidd_training = DataLoader(dataset=SIDD_training, batch_size=config['
 dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=config['Training']['Validation_Batch_Size'],
                                         shuffle=False, num_workers=8)
 
-for epoch in range(config['Training']['Epochs']):
+for epoch in range(args.epochs):
     for i_batch, sample_batch in enumerate(dataloader_sidd_training):
         x = sample_batch['NOISY']
         y = sample_batch['GT']

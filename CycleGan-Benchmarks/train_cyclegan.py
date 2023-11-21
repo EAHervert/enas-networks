@@ -36,6 +36,7 @@ parser.add_argument('--training_csv_2', default='sidd_np_instances_128_128_2.csv
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
 parser.add_argument('--model_size', default=6, type=int)  # Load previous models
+parser.add_argument('--epochs', default=40, type=int)  # number of epochs to train on
 args = parser.parse_args()
 
 # Hyperparameters
@@ -154,7 +155,7 @@ dataloader_sidd_training_2 = DataLoader(dataset=SIDD_training_2, batch_size=conf
 dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=config['Training']['Validation_Batch_Size'],
                                         shuffle=False, num_workers=8)
 
-for epoch in range(config['Training']['Epochs']):
+for epoch in range(args.epochs):
     TP, FP, FN, TN = [], [], [], []
     for i_batch, (sample_batch_1, sample_batch_2) in enumerate(zip(dataloader_sidd_training_1,
                                                                    dataloader_sidd_training_2)):
