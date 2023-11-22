@@ -30,7 +30,7 @@ parser.add_argument('--drop', default='-1', type=float)  # Drop weights for mode
 parser.add_argument('--weight_adjust', default=False, type=bool)  # To Adjust the weights
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
 parser.add_argument('--model_size', default=6, type=int)  # Load previous models
-parser.add_argument('--epochs', default=40, type=int)  # number of epochs to train on
+parser.add_argument('--epochs', default=100, type=int)  # number of epochs to train on
 args = parser.parse_args()
 
 # Hyperparameters
