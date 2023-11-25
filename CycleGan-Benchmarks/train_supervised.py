@@ -96,6 +96,7 @@ vis_window = {'Loss_{date}'.format(date=d1): None,
 # Define the optimizers:
 optimizer_G = torch.optim.Adam(G.parameters(), lr=config['Training']['Learning_Rate'],
                                betas=(config['Training']['Beta_1'], config['Training']['Beta_2']))
+scheduler_G = torch.optim.lr_scheduler.StepLR(optimizer_G, 3, 0.5, -1)
 
 # Define the Loss and evaluation metrics:
 loss_0 = nn.L1Loss().to(device_0)
@@ -254,6 +255,8 @@ for epoch in range(args.epochs):
     ssim_original_meter_val.reset()
     psnr_meter_val.reset()
     psnr_original_meter_val.reset()
+
+    scheduler_G.step()
 
     if epoch > 0 and not epoch % 5:
         model_path_G = dir_current + '/models/{date}_G_{noise}_{epoch}.pth'.format(date=d1, noise=args.noise,

@@ -1,0 +1,237 @@
+import torch
+import torch.nn as nn
+import time
+
+from utilities.utils import AverageMeter  # Helps with keeping track of performance
+from utilities.functions import SSIM, PSNR
+
+
+# Here we train the Shared Network which is sampled from the Controller
+def Train_Shared(epoch,
+                 controller,
+                 shared,
+                 shared_optimizer,
+                 dataloader_sidd_training,
+                 sa_logger,
+                 device=None,
+                 fixed_arc=None):
+    """Train Shared_Autoencoder by sampling architectures from the Controller.
+
+    Args:
+        epoch: Current epoch.
+        controller: Controller module that generates architectures to be trained.
+        shared: Network that contains all possible architectures, with shared weights.
+        shared_optimizer: Optimizer for the Shared Network.
+        dataloader_sidd_validation: Validation dataset.
+        sa_logger: Logs the Shared network Loss and SSIM
+        device: The GPU that we will use.
+        fixed_arc: Architecture to train, overrides the controller sample.
+        ...
+
+    Returns: Nothing.
+    """
+    # Here we are using the Controller to give us the networks.
+    # We don't modify the Controller, so we have it in evaluation mode rather than training mode.
+    controller.eval()
+
+    # Keep track of the accuracy and loss through the process.
+    loss_batch = AverageMeter()
+    loss_original_batch = AverageMeter()
+    ssim_batch = AverageMeter()  # Doubles as the accuracy.
+    ssim_original_batch = AverageMeter()
+    psnr_batch = AverageMeter()
+    psnr_original_batch = AverageMeter()
+
+    loss = nn.L1Loss()
+    mse = nn.MSELoss()
+
+    if device is not None:
+        loss = loss.to(device)
+        mse = mse.to(device)
+
+    # Start the timer for the epoch.
+    t1 = time.time()
+    for i_batch, sample_batch in enumerate(dataloader_sidd_training):
+
+        # Pick an architecture to work with from the Graph Network (Shared)
+        if fixed_arc is not None:
+            # Since we are just training the Autoencoders, we do not need to keep track of gradients for the Controller.
+            with torch.no_grad():
+                controller()
+            architecture = controller.sample_arc
+
+        else:
+            architecture = fixed_arc
+
+        x = sample_batch['NOISY']
+        y = shared(x.to(device), architecture)  # Net is the output of the network
+        t = sample_batch['GT']
+
+        loss_value = loss(y, t.to(device))
+        loss_batch.update(loss_value.item())
+
+        # Calculate values not needing to be backpropagated
+        with torch.no_grad():
+            loss_original_batch.update(loss(x.to(device), t.to(device)).item())
+
+            ssim_batch.update(SSIM(y, t.to(device)).item())
+            ssim_original_batch.update(SSIM(x, t).item())
+
+            psnr_batch.update(PSNR(mse(y, t.to(device))).item())
+            psnr_original_batch.update(PSNR(mse(x.to(device), t.to(device))).item())
+
+        # Backpropagate to train model
+        shared_optimizer.zero_grad()
+        loss_value.backward()
+        shared_optimizer.step()
+
+        if i_batch % 100 == 0:
+            Display_Loss = "Loss_DHDN: %.6f" % loss_batch.val + "\tLoss_Original: %.6f" % loss_original_batch.val
+            Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch.val + "\tSSIM_Original: %.6f" % ssim_original_batch.val
+            Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch.val + "\tPSNR_Original: %.6f" % psnr_original_batch.val
+
+            print("Training Data for Epoch: ", epoch, "Image Batch: ", i_batch)
+            print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
+
+        # Free up space in GPU
+        del x, y, t
+
+    Display_Loss = "Loss_DHDN: %.6f" % loss_batch.avg + "\tLoss_Original: %.6f" % loss_original_batch.avg
+    Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch.avg + "\tSSIM_Original: %.6f" % ssim_original_batch.avg
+    Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch.avg + "\tPSNR_Original: %.6f" % psnr_original_batch.avg
+
+    t2 = time.time()
+    print('\n' + '-' * 160)
+    print("Training Data for Epoch: ", epoch)
+    print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
+    print("Epoch {epoch} Training Time: ".format(epoch=epoch), t2 - t1)
+    print('-' * 160 + '\n')
+
+    sa_logger.writerow({'Shared_Loss': loss_batch.avg, 'Shared_Accuracy': ssim_batch.avg})
+
+    controller.train()
+
+    meters = [loss_batch.avg, loss_original_batch.avg, ssim_batch.avg, ssim_original_batch.avg, psnr_batch.avg,
+              psnr_original_batch.avg]
+
+    return meters
+
+
+# This is for training the controller network, which we do once we have gone through the exploration of the child
+# architectures.
+def Train_Controller(epoch,
+                     controller,
+                     shared,
+                     controller_optimizer,
+                     dataloader_sidd_validation,
+                     c_logger,
+                     config,
+                     baseline=None,
+                     device=None
+                     ):
+    """Train controller to optimizer validation accuracy using REINFORCE.
+
+    Args:
+        epoch: Current epoch.
+        controller: Controller module that generates architectures to be trained.
+        shared: Network that contains all possible architectures, with shared weights.
+        controller_optimizer: Optimizer for the Controller.
+        dataloader_sidd_validation: Validation dataset.
+        c_logger: Logger for the Controller
+        config: config for the hyperparameters.
+        baseline: The baseline score (i.e. average val_acc) from the previous epoch
+        device: The GPU that we will use.
+
+    Returns:
+        baseline: The baseline score (i.e. average val_acc) for the current epoch
+
+    For more stable training we perform weight updates using the average of
+    many gradient estimates. controller_num_aggregate indicates how many samples
+    we want to average over (default = 20). By default, PyTorch will sum gradients
+    each time .backward() is called (as long as an optimizer step is not taken),
+    so each iteration we divide the loss by controller_num_aggregate to get the
+    average.
+
+    https://github.com/melodyguan/enas/blob/master/src/cifar10/general_controller.py#L270
+    """
+    print('Epoch ' + str(epoch) + ': Training Controller')
+
+    shared.eval()  # We are fixing an architecture and using a fixed architecture for training of the controller
+
+    # Here we will have the following meters for the metrics
+    reward_meter = AverageMeter()  # Reward R
+    baseline_meter = AverageMeter()  # Baseline b, which controls variance
+    val_acc_meter = AverageMeter()  # Validation Accuracy
+    loss_meter = AverageMeter()  # Loss
+
+    t1 = time.time()
+
+    controller.zero_grad()
+    for i in range(config['Controller']['Controller_Train_Steps'] * config['Controller']['Controller_Num_Aggregate']):
+        controller()  # perform forward pass to generate a new architecture
+        architecture = controller.sample_arc
+
+        SSIM_val = 0
+        for i_validation, validation_batch in enumerate(dataloader_sidd_validation, start=1):
+            x_v = validation_batch['NOISY']
+            t_v = validation_batch['GT']
+
+            with torch.no_grad():
+                y_v = shared(x_v.to(device), architecture)
+
+            # Now, we will use only SSIM for the accuracy.
+            SSIM_val += (SSIM(y_v, t_v.to(device)) + SSIM_val * (i_validation - 1)) / i_validation
+
+        # detach to make sure that gradients aren't backpropped through the reward
+        reward = SSIM_val.clone().detach()
+        reward += config['Controller']['Controller_Entropy_Weight'] * controller.sample_entropy
+
+        if baseline is None:
+            baseline = SSIM_val.clone().item()
+        else:
+            baseline -= (1 - config['Controller']['Controller_Bl_Dec']) * (baseline - reward)
+            # detach to make sure that gradients are not backpropped through the baseline
+            baseline = baseline.detach()
+
+        loss = -1 * controller.sample_log_prob * (reward - baseline)
+
+        reward_meter.update(reward.item())
+        baseline_meter.update(baseline)
+        val_acc_meter.update(SSIM_val.item())
+        loss_meter.update(loss.item())
+
+        # Average gradient over controller_num_aggregate samples
+        loss = loss / config['Controller']['Controller_Num_Aggregate']
+
+        loss.backward(retain_graph=True)
+
+        # Aggregate gradients for controller_num_aggregate iterationa, then update weights
+        if (i + 1) % config['Controller']['Controller_Num_Aggregate'] == 0:
+            nn.utils.clip_grad_norm_(controller.parameters(), config['Controller']['Child_Grad_Bound'])
+            controller_optimizer.step()
+            controller.zero_grad()
+
+            if (i + 1) % config['Controller']['Controller_Num_Aggregate'] == 0:
+                display = 'Epoch_Number=' + str(epoch) + '-' + \
+                          str(i // config['Controller']['Controller_Num_Aggregate']) + \
+                          '\tController_loss=%+.6f' % loss_meter.val + \
+                          '\tEntropy=%.6f' % (controller.sample_entropy.item()) + \
+                          '\tAccuracy (SSIM)=%.6f' % val_acc_meter.val + \
+                          '\tBaseline=%.6f' % baseline_meter.val
+                print(display)
+
+    print()
+    print("Controller Average Loss: ", loss_meter.avg)
+    print("Controller Average Accuracy (SSIM): ", val_acc_meter.avg)
+    print("Controller Average Reward: ", reward_meter.avg)
+
+    t2 = time.time()
+    print("Controller Training Time: ", t2 - t1)
+    print()
+
+    c_logger.writerow({'Controller_Reward': reward_meter.avg, 'Controller_Accuracy': val_acc_meter.avg,
+                       'Controller_Loss': loss_meter.avg})
+
+    shared.train()
+
+    return baseline, loss_meter.avg, val_acc_meter.avg, reward_meter.avg
