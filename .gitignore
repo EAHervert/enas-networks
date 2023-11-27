@@ -163,3 +163,4 @@ dmypy.json
 /CycleGan-Benchmarks/models/
 /Benchmarks/sample_images/
 /Benchmarks/image_processing.ipynb
+/Benchmarks/qualitative_crop_analysis.ipynb

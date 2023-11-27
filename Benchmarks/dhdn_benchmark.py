@@ -305,12 +305,11 @@ for epoch in range(args.epochs):
     scheduler_1.step()
 
     if epoch > 0 and not epoch % 5:
-        if epoch % 10:
-            model_path_0 = dir_current + '/models/{date}_dhdn_SIDD_{epoch}.pth'.format(date=d1, epoch=epoch)
-            model_path_1 = dir_current + '/models/{date}_edhdn_SIDD_{epoch}.pth'.format(date=d1, epoch=epoch)
+        model_path_0 = dir_current + '/models/{date}_dhdn_SIDD_{epoch}.pth'.format(date=d1, epoch=epoch)
+        model_path_1 = dir_current + '/models/{date}_edhdn_SIDD_{epoch}.pth'.format(date=d1, epoch=epoch)
 
-            torch.save(dhdn.state_dict(), model_path_0)
-            torch.save(edhdn.state_dict(), model_path_1)
+        torch.save(dhdn.state_dict(), model_path_0)
+        torch.save(edhdn.state_dict(), model_path_1)
 
         if args.weight_adjust:
             state_dict_dhdn = clip_weights(dhdn.state_dict(), k=3, device=device_0)
