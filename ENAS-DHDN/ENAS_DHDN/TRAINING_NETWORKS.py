@@ -1,9 +1,8 @@
+import os
 import torch
-import torch.nn as nn
 import time
 
-from utilities.utils import AverageMeter  # Helps with keeping track of performance
-from utilities.functions import SSIM, PSNR
+from ENAS_DHDN.TRAINING_FUNCTIONS import evaluate_model, AverageMeter, SSIM, PSNR, nn, np
 
 
 # Here we train the Shared Network which is sampled from the Controller
@@ -22,7 +21,7 @@ def Train_Shared(epoch,
         controller: Controller module that generates architectures to be trained.
         shared: Network that contains all possible architectures, with shared weights.
         shared_optimizer: Optimizer for the Shared Network.
-        dataloader_sidd_validation: Validation dataset.
+        dataloader_sidd_training: Training dataset.
         sa_logger: Logs the Shared network Loss and SSIM
         device: The GPU that we will use.
         fixed_arc: Architecture to train, overrides the controller sample.
@@ -54,16 +53,19 @@ def Train_Shared(epoch,
     for i_batch, sample_batch in enumerate(dataloader_sidd_training):
 
         # Pick an architecture to work with from the Graph Network (Shared)
-        if fixed_arc is not None:
+        if fixed_arc is None:
             # Since we are just training the Autoencoders, we do not need to keep track of gradients for the Controller.
             with torch.no_grad():
                 controller()
             architecture = controller.sample_arc
-
         else:
             architecture = fixed_arc
 
+        print('Using Architecture:', architecture)
+
         x = sample_batch['NOISY']
+        print(device)
+        print(x.to(device))
         y = shared(x.to(device), architecture)  # Net is the output of the network
         t = sample_batch['GT']
 
@@ -207,7 +209,7 @@ def Train_Controller(epoch,
 
         # Aggregate gradients for controller_num_aggregate iterationa, then update weights
         if (i + 1) % config['Controller']['Controller_Num_Aggregate'] == 0:
-            nn.utils.clip_grad_norm_(controller.parameters(), config['Controller']['Child_Grad_Bound'])
+            nn.utils.clip_grad_norm_(controller.parameters(), config['Shared']['Child_Grad_Bound'])
             controller_optimizer.step()
             controller.zero_grad()
 
@@ -235,3 +237,128 @@ def Train_Controller(epoch,
     shared.train()
 
     return baseline, loss_meter.avg, val_acc_meter.avg, reward_meter.avg
+
+
+def Train_ENAS(
+        start_epoch,
+        num_epochs,
+        controller,
+        shared,
+        shared_optimizer,
+        controller_optimizer,
+        shared_scheduler,
+        dataloader_sidd_training,
+        dataloader_sidd_validation,
+        logger,
+        vis,
+        vis_window,
+        config,
+        log_every=10,
+        eval_every_epoch=1,
+        device=None,
+        args=None
+):
+    """Perform architecture search by training a Controller and Shared_Autoencoder.
+
+    Args:
+        start_epoch: Epoch to begin on.
+        controller: Controller module that generates architectures to be trained.
+        shared: Network that contains all possible architectures, with shared weights.
+        shared_optimizer: Optimizer for the Shared_Autoencoder.
+        controller_optimizer: Optimizer for the Controller.
+        config: config for the hyperparameters.
+        log_every: how often we output the results at the iteration.
+        ...
+
+    Returns: Nothing.
+    """
+
+    # Hyperparameters
+    dir_current = os.getcwd()
+    if not os.path.exists(dir_current + '/models/'):
+        os.makedirs(dir_current + '/models/')
+
+    baseline = None
+    for epoch in range(start_epoch, num_epochs):
+        print("Epoch ", str(epoch), ": Training Shared Network")
+        loss, SSIM, SSIM_Original, PSNR, PSNR_Original = Train_Shared(
+            epoch=epoch,
+            controller=controller,
+            shared=shared,
+            shared_optimizer=shared_optimizer,
+            dataloader_sidd_training=dataloader_sidd_training,
+            sa_logger=logger[0],
+            device=device
+        )
+
+        vis_window['Shared_Network_Loss'] = vis.line(
+            X=np.column_stack([epoch]),
+            Y=np.column_stack([loss]),
+            win=vis_window['Shared_Network_Loss'],
+            opts=dict(title='Shared_Network_Loss', xlabel='Epoch', ylabel='Loss'),
+            update='append' if epoch > 0 else None)
+
+        vis_window['Shared_Network_SSIM'] = vis.line(
+            X=np.column_stack([epoch] * 2),
+            Y=np.column_stack([SSIM, SSIM_Original]),
+            win=vis_window['Shared_Network_SSIM'],
+            opts=dict(title='Shared_Network_SSIM', xlabel='Epoch', ylabel='SSIM', legend=['Network', 'Original']),
+            update='append' if epoch > 0 else None)
+
+        vis_window['Shared_Network_PSNR'] = vis.line(
+            X=np.column_stack([epoch] * 2),
+            Y=np.column_stack([PSNR, PSNR_Original]),
+            win=vis_window['Shared_Network_PSNR'],
+            opts=dict(title='Shared_Network_PSNR', xlabel='Epoch', ylabel='PSNR', legend=['Network', 'Original']),
+            update='append' if epoch > 0 else None)
+
+        baseline, controller_loss, controller_val, reward = Train_Controller(
+            epoch=epoch,
+            controller=controller,
+            shared=shared,
+            controller_optimizer=controller_optimizer,
+            dataloader_sidd_validation=dataloader_sidd_validation,
+            c_logger=logger[1],
+            config=config,
+            baseline=baseline,
+            device=device
+        )
+
+        vis_window['Controller_Loss'] = vis.line(
+            X=np.column_stack([epoch]),
+            Y=np.column_stack([controller_loss]),
+            win=vis_window['Controller_Loss'],
+            opts=dict(title='Controller_Loss', xlabel='Epoch', ylabel='Loss'),
+            update='append' if epoch > 0 else None)
+
+        vis_window['Controller_Validation_Accuracy'] = vis.line(
+            X=np.column_stack([epoch]),
+            Y=np.column_stack([controller_val]),
+            win=vis_window['Controller_Validation_Accuracy'],
+            opts=dict(title='Controller_Validation_Accuracy', xlabel='Epoch', ylabel='Accuracy'),
+            update='append' if epoch > 0 else None)
+
+        vis_window['Controller_Reward'] = vis.line(
+            X=np.column_stack([epoch]),
+            Y=np.column_stack([reward]),
+            win=vis_window['Controller_Reward'],
+            opts=dict(title='Controller_Reward', xlabel='Epoch', ylabel='Reward'),
+            update='append' if epoch > 0 else None)
+
+        if epoch % eval_every_epoch == 0:
+            evaluate_model(epoch, controller, shared, device=device)
+        '''
+        state = {'Epoch': Epoch,
+                 'args': args,
+                 'Shared_State_Dict': Shared.state_dict(),
+                 'Controller_State_Dict': Controller.state_dict(),
+                 'Shared_Optimizer': Shared_Optimizer.state_dict(),
+                 'Controller_Optimizer': Controller_Optimizer.state_dict()}
+        filename = 'Checkpoints/' + Output_File + '.pth.tar'
+        torch.save(state, filename)
+        print()
+        '''
+
+        shared_scheduler.step()
+
+        print()
