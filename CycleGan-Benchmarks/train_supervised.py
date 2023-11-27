@@ -25,7 +25,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to train on
 parser.add_argument('--lambda_1', default=0.0, type=float)  # Identity loss G(y) approx y
 parser.add_argument('--device', default='cuda:0', type=str)  # Which device to use to generate .mat file
-parser.add_argument('--training_csv', default='sidd_np_instances_128_128.csv', type=str)  # training samples to use
+parser.add_argument('--training_csv', default='sidd_np_instances_128_512.csv', type=str)  # training samples to use
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--weight_adjust', default=False, type=bool)  # To Adjust the weights
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
@@ -96,7 +96,7 @@ vis_window = {'Loss_{date}'.format(date=d1): None,
 # Define the optimizers:
 optimizer_G = torch.optim.Adam(G.parameters(), lr=config['Training']['Learning_Rate'],
                                betas=(config['Training']['Beta_1'], config['Training']['Beta_2']))
-scheduler_G = torch.optim.lr_scheduler.StepLR(optimizer_G, 3, 0.5, -1)
+scheduler_G = torch.optim.lr_scheduler.StepLR(optimizer_G, 20, 0.5, -1)
 
 # Define the Loss and evaluation metrics:
 loss_0 = nn.L1Loss().to(device_0)
