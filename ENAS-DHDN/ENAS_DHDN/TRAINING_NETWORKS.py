@@ -54,7 +54,7 @@ def Train_Shared(epoch,
 
         # Pick an architecture to work with from the Graph Network (Shared)
         if fixed_arc is None:
-            # Since we are just training the Autoencoders, we do not need to keep track of gradients for the Controller.
+            # Since we are just training the Autoencoders, we do not need to keep track of gradients for Controller.
             with torch.no_grad():
                 controller()
             architecture = controller.sample_arc
@@ -84,9 +84,9 @@ def Train_Shared(epoch,
         shared_optimizer.step()
 
         if i_batch % 100 == 0:
-            Display_Loss = "Loss_DHDN: %.6f" % loss_batch.val + "\tLoss_Original: %.6f" % loss_original_batch.val
-            Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch.val + "\tSSIM_Original: %.6f" % ssim_original_batch.val
-            Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch.val + "\tPSNR_Original: %.6f" % psnr_original_batch.val
+            Display_Loss = "Loss_Shared: %.6f" % loss_batch.val + "\tLoss_Original: %.6f" % loss_original_batch.val
+            Display_SSIM = "SSIM_Shared: %.6f" % ssim_batch.val + "\tSSIM_Original: %.6f" % ssim_original_batch.val
+            Display_PSNR = "PSNR_Shared: %.6f" % psnr_batch.val + "\tPSNR_Original: %.6f" % psnr_original_batch.val
 
             print("Training Data for Epoch: ", epoch, "Image Batch: ", i_batch)
             print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
@@ -94,9 +94,9 @@ def Train_Shared(epoch,
         # Free up space in GPU
         del x, y, t
 
-    Display_Loss = "Loss_DHDN: %.6f" % loss_batch.avg + "\tLoss_Original: %.6f" % loss_original_batch.avg
-    Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch.avg + "\tSSIM_Original: %.6f" % ssim_original_batch.avg
-    Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch.avg + "\tPSNR_Original: %.6f" % psnr_original_batch.avg
+    Display_Loss = "Loss_Shared: %.6f" % loss_batch.avg + "\tLoss_Original: %.6f" % loss_original_batch.avg
+    Display_SSIM = "SSIM_Shared: %.6f" % ssim_batch.avg + "\tSSIM_Original: %.6f" % ssim_original_batch.avg
+    Display_PSNR = "PSNR_Shared: %.6f" % psnr_batch.avg + "\tPSNR_Original: %.6f" % psnr_original_batch.avg
 
     t2 = time.time()
     print('\n' + '-' * 160)
@@ -277,7 +277,7 @@ def Train_ENAS(
     baseline = None
     for epoch in range(start_epoch, num_epochs):
         print("Epoch ", str(epoch), ": Training Shared Network")
-        loss, SSIM, SSIM_Original, PSNR, PSNR_Original = Train_Shared(
+        results = Train_Shared(
             epoch=epoch,
             controller=controller,
             shared=shared,
@@ -287,11 +287,13 @@ def Train_ENAS(
             device=device
         )
 
+        loss, loss_Original, SSIM, SSIM_Original, PSNR, PSNR_Original = results
+
         vis_window['Shared_Network_Loss'] = vis.line(
-            X=np.column_stack([epoch]),
-            Y=np.column_stack([loss]),
+            X=np.column_stack([epoch] * 2),
+            Y=np.column_stack([loss, loss_Original]),
             win=vis_window['Shared_Network_Loss'],
-            opts=dict(title='Shared_Network_Loss', xlabel='Epoch', ylabel='Loss'),
+            opts=dict(title='Shared_Network_Loss', xlabel='Epoch', ylabel='Loss', legend=['Network', 'Original']),
             update='append' if epoch > 0 else None)
 
         vis_window['Shared_Network_SSIM'] = vis.line(

@@ -192,8 +192,8 @@ def main():
         Start_Epoch = 0
     '''
     start_epoch = 0
-    print('Shared:', Shared_Autoencoder)
-    print('Controller:', Controller)
+    print('Shared:', Shared_Autoencoder, '\n')
+    print('Controller:', Controller, '\n')
 
     if not args.Fixed_Arc:
         TRAINING_NETWORKS.Train_ENAS(
