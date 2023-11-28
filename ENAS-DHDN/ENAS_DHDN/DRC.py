@@ -22,7 +22,7 @@ class _DRC_block_ENAS(nn.Module):
                  size=3):
         super(_DRC_block_ENAS, self).__init__()
 
-        self.graph = []
+        self.graph = nn.ModuleList([])
 
         for i in range(size):
             if i != size - 1:
@@ -55,7 +55,7 @@ class _DRC_block_ENAS(nn.Module):
                     stride=1,
                     padding=1
                 )
-            node_conv = [temp_conv3, temp_conv5]
+            node_conv = nn.ModuleList([temp_conv3, temp_conv5])
             self.graph.append(node_conv)
 
             node_relu = nn.PReLU()

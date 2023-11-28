@@ -12,27 +12,18 @@ controller = CONTROLLER.Controller(k_value=3,
                                    LSTM_size=32,
                                    LSTM_num_layers=1)
 controller = controller.to(device_0)
-
-print('Controller Weights')
-for param in controller.parameters():
-    print(param.dtype)
+controller()
+sample_arc = controller.sample_arc
+print(sample_arc)
 
 shared = SHARED_DHDN.SharedDHDN()
-print('Shared Weights')
 if torch.cuda.device_count() > 1:
     print("Let's use", torch.cuda.device_count(), "GPUs!")
     shared = nn.DataParallel(shared)
     shared = shared.to(device_0)
 
-for param in shared.parameters():
-    print(param.dtype)
-
-controller()
-sample_arc = controller.sample_arc
-print(sample_arc)
-
-x = torch.rand([16, 3, 64, 64]).cuda()
+x = torch.rand([16, 3, 64, 64])
 with torch.no_grad():
-    y = shared(x, sample_arc)
+    y = shared(x.to(device_0), sample_arc)
 
 print(y.dtype)
