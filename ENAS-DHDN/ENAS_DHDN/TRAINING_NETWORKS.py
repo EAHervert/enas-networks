@@ -64,7 +64,6 @@ def Train_Shared(epoch,
         print('Using Architecture:', architecture)
 
         x = sample_batch['NOISY']
-        print(device)
         print(x.to(device))
         y = shared(x.to(device), architecture)  # Net is the output of the network
         t = sample_batch['GT']
