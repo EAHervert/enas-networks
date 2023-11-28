@@ -165,20 +165,23 @@ def Train_Controller(epoch,
     t1 = time.time()
 
     controller.zero_grad()
+
+    choices = [1, 5, 6, 14, 17, 22, 33, 38]
     for i in range(config['Controller']['Controller_Train_Steps'] * config['Controller']['Controller_Num_Aggregate']):
         controller()  # perform forward pass to generate a new architecture
         architecture = controller.sample_arc
 
         SSIM_val = 0
         for i_validation, validation_batch in enumerate(dataloader_sidd_validation, start=1):
-            x_v = validation_batch['NOISY']
-            t_v = validation_batch['GT']
+            if i_validation in choices:
+                x_v = validation_batch['NOISY']
+                t_v = validation_batch['GT']
 
-            with torch.no_grad():
-                y_v = shared(x_v.to(device), architecture)
+                with torch.no_grad():
+                    y_v = shared(x_v.to(device), architecture)
 
-            # Now, we will use only SSIM for the accuracy.
-            SSIM_val += (SSIM(y_v, t_v.to(device)) + SSIM_val * (i_validation - 1)) / i_validation
+                # Now, we will use only SSIM for the accuracy.
+                SSIM_val += (SSIM(y_v, t_v.to(device)) + SSIM_val * (i_validation - 1)) / i_validation
 
         # detach to make sure that gradients aren't backpropped through the reward
         reward = SSIM_val.clone().detach()
