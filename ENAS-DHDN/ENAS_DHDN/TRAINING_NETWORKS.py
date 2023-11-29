@@ -347,7 +347,11 @@ def Train_ENAS(
             update='append' if epoch > 0 else None)
 
         if epoch % eval_every_epoch == 0:
-            evaluate_model(epoch, controller, shared, device=device)
+            evaluate_model(epoch=epoch,
+                           controller=controller,
+                           shared=shared,
+                           dataloader_sidd_validation=dataloader_sidd_validation,
+                           device=device)
         '''
         state = {'Epoch': Epoch,
                  'args': args,

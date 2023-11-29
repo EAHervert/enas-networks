@@ -21,6 +21,7 @@ def evaluate_model(
         shared: Network that contains all possible architectures, with shared weights.
         dataloader_sidd_validation: Validation dataset.
         n_samples: Number of architectures to test when looking for the best one.
+        ...
 
     Returns: Nothing.
     """
