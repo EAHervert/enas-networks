@@ -22,7 +22,7 @@
     "Controller_LSTM_Num_Layers": 1,
     "Controller_Entropy_Weight": 0.0001,
     "Controller_lr": 0.001,
-    "Controller_Num_Aggregate": 12,
+    "Controller_Num_Aggregate": 4,
     "Controller_Train_Steps": 25,
     "Controller_Bl_Dec": 0.99
   },
