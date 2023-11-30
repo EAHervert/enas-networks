@@ -62,21 +62,20 @@ def main():
 
     # Define the devices:
     device_0 = torch.device(config['CUDA']['Device0'])
-    device_1 = torch.device(config['CUDA']['Device1'])
 
     if not os.path.isdir('Logs_DHDN/'):
         os.mkdir('Logs_DHDN/')
 
-    Result_Path = 'Logs_DHDN/' + args.Output_File
+    Result_Path = 'Logs_DHDN/' + args.Output_File + '/' + d1
     if not os.path.isdir(Result_Path):
         os.mkdir(Result_Path)
 
     # Let us create the loggers to keep track of the Losses, Accuracies, and Rewards.
-    File_Name_SA = Result_Path + '/Shared_Autoencoder.log'
+    File_Name_SA = Result_Path + '/shared_autoencoder.log'
     Field_Names_SA = ['Shared_Loss', 'Shared_Accuracy']
     SA_Logger = CSVLogger(fieldnames=Field_Names_SA, filename=File_Name_SA)
 
-    File_Name_C = Result_Path + '/Controller.log'
+    File_Name_C = Result_Path + '/controller.log'
     Field_Names_C = ['Controller_Reward', 'Controller_Accuracy', 'Controller_Loss']
     C_Logger = CSVLogger(fieldnames=Field_Names_C, filename=File_Name_C)
 
@@ -104,9 +103,9 @@ def main():
         torch.cuda.manual_seed(args.Seed)
 
     if args.Fixed_Arc:
-        sys.stdout = Logger(filename=Result_Path + '/Log_fixed.log')
+        sys.stdout = Logger(filename=Result_Path + '/log_fixed.log')
     else:
-        sys.stdout = Logger(filename=Result_Path + '/Log.log')
+        sys.stdout = Logger(filename=Result_Path + '/log.log')
 
     print(args)
     print()
@@ -192,8 +191,6 @@ def main():
         Start_Epoch = 0
     '''
     start_epoch = 0
-    print('Shared:', Shared_Autoencoder, '\n')
-    print('Controller:', Controller, '\n')
 
     if not args.Fixed_Arc:
         TRAINING_NETWORKS.Train_ENAS(
@@ -248,8 +245,8 @@ def main():
     display_time(t_final - t_init)
 
     # Save the parameters:
-    Shared_Path = Result_Path + '/Shared_Network_Parameters'
-    Controller_Path = Result_Path + '/Contoller_Parameters'
+    Shared_Path = Result_Path + '/shared_network_parameters.pth'
+    Controller_Path = Result_Path + '/controller_parameters.pth'
 
     torch.save(Shared_Autoencoder.state_dict(), Shared_Path)
     torch.save(Controller.state_dict(), Controller_Path)

@@ -165,13 +165,13 @@ def Train_Controller(epoch,
     t1 = time.time()
 
     controller.zero_grad()
-
-    choices = [1, 5, 6, 14, 17, 22, 33, 38]
+    # Todo: Make this modifiable at start
+    choices = [1, 5, 10, 12, 28, 32, 44, 53, 65, 76]  # Randomly select image patches to train controller on
     for i in range(config['Controller']['Controller_Train_Steps'] * config['Controller']['Controller_Num_Aggregate']):
         controller()  # perform forward pass to generate a new architecture
         architecture = controller.sample_arc
 
-        SSIM_val = 0
+        SSIM_Meter = AverageMeter()
         for i_validation, validation_batch in enumerate(dataloader_sidd_validation, start=1):
             if i_validation in choices:
                 x_v = validation_batch['NOISY']
@@ -181,24 +181,21 @@ def Train_Controller(epoch,
                     y_v = shared(x_v.to(device), architecture)
 
                 # Now, we will use only SSIM for the accuracy.
-                SSIM_val += (SSIM(y_v, t_v.to(device)) + SSIM_val * (i_validation - 1)) / i_validation
+                SSIM_Meter.update(SSIM(y_v, t_v.to(device)).item())
 
-        # detach to make sure that gradients aren't backpropped through the reward
-        reward = SSIM_val.clone().detach()
+        # make sure that gradients aren't backpropped through the reward or baseline
+        reward = SSIM_Meter.avg
         reward += config['Controller']['Controller_Entropy_Weight'] * controller.sample_entropy
-
         if baseline is None:
-            baseline = SSIM_val.clone().item()
+            baseline = SSIM_Meter.avg
         else:
             baseline -= (1 - config['Controller']['Controller_Bl_Dec']) * (baseline - reward)
-            # detach to make sure that gradients are not backpropped through the baseline
-            baseline = baseline.detach()
 
         loss = -1 * controller.sample_log_prob * (reward - baseline)
 
         reward_meter.update(reward.item())
         baseline_meter.update(baseline)
-        val_acc_meter.update(SSIM_val.item())
+        val_acc_meter.update(SSIM_Meter.avg)
         loss_meter.update(loss.item())
 
         # Average gradient over controller_num_aggregate samples
@@ -206,7 +203,7 @@ def Train_Controller(epoch,
 
         loss.backward(retain_graph=True)
 
-        # Aggregate gradients for controller_num_aggregate iterationa, then update weights
+        # Aggregate gradients for controller_num_aggregate iteration, then update weights
         if (i + 1) % config['Controller']['Controller_Num_Aggregate'] == 0:
             nn.utils.clip_grad_norm_(controller.parameters(), config['Shared']['Child_Grad_Bound'])
             controller_optimizer.step()
