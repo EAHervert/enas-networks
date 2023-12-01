@@ -179,9 +179,10 @@ def Train_Controller(epoch,
 
                 with torch.no_grad():
                     y_v = shared(x_v.to(device), architecture)
+                    ssim_val = SSIM(y_v, t_v.to(device)).item()
+                    SSIM_Meter.update(ssim_val)  # Now, we will use only SSIM for the accuracy.
 
-                # Now, we will use only SSIM for the accuracy.
-                SSIM_Meter.update(SSIM(y_v, t_v.to(device)).item())
+        del x_v, y_v, t_v
 
         # make sure that gradients aren't backpropped through the reward or baseline
         reward = SSIM_Meter.avg
@@ -193,13 +194,13 @@ def Train_Controller(epoch,
 
         loss = -1 * controller.sample_log_prob * (reward - baseline)
 
+        # Average gradient over controller_num_aggregate samples
+        loss = loss / config['Controller']['Controller_Num_Aggregate']
+
         reward_meter.update(reward.item())
         baseline_meter.update(baseline)
         val_acc_meter.update(SSIM_Meter.avg)
         loss_meter.update(loss.item())
-
-        # Average gradient over controller_num_aggregate samples
-        loss = loss / config['Controller']['Controller_Num_Aggregate']
 
         loss.backward(retain_graph=True)
 
@@ -213,10 +214,12 @@ def Train_Controller(epoch,
                 display = 'Epoch_Number=' + str(epoch) + '-' + \
                           str(i // config['Controller']['Controller_Num_Aggregate']) + \
                           '\tController_loss=%+.6f' % loss_meter.val + \
-                          '\tEntropy=%.6f' % (controller.sample_entropy.item()) + \
+                          '\tEntropy=%.6f' % controller.sample_entropy.item() + \
                           '\tAccuracy (SSIM)=%.6f' % val_acc_meter.val + \
                           '\tBaseline=%.6f' % baseline_meter.val
                 print(display)
+
+        SSIM_Meter.reset()
 
     print()
     print("Controller Average Loss: ", loss_meter.avg)

@@ -165,3 +165,4 @@ dmypy.json
 /Benchmarks/image_processing.ipynb
 /Benchmarks/qualitative_crop_analysis.ipynb
 /DHDN-Network-Search/instances/
+/Benchmarks/denoising_methods.ipynb

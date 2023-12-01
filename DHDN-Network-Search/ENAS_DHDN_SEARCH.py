@@ -70,6 +70,10 @@ def main():
     if not os.path.isdir(Result_Path):
         os.mkdir(Result_Path)
 
+    Model_Path = 'models/' + d1
+    if not os.path.isdir(Model_Path):
+        os.mkdir(Model_Path)
+
     # Let us create the loggers to keep track of the Losses, Accuracies, and Rewards.
     File_Name_SA = Result_Path + '/shared_autoencoder.log'
     Field_Names_SA = ['Shared_Loss', 'Shared_Accuracy']
@@ -245,8 +249,8 @@ def main():
     display_time(t_final - t_init)
 
     # Save the parameters:
-    Shared_Path = Result_Path + '/shared_network_parameters.pth'
-    Controller_Path = Result_Path + '/controller_parameters.pth'
+    Shared_Path = Model_Path + '/shared_network_parameters.pth'
+    Controller_Path = Model_Path + '/controller_parameters.pth'
 
     torch.save(Shared_Autoencoder.state_dict(), Shared_Path)
     torch.save(Controller.state_dict(), Controller_Path)
