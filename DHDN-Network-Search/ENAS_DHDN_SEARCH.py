@@ -45,6 +45,10 @@ parser.add_argument('--Down_Bool', type=bool, default=True)
 parser.add_argument('--Up_Bool', type=bool, default=True)
 parser.add_argument('--Controller_Train_Every', type=int, default=1)
 parser.add_argument('--training_csv', default='sidd_np_instances_064_128.csv', type=str)  # training samples to use
+parser.add_argument('--load_shared', default=False, type=bool)  # Load shared model(s)
+parser.add_argument('--load_controller', default=False, type=bool)  # Load Controller
+parser.add_argument('--model_controller_path', default='2023_12_02__22_49_09/controller_parameters.pth', type=str)
+parser.add_argument('--model_shared_path', default='2023_12_02__22_49_09/shared_network_parameters.pth', type=str)
 
 args = parser.parse_args()
 
@@ -73,6 +77,9 @@ def main():
     Model_Path = 'models/' + d1
     if not os.path.isdir(Model_Path):
         os.mkdir(Model_Path)
+
+    model_controller_path = '/models/' + args.model_controller_path
+    model_shared_path = '/models/' + args.model_shared_path
 
     # Let us create the loggers to keep track of the Losses, Accuracies, and Rewards.
     File_Name_SA = Result_Path + '/shared_autoencoder.log'
@@ -127,6 +134,10 @@ def main():
 
     Controller = Controller.to(device_0)
 
+    if args.load_controller:
+        state_dict_controller = torch.load(dir_current + model_controller_path, map_location=device_0)
+        Controller.load_state_dict(state_dict_controller)
+
     Shared_Autoencoder = SHARED_DHDN.SharedDHDN(
         k_value=config['Shared']['K_Value'],
         channels=config['Shared']['Channels']
@@ -136,6 +147,10 @@ def main():
         Shared_Autoencoder = nn.DataParallel(Shared_Autoencoder, device_ids=[0, 1]).cuda()
     else:
         Shared_Autoencoder = Shared_Autoencoder.to(device_0)
+
+    if args.load_shared:
+        state_dict_shared = torch.load(dir_current + model_shared_path, map_location=device_0)
+        Shared_Autoencoder.load_state_dict(state_dict_shared)
 
     # We will use the ADAM optimizer for the controller.
     # https://github.com/melodyguan/enas/blob/master/src/utils.py#L218
