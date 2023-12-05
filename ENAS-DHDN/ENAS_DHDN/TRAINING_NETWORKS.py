@@ -161,18 +161,18 @@ def Train_Controller(epoch,
     baseline_meter = AverageMeter()  # Baseline b, which controls variance
     val_acc_meter = AverageMeter()  # Validation Accuracy
     loss_meter = AverageMeter()  # Loss
+    SSIM_Meter = AverageMeter()
 
     t1 = time.time()
 
     controller.zero_grad()
     # Todo: Make this modifiable at start
-    choices = [1, 5, 10, 12, 28, 32, 44, 53, 65, 76]  # Randomly select image patches to train controller on
+    choices = [1, 5, 6, 10, 12, 23, 28, 32, 33, 44, 53, 55, 65, 74, 76]  # Randomly select validation image patches
     for i in range(config['Controller']['Controller_Train_Steps'] * config['Controller']['Controller_Num_Aggregate']):
         controller()  # perform forward pass to generate a new architecture
         architecture = controller.sample_arc
 
-        SSIM_Meter = AverageMeter()
-        for i_validation, validation_batch in enumerate(dataloader_sidd_validation, start=1):
+        for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
             if i_validation in choices:
                 x_v = validation_batch['NOISY']
                 t_v = validation_batch['GT']
@@ -181,12 +181,9 @@ def Train_Controller(epoch,
                     y_v = shared(x_v.to(device), architecture)
                     ssim_val = SSIM(y_v, t_v.to(device)).item()
                     SSIM_Meter.update(ssim_val)  # Now, we will use only SSIM for the accuracy.
-
-        del x_v, y_v, t_v
-
         # make sure that gradients aren't backpropped through the reward or baseline
         reward = SSIM_Meter.avg
-        reward += config['Controller']['Controller_Entropy_Weight'] * controller.sample_entropy
+        reward += config['Controller']['Controller_Entropy_Weight'] * controller.sample_entropy.item()
         if baseline is None:
             baseline = SSIM_Meter.avg
         else:
@@ -197,7 +194,7 @@ def Train_Controller(epoch,
         # Average gradient over controller_num_aggregate samples
         loss = loss / config['Controller']['Controller_Num_Aggregate']
 
-        reward_meter.update(reward.item())
+        reward_meter.update(reward)
         baseline_meter.update(baseline)
         val_acc_meter.update(SSIM_Meter.avg)
         loss_meter.update(loss.item())
@@ -219,6 +216,7 @@ def Train_Controller(epoch,
                           '\tBaseline=%.6f' % baseline_meter.val
                 print(display)
 
+        del x_v, y_v, t_v
         SSIM_Meter.reset()
 
     print()
