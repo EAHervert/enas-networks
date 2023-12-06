@@ -24,9 +24,6 @@ if not sys.warnoptions:
 
     warnings.simplefilter("ignore")
 
-current_time = datetime.datetime.now()
-d1 = current_time.strftime('%Y_%m_%d__%H_%M_%S')
-
 parser = argparse.ArgumentParser(description='ENAS_SEARCH_DHDN')
 
 parser.add_argument('--Output_File', default='ENAS_DHDN', type=str)
@@ -39,6 +36,7 @@ parser.add_argument('--Epochs', type=int, default=30)
 parser.add_argument('--Log_Every', type=int, default=10)
 parser.add_argument('--Eval_Every_Epoch', type=int, default=1)
 parser.add_argument('--Seed', type=int, default=0)
+parser.add_argument('--outer_sum', default=False, type=bool)  # To do outer sums for models
 parser.add_argument('--Fixed_Arc', action='store_true', default=False)
 parser.add_argument('--Kernel_Bool', type=bool, default=True)
 parser.add_argument('--Down_Bool', type=bool, default=True)
@@ -56,6 +54,9 @@ args = parser.parse_args()
 # Now, let us run all these pieces and have out program train the controller.
 def main():
     global args
+
+    current_time = datetime.datetime.now()
+    d1 = current_time.strftime('%Y_%m_%d__%H_%M_%S')
 
     # Hyperparameters
     dir_current = os.getcwd()
@@ -101,9 +102,9 @@ def main():
 
     vis.env = config['Locations']['Output_File']
     vis_window = {
-        'Shared_Network_Loss': None, 'Shared_Network_SSIM': None,
-        'Shared_Network_PSNR': None, 'Controller_Loss': None,
-        'Controller_Validation_Accuracy': None, 'Controller_Reward': None
+        'Shared_Network_Loss_{d1}'.format(d1=d1): None, 'Shared_Network_SSIM_{d1}'.format(d1=d1): None,
+        'Shared_Network_PSNR_{d1}'.format(d1=d1): None, 'Controller_Loss_{d1}'.format(d1=d1): None,
+        'Controller_Validation_Accuracy_{d1}'.format(d1=d1): None, 'Controller_Reward_{d1}'.format(d1=d1): None
     }
 
     t_init = time.time()
@@ -140,7 +141,8 @@ def main():
 
     Shared_Autoencoder = SHARED_DHDN.SharedDHDN(
         k_value=config['Shared']['K_Value'],
-        channels=config['Shared']['Channels']
+        channels=config['Shared']['Channels'],
+        outer_sum=args.outer_sum
     )
 
     if config['CUDA']['DataParallel']:
@@ -177,7 +179,6 @@ def main():
     path_training = dir_current + '/instances/' + args.training_csv
     path_validation_noisy = dir_current + config['Locations']['Validation_Noisy']
     path_validation_gt = dir_current + config['Locations']['Validation_GT']
-    Result_Path = dir_current + '/SIDD'
 
     SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing())
     SIDD_validation = dataset.DatasetSIDDMAT(mat_noisy_file=path_validation_noisy, mat_gt_file=path_validation_gt)

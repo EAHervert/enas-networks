@@ -290,25 +290,25 @@ def Train_ENAS(
 
         loss, loss_Original, SSIM, SSIM_Original, PSNR, PSNR_Original = results
 
-        vis_window['Shared_Network_Loss'] = vis.line(
+        vis_window[list(vis_window)[0]] = vis.line(
             X=np.column_stack([epoch] * 2),
             Y=np.column_stack([loss, loss_Original]),
-            win=vis_window['Shared_Network_Loss'],
-            opts=dict(title='Shared_Network_Loss', xlabel='Epoch', ylabel='Loss', legend=['Network', 'Original']),
+            win=vis_window[list(vis_window)[0]],
+            opts=dict(title=list(vis_window)[0], xlabel='Epoch', ylabel='Loss', legend=['Network', 'Original']),
             update='append' if epoch > 0 else None)
 
-        vis_window['Shared_Network_SSIM'] = vis.line(
+        vis_window[list(vis_window)[1]] = vis.line(
             X=np.column_stack([epoch] * 2),
             Y=np.column_stack([SSIM, SSIM_Original]),
-            win=vis_window['Shared_Network_SSIM'],
-            opts=dict(title='Shared_Network_SSIM', xlabel='Epoch', ylabel='SSIM', legend=['Network', 'Original']),
+            win=vis_window[list(vis_window)[1]],
+            opts=dict(title=list(vis_window)[1], xlabel='Epoch', ylabel='SSIM', legend=['Network', 'Original']),
             update='append' if epoch > 0 else None)
 
-        vis_window['Shared_Network_PSNR'] = vis.line(
+        vis_window[list(vis_window)[2]] = vis.line(
             X=np.column_stack([epoch] * 2),
             Y=np.column_stack([PSNR, PSNR_Original]),
-            win=vis_window['Shared_Network_PSNR'],
-            opts=dict(title='Shared_Network_PSNR', xlabel='Epoch', ylabel='PSNR', legend=['Network', 'Original']),
+            win=vis_window[list(vis_window)[2]],
+            opts=dict(title=list(vis_window)[2], xlabel='Epoch', ylabel='PSNR', legend=['Network', 'Original']),
             update='append' if epoch > 0 else None)
 
         baseline, controller_loss, controller_val, reward = Train_Controller(
@@ -323,25 +323,25 @@ def Train_ENAS(
             device=device
         )
 
-        vis_window['Controller_Loss'] = vis.line(
+        vis_window[list(vis_window)[3]] = vis.line(
             X=np.column_stack([epoch]),
             Y=np.column_stack([controller_loss]),
-            win=vis_window['Controller_Loss'],
-            opts=dict(title='Controller_Loss', xlabel='Epoch', ylabel='Loss'),
+            win=vis_window[list(vis_window)[3]],
+            opts=dict(title=list(vis_window)[3], xlabel='Epoch', ylabel='Loss'),
             update='append' if epoch > 0 else None)
 
-        vis_window['Controller_Validation_Accuracy'] = vis.line(
+        vis_window[list(vis_window)[4]] = vis.line(
             X=np.column_stack([epoch]),
             Y=np.column_stack([controller_val]),
-            win=vis_window['Controller_Validation_Accuracy'],
-            opts=dict(title='Controller_Validation_Accuracy', xlabel='Epoch', ylabel='Accuracy'),
+            win=vis_window[list(vis_window)[4]],
+            opts=dict(title=list(vis_window)[4], xlabel='Epoch', ylabel='Accuracy'),
             update='append' if epoch > 0 else None)
 
-        vis_window['Controller_Reward'] = vis.line(
+        vis_window[list(vis_window)[5]] = vis.line(
             X=np.column_stack([epoch]),
             Y=np.column_stack([reward]),
-            win=vis_window['Controller_Reward'],
-            opts=dict(title='Controller_Reward', xlabel='Epoch', ylabel='Reward'),
+            win=vis_window[list(vis_window)[5]],
+            opts=dict(title=list(vis_window)[5], xlabel='Epoch', ylabel='Reward'),
             update='append' if epoch > 0 else None)
 
         if epoch % eval_every_epoch == 0:
