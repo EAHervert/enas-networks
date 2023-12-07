@@ -102,9 +102,9 @@ def main():
 
     vis.env = config['Locations']['Output_File']
     vis_window = {
-        'Shared_Network_Loss_{d1}'.format(d1=d1): None, 'Shared_Network_SSIM_{d1}'.format(d1=d1): None,
-        'Shared_Network_PSNR_{d1}'.format(d1=d1): None, 'Controller_Loss_{d1}'.format(d1=d1): None,
-        'Controller_Validation_Accuracy_{d1}'.format(d1=d1): None, 'Controller_Reward_{d1}'.format(d1=d1): None
+        'SN_Loss_{d1}'.format(d1=d1): None, 'SN_SSIM_{d1}'.format(d1=d1): None,
+        'SN_PSNR_{d1}'.format(d1=d1): None, 'Ctrl_Loss_{d1}'.format(d1=d1): None,
+        'Ctrl_Accuracy_{d1}'.format(d1=d1): None, 'Ctrl_Reward_{d1}'.format(d1=d1): None
     }
 
     t_init = time.time()
@@ -164,8 +164,8 @@ def main():
     # We will use ADAM on the child network (Different from Original ENAS paper)
     # https://github.com/melodyguan/enas/blob/master/src/utils.py#L213
     Shared_Autoencoder_Optimizer = torch.optim.Adam(params=Shared_Autoencoder.parameters(),
-                                                    lr=config['Shared']['Child_lr']
-                                                    )
+                                                    lr=config['Shared']['Child_lr'],
+                                                    weight_decay=config['Shared']['Weight_Decay'])
 
     # https://github.com/melodyguan/enas/blob/master/src/utils.py#L154
     # Use step LR scheduler instead of Cosine Annealing
