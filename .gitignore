@@ -166,3 +166,6 @@ dmypy.json
 /Benchmarks/qualitative_crop_analysis.ipynb
 /DHDN-Network-Search/instances/
 /Benchmarks/denoising_methods.ipynb
+/Comparison/models/
+/Comparison/sample_images/
+/Comparison/data/
