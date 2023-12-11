@@ -203,7 +203,7 @@ def Train_Controller(epoch,
 
         # Aggregate gradients for controller_num_aggregate iteration, then update weights
         if (i + 1) % config['Controller']['Controller_Num_Aggregate'] == 0:
-            nn.utils.clip_grad_norm_(controller.parameters(), config['Shared']['Child_Grad_Bound'])
+            nn.utils.clip_grad_norm_(controller.parameters(), config['Shared']['Controller_Grad_Bound'])
             controller_optimizer.step()
             controller.zero_grad()
 

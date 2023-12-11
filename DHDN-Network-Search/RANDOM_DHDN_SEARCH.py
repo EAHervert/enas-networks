@@ -190,6 +190,7 @@ def main():
             # Backpropagate to train model
             Shared_Autoencoder_Optimizer.zero_grad()
             loss_value_0.backward()
+            nn.utils.clip_grad_norm_(Shared_Autoencoder.parameters(), config['Shared']['Child_Grad_Bound'])
             Shared_Autoencoder_Optimizer.step()
 
             if i_batch % 100 == 0:
@@ -217,6 +218,7 @@ def main():
                                                           kernel_bool=args.Kernel_Bool,
                                                           down_bool=args.Down_Bool,
                                                           up_bool=args.Up_Bool)
+            print('Epoch:', epoch, '\tStep:', i_validation, '\tArchitecture:', architecture)
             x_v = validation_batch['NOISY']
             t_v = validation_batch['GT']
             with torch.no_grad():
