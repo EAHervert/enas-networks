@@ -169,3 +169,4 @@ dmypy.json
 /Comparison/models/
 /Comparison/sample_images/
 /Comparison/data/
+/Comparison/instances/

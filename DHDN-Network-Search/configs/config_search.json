@@ -30,7 +30,6 @@
     "Child_Grad_Bound": 5.0,
     "Child_lr": 1e-4,
     "Child_gamma": 0.5,
-    "Weight_Decay": 1e-7,
     "Step_Size": 3
   }
 }

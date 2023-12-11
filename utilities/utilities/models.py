@@ -246,9 +246,10 @@ class DnCNN(NNRegressor, ABC):
 
         # convolution layers
         self.conv = nn.ModuleList()
-        self.conv.append(nn.Conv2d(3, channels, 3, padding=1))
-        self.conv.extend([nn.Conv2d(channels, channels, 3, padding=1) for _ in range(depth)])
-        self.conv.append(nn.Conv2d(channels, 3, 3, padding=1))
+        self.conv.append(nn.Conv2d(in_channels=3, out_channels=channels, kernel_size=3, padding=1))
+        self.conv.extend([nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
+                          for _ in range(self.depth)])
+        self.conv.append(nn.Conv2d(in_channels=channels, out_channels=3, kernel_size=3, padding=1))
         # apply He's initialization
         for i in range(len(self.conv[:-1])):
             nn.init.kaiming_normal_(
@@ -256,7 +257,15 @@ class DnCNN(NNRegressor, ABC):
 
         # batch normalization
         self.bn = nn.ModuleList()
-        self.bn.extend([nn.BatchNorm2d(channels, channels) for _ in range(depth)])
+        self.bn.extend([nn.BatchNorm2d(channels, channels) for _ in range(self.depth)])
         # initialize the weights of the Batch normalization layers
-        for i in range(depth):
+        for i in range(self.depth):
             nn.init.constant_(self.bn[i].weight.data, 1.25 * np.sqrt(channels))
+
+    def forward(self, x):
+        h = nn.functional.relu(self.conv[0](x))
+        for i in range(self.depth):
+            h = nn.functional.relu(self.bn[i](self.conv[i + 1](h)))
+        y = self.conv[self.depth + 1](h) + x
+
+        return y

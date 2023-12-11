@@ -37,9 +37,10 @@ model_weights = dir_current + '/' + args.model_file
 device_0 = torch.device(args.device)
 
 # Model architectures and parameters
-if args.model == 'RDUNet':
+if args.model == 'DnCNN':
+    model = models.DnCNN(depth=8)
+elif args.model == 'DnCNN':
     model = models.RDUNet(**config['Model'])
-
 else:
     print('Invalid Architecture!')
     exit()
