@@ -162,9 +162,12 @@ def main():
 
     # We will use ADAM on the child network (Different from Original ENAS paper)
     # https://github.com/melodyguan/enas/blob/master/src/utils.py#L213
+    # Shared_Autoencoder_Optimizer = torch.optim.Adam(params=Shared_Autoencoder.parameters(),
+    #                                                 lr=config['Shared']['Child_lr'],
+    #                                                 weight_decay=config['Shared']['Weight_Decay'])
+
     Shared_Autoencoder_Optimizer = torch.optim.Adam(params=Shared_Autoencoder.parameters(),
-                                                    lr=config['Shared']['Child_lr'],
-                                                    weight_decay=config['Shared']['Weight_Decay'])
+                                                    lr=config['Shared']['Child_lr'])
 
     # https://github.com/melodyguan/enas/blob/master/src/utils.py#L154
     # Use step LR scheduler instead of Cosine Annealing
