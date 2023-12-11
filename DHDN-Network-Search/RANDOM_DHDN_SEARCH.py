@@ -23,11 +23,7 @@ if not sys.warnoptions:
     warnings.simplefilter("ignore")
 
 parser = argparse.ArgumentParser(description='RANDOM_SEARCH_DHDN')
-
 parser.add_argument('--Output_File', default='RANDOM_DHDN', type=str)
-# parser.add_argument('--Resume', default='', type=str) # If we are resuming progress from a checkpoint,
-# we can place the checkpoint here.
-
 
 # Training:
 parser.add_argument('--Epochs', type=int, default=30)
@@ -106,7 +102,6 @@ def main():
     vis_window = {'SSIM_{date}'.format(date=d1): None, 'PSNR_{date}'.format(date=d1): None}
 
     t_init = time.time()
-
     np.random.seed(args.Seed)
 
     if config['CUDA']['Device0']:
@@ -116,6 +111,13 @@ def main():
         sys.stdout = Logger(filename=Result_Path + '/log_fixed.log')
     else:
         sys.stdout = Logger(filename=Result_Path + '/log.log')
+
+    # Create the CSV Logger:
+    File_Name = Result_Path + '/data.csv'
+    Field_Names = ['Loss_Batch', 'Loss_Val', 'Loss_Original_Train', 'Loss_Original_Val',
+                   'SSIM_Batch', 'SSIM_Val', 'SSIM_Original_Train', 'SSIM_Original_Val',
+                   'PSNR_Batch', 'PSNR_Val', 'PSNR_Original_Train', 'PSNR_Original_Val']
+    Logger_ = CSVLogger(fieldnames=Field_Names, filename=File_Name)
 
     Shared_Autoencoder = SHARED_DHDN.SharedDHDN(
         k_value=config['Shared']['K_Value'],
@@ -218,7 +220,8 @@ def main():
                                                           kernel_bool=args.Kernel_Bool,
                                                           down_bool=args.Down_Bool,
                                                           up_bool=args.Up_Bool)
-            print('Epoch:', epoch, '\tStep:', i_validation, '\tArchitecture:', architecture)
+            if i_validation % 10 == 0:
+                print('Epoch:', epoch, '\tStep:', i_validation, '\tArchitecture:', architecture)
             x_v = validation_batch['NOISY']
             t_v = validation_batch['GT']
             with torch.no_grad():
@@ -245,7 +248,7 @@ def main():
         print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
         print('-' * 160 + '\n')
 
-        Logger.writerow({
+        Logger_.writerow({
             'Loss_Batch': loss_batch.avg,
             'Loss_Val': loss_batch_val.avg,
             'Loss_Original_Train': loss_original_batch.avg,
@@ -259,6 +262,8 @@ def main():
             'PSNR_Original_Train': psnr_original_batch.avg,
             'PSNR_Original_Val': psnr_original_batch_val.avg
         })
+
+        SA_Logger.writerow({'Shared_Loss': loss_batch.avg, 'Shared_Accuracy': ssim_batch.avg})
 
     Legend = ['Shared_Train', 'Orig_Train', 'Shared_Val', 'Orig_Val']
 

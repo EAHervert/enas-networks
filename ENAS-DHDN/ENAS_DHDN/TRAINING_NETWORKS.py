@@ -81,6 +81,7 @@ def Train_Shared(epoch,
         # Backpropagate to train model
         shared_optimizer.zero_grad()
         loss_value.backward()
+        nn.utils.clip_grad_norm_(controller.parameters(), 1.0)  # Todo: Fix code
         shared_optimizer.step()
 
         if i_batch % 100 == 0:
@@ -203,7 +204,7 @@ def Train_Controller(epoch,
 
         # Aggregate gradients for controller_num_aggregate iteration, then update weights
         if (i + 1) % config['Controller']['Controller_Num_Aggregate'] == 0:
-            nn.utils.clip_grad_norm_(controller.parameters(), config['Shared']['Controller_Grad_Bound'])
+            nn.utils.clip_grad_norm_(controller.parameters(), config['Controller']['Controller_Grad_Bound'])
             controller_optimizer.step()
             controller.zero_grad()
 
