@@ -297,3 +297,19 @@ def tensor_to_np_image(tensor, i_out=2160, j_out=3840, crop_size=256):
                 np_out[i * crop_size:(i + 1) * crop_size, j * crop_size:(j + 1) * crop_size, :] = sample
 
     return np_out
+
+
+def random_architecture_generation(k_value=3, kernel_bool=True, down_bool=True, up_bool=True):
+    encoder, bottleneck, decoder = [], [], []
+    for _ in range(k_value):
+        decoder.append(random.randint(0, 2) if down_bool else 0)
+        for _ in range(2):
+            encoder.append(random.randint(0, 7) if kernel_bool else 0)
+            decoder.append(random.randint(0, 7) if kernel_bool else 0)
+
+        encoder.append(random.randint(0, 2) if up_bool else 0)
+
+    for _ in range(2):
+        bottleneck.append(random.randint(0, 7) if kernel_bool else 0)
+
+    return encoder + bottleneck + decoder
