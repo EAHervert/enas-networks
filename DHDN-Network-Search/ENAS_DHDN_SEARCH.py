@@ -158,8 +158,7 @@ def main():
     # https://github.com/melodyguan/enas/blob/master/src/utils.py#L218
     Controller_Optimizer = torch.optim.Adam(params=Controller.parameters(),
                                             lr=config['Controller']['Controller_lr'],
-                                            betas=(0.0, 0.999),
-                                            eps=1e-3)
+                                            betas=(0.9, 0.999))
 
     # We will use ADAM on the child network (Different from Original ENAS paper)
     # https://github.com/melodyguan/enas/blob/master/src/utils.py#L213
