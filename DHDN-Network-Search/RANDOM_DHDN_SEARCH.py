@@ -265,21 +265,23 @@ def main():
 
         SA_Logger.writerow({'Shared_Loss': loss_batch.avg, 'Shared_Accuracy': ssim_batch.avg})
 
-    Legend = ['Shared_Train', 'Orig_Train', 'Shared_Val', 'Orig_Val']
+        Legend = ['Shared_Train', 'Orig_Train', 'Shared_Val', 'Orig_Val']
 
-    vis_window['SSIM_{date}'.format(date=d1)] = vis.line(
-        X=np.column_stack([epoch] * 4),
-        Y=np.column_stack([ssim_batch.avg, ssim_original_batch.avg, ssim_batch_val.avg, ssim_original_batch_val.avg]),
-        win=vis_window['SSIM_{date}'.format(date=d1)],
-        opts=dict(title='SSIM_{date}'.format(date=d1), xlabel='Epoch', ylabel='SSIM', legend=Legend),
-        update='append' if epoch > 0 else None)
+        vis_window['SSIM_{date}'.format(date=d1)] = vis.line(
+            X=np.column_stack([epoch] * 4),
+            Y=np.column_stack([ssim_batch.avg, ssim_original_batch.avg, ssim_batch_val.avg,
+                               ssim_original_batch_val.avg]),
+            win=vis_window['SSIM_{date}'.format(date=d1)],
+            opts=dict(title='SSIM_{date}'.format(date=d1), xlabel='Epoch', ylabel='SSIM', legend=Legend),
+            update='append' if epoch > 0 else None)
 
-    vis_window['PSNR_{date}'.format(date=d1)] = vis.line(
-        X=np.column_stack([epoch] * 4),
-        Y=np.column_stack([psnr_batch.avg, psnr_original_batch.avg, psnr_batch_val.avg, psnr_original_batch_val.avg]),
-        win=vis_window['PSNR_{date}'.format(date=d1)],
-        opts=dict(title='PSNR_{date}'.format(date=d1), xlabel='Epoch', ylabel='PSNR', legend=Legend),
-        update='append' if epoch > 0 else None)
+        vis_window['PSNR_{date}'.format(date=d1)] = vis.line(
+            X=np.column_stack([epoch] * 4),
+            Y=np.column_stack([psnr_batch.avg, psnr_original_batch.avg, psnr_batch_val.avg,
+                               psnr_original_batch_val.avg]),
+            win=vis_window['PSNR_{date}'.format(date=d1)],
+            opts=dict(title='PSNR_{date}'.format(date=d1), xlabel='Epoch', ylabel='PSNR', legend=Legend),
+            update='append' if epoch > 0 else None)
 
     loss_batch.reset()
     loss_original_batch.reset()
