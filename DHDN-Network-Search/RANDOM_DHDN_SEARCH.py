@@ -98,7 +98,7 @@ def main():
         use_incoming_socket=False
     )
 
-    vis.env = config['Locations']['Output_File']
+    vis.env = config['Locations']['Output_File_Random']
     vis_window = {'SSIM_{date}'.format(date=d1): None, 'PSNR_{date}'.format(date=d1): None}
 
     t_init = time.time()

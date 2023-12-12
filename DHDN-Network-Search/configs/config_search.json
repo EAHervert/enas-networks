@@ -4,7 +4,8 @@
     "Validation_Noisy": "/data/ValidationNoisyBlocksSrgb.mat",
     "Validation_GT": "/data/ValidationGtBlocksSrgb.mat",
     "Benchmark": "/data/BenchmarkNoisyBlocksSrgb.mat",
-    "Output_File": "ENAS_DHDN_Search"
+    "Output_File": "ENAS_DHDN_Search",
+    "Output_File_Random": "Random_DHDN_Search"
   },
   "Training": {
     "Train_Batch_Size": 16,
