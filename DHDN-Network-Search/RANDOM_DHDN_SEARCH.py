@@ -31,7 +31,7 @@ parser.add_argument('--Log_Every', type=int, default=10)
 parser.add_argument('--Eval_Every_Epoch', type=int, default=1)
 parser.add_argument('--Seed', type=int, default=0)
 parser.add_argument('--outer_sum', default=False, type=bool)  # To do outer sums for models
-parser.add_argument('--Fixed_Arc', action='store_true', default=False)
+parser.add_argument('--Fixed_Arc', type=bool, default=False)
 parser.add_argument('--Kernel_Bool', type=bool, default=True)
 parser.add_argument('--Down_Bool', type=bool, default=True)
 parser.add_argument('--Up_Bool', type=bool, default=True)
@@ -125,7 +125,7 @@ def main():
         outer_sum=args.outer_sum
     )
 
-    if config['CUDA']['DataParallel']:
+    if config['CUDA']['DataParallel'] and not args.Fixed_Arc:
         Shared_Autoencoder = nn.DataParallel(Shared_Autoencoder, device_ids=[0, 1]).cuda()
     else:
         Shared_Autoencoder = Shared_Autoencoder.to(device_0)
@@ -166,12 +166,18 @@ def main():
                                             batch_size=config['Training']['Validation_Batch_Size'],
                                             shuffle=False, num_workers=8)
 
+    architecture = random_architecture_generation(k_value=config['Shared']['K_Value'],
+                                                  kernel_bool=args.Kernel_Bool,
+                                                  down_bool=args.Down_Bool,
+                                                  up_bool=args.Up_Bool)
+
     for epoch in range(args.Epochs):
         for i_batch, sample_batch in enumerate(dataloader_sidd_training):
-            architecture = random_architecture_generation(k_value=config['Shared']['K_Value'],
-                                                          kernel_bool=args.Kernel_Bool,
-                                                          down_bool=args.Down_Bool,
-                                                          up_bool=args.Up_Bool)
+            if not args.Fixed_Arc:
+                architecture = random_architecture_generation(k_value=config['Shared']['K_Value'],
+                                                              kernel_bool=args.Kernel_Bool,
+                                                              down_bool=args.Down_Bool,
+                                                              up_bool=args.Up_Bool)
             x = sample_batch['NOISY']
             y0 = Shared_Autoencoder(x.to(device_0), architecture)
             t = sample_batch['GT']
@@ -216,10 +222,11 @@ def main():
         print('-' * 160 + '\n')
 
         for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
-            architecture = random_architecture_generation(k_value=config['Shared']['K_Value'],
-                                                          kernel_bool=args.Kernel_Bool,
-                                                          down_bool=args.Down_Bool,
-                                                          up_bool=args.Up_Bool)
+            if not args.Fixed_Arc:
+                architecture = random_architecture_generation(k_value=config['Shared']['K_Value'],
+                                                              kernel_bool=args.Kernel_Bool,
+                                                              down_bool=args.Down_Bool,
+                                                              up_bool=args.Up_Bool)
             if i_validation % 10 == 0:
                 print('Epoch:', epoch, '\tStep:', i_validation, '\tArchitecture:', architecture)
             x_v = validation_batch['NOISY']
@@ -304,7 +311,10 @@ def main():
     display_time(t_final - t_init)
 
     # Save the parameters:
-    Shared_Path = Model_Path + '/RANDOM__shared_network_parameters.pth'
+    if not args.Fixed_Arc:
+        Shared_Path = Model_Path + '/RANDOM__shared_network_parameters.pth'
+    else:
+        Shared_Path = Model_Path + '/{arc}__parameters.pth'.format(arc=str(architecture))
     torch.save(Shared_Autoencoder.state_dict(), Shared_Path)
 
 

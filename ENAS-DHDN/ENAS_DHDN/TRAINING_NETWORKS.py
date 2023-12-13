@@ -81,7 +81,7 @@ def Train_Shared(epoch,
         # Backpropagate to train model
         shared_optimizer.zero_grad()
         loss_value.backward()
-        nn.utils.clip_grad_norm_(controller.parameters(), 1.0)  # Todo: Fix code
+        nn.utils.clip_grad_norm_(shared.parameters(), 1.0)  # Todo: Fix code
         shared_optimizer.step()
 
         if i_batch % 100 == 0:
