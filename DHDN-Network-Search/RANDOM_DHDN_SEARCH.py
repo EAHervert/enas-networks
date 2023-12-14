@@ -31,7 +31,7 @@ parser.add_argument('--Log_Every', type=int, default=10)
 parser.add_argument('--Eval_Every_Epoch', type=int, default=1)
 parser.add_argument('--Seed', type=int, default=0)
 parser.add_argument('--device', default='cuda:0', type=str)  # Which device to use to generate .mat file
-parser.add_argument('--tolerance', default=0.2, type=float)  # Tolerance to avoid unlearning
+parser.add_argument('--tolerance', default=0.02, type=float)  # Tolerance to avoid unlearning
 parser.add_argument('--outer_sum', default=False, type=bool)  # To do outer sums for models
 parser.add_argument('--Fixed_Arc', type=bool, default=False)
 parser.add_argument('--Kernel_Bool', type=bool, default=True)
@@ -174,9 +174,8 @@ def main():
                                                   up_bool=args.Up_Bool)
 
     Shared_Autoencoder.train()
-    current_state_dict = Shared_Autoencoder.state_dict()  # To deal with the issue of unlearning
+    current_state_dict = Shared_Autoencoder.state_dict().copy()  # To deal with the issue of unlearning
     current_val = 0  # Value we will use to measure the "unlearning"
-
     for epoch in range(args.Epochs):
         for i_batch, sample_batch in enumerate(dataloader_sidd_training):
             if not args.Fixed_Arc:
@@ -227,14 +226,6 @@ def main():
         print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
         print('-' * 160 + '\n')
 
-        # Avoidance of unlearining:
-        if current_val < ssim_batch.avg:
-            current_state_dict = Shared_Autoencoder.state_dict()
-            current_val = ssim_batch.avg
-        # If we have that the new shared autoencoder performs significantly worse, load previous weights
-        elif current_val - ssim_batch.avg > args.tolerance:
-            Shared_Autoencoder.load_state_dict(current_state_dict)
-
         Shared_Autoencoder.eval()
         choices = config['Training']['Validation_Samples']  # Randomly select validation image patches
         for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
@@ -266,6 +257,17 @@ def main():
         Display_Loss = "Loss_SHARED: %.6f" % loss_batch_val.val + "\tLoss_Original: %.6f" % loss_original_batch_val.val
         Display_SSIM = "SSIM_SHARED: %.6f" % ssim_batch_val.avg + "\tSSIM_Original: %.6f" % ssim_original_batch_val.avg
         Display_PSNR = "PSNR_SHARED: %.6f" % psnr_batch_val.avg + "\tPSNR_Original: %.6f" % psnr_original_batch_val.avg
+
+        # Avoidance of unlearining:
+        if current_val < ssim_batch_val.avg:
+            current_state_dict = Shared_Autoencoder.state_dict().copy()
+            current_val = ssim_batch_val.avg
+        # If we have that the new shared autoencoder performs significantly worse, load previous weights
+        elif current_val - ssim_batch_val.avg > args.tolerance:
+            print('\n' + '-' * 160)
+            print('Reload Previous Model State Dict.')
+            print('-' * 160 + '\n')
+            Shared_Autoencoder.load_state_dict(current_state_dict)
 
         print('\n' + '-' * 160)
         print("Validation Data for Epoch: ", epoch)

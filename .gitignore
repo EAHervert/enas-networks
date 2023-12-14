@@ -173,3 +173,4 @@ dmypy.json
 /Benchmarks/median_filters.ipynb
 /Benchmarks/loss_comparison_generation.ipynb
 /Benchmarks/ieee_image_generation.ipynb
+/Benchmarks/gaussian_filters.ipynb
