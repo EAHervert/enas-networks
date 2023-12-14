@@ -30,6 +30,7 @@ parser.add_argument('--Epochs', type=int, default=30)
 parser.add_argument('--Log_Every', type=int, default=10)
 parser.add_argument('--Eval_Every_Epoch', type=int, default=1)
 parser.add_argument('--Seed', type=int, default=0)
+parser.add_argument('--device', default='cuda:0', type=str)  # Which device to use to generate .mat file
 parser.add_argument('--outer_sum', default=False, type=bool)  # To do outer sums for models
 parser.add_argument('--Fixed_Arc', type=bool, default=False)
 parser.add_argument('--Kernel_Bool', type=bool, default=True)
@@ -57,7 +58,7 @@ def main():
         os.makedirs(dir_current + '/models/')
 
     # Define the devices:
-    device_0 = torch.device(config['CUDA']['Device0'])
+    device_0 = torch.device(args.device)
 
     if not os.path.isdir('Logs_DHDN/'):
         os.mkdir('Logs_DHDN/')
@@ -171,6 +172,7 @@ def main():
                                                   down_bool=args.Down_Bool,
                                                   up_bool=args.Up_Bool)
 
+    Shared_Autoencoder.train()
     for epoch in range(args.Epochs):
         for i_batch, sample_batch in enumerate(dataloader_sidd_training):
             if not args.Fixed_Arc:
@@ -221,30 +223,33 @@ def main():
         print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
         print('-' * 160 + '\n')
 
+        Shared_Autoencoder.eval()
+        choices = config['Training']['Validation_Samples']  # Randomly select validation image patches
         for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
-            if not args.Fixed_Arc:
-                architecture = random_architecture_generation(k_value=config['Shared']['K_Value'],
-                                                              kernel_bool=args.Kernel_Bool,
-                                                              down_bool=args.Down_Bool,
-                                                              up_bool=args.Up_Bool)
-            if i_validation % 10 == 0:
-                print('Epoch:', epoch, '\tStep:', i_validation, '\tArchitecture:', architecture)
-            x_v = validation_batch['NOISY']
-            t_v = validation_batch['GT']
-            with torch.no_grad():
-                y_v0 = Shared_Autoencoder(x_v.to(device_0), architecture)
+            if i_validation in choices:
+                if not args.Fixed_Arc:
+                    architecture = random_architecture_generation(k_value=config['Shared']['K_Value'],
+                                                                  kernel_bool=args.Kernel_Bool,
+                                                                  down_bool=args.Down_Bool,
+                                                                  up_bool=args.Up_Bool)
+                if i_validation % 10 == 0:
+                    print('Epoch:', epoch, '\tStep:', i_validation, '\tArchitecture:', architecture)
+                x_v = validation_batch['NOISY']
+                t_v = validation_batch['GT']
+                with torch.no_grad():
+                    y_v0 = Shared_Autoencoder(x_v.to(device_0), architecture)
 
-                loss_batch_val.update(loss_0(y_v0, t_v.to(device_0)).item())
-                loss_original_batch_val.update(loss_0(x_v.to(device_0), t_v.to(device_0)).item())
+                    loss_batch_val.update(loss_0(y_v0, t_v.to(device_0)).item())
+                    loss_original_batch_val.update(loss_0(x_v.to(device_0), t_v.to(device_0)).item())
 
-                ssim_batch_val.update(SSIM(y_v0, t_v.to(device_0)).item())
-                ssim_original_batch_val.update(SSIM(x_v, t_v).item())
+                    ssim_batch_val.update(SSIM(y_v0, t_v.to(device_0)).item())
+                    ssim_original_batch_val.update(SSIM(x_v, t_v).item())
 
-                psnr_batch_val.update(PSNR(MSE(y_v0, t_v.to(device_0))).item())
-                psnr_original_batch_val.update(PSNR(MSE(x_v.to(device_0), t_v.to(device_0))).item())
+                    psnr_batch_val.update(PSNR(MSE(y_v0, t_v.to(device_0))).item())
+                    psnr_original_batch_val.update(PSNR(MSE(x_v.to(device_0), t_v.to(device_0))).item())
 
-            # Free up space in GPU
-            del x_v, y_v0, t_v
+                # Free up space in GPU
+                del x_v, y_v0, t_v
 
         Display_Loss = "Loss_SHARED: %.6f" % loss_batch_val.val + "\tLoss_Original: %.6f" % loss_original_batch_val.val
         Display_SSIM = "SSIM_SHARED: %.6f" % ssim_batch_val.avg + "\tSSIM_Original: %.6f" % ssim_original_batch_val.avg

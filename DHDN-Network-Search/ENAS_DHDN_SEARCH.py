@@ -33,6 +33,7 @@ parser.add_argument('--Output_File', default='ENAS_DHDN', type=str)
 
 # Training:
 parser.add_argument('--Epochs', type=int, default=30)
+parser.add_argument('--Passes', type=int, default=1)
 parser.add_argument('--Log_Every', type=int, default=10)
 parser.add_argument('--Eval_Every_Epoch', type=int, default=1)
 parser.add_argument('--Seed', type=int, default=0)
@@ -218,6 +219,7 @@ def main():
         TRAINING_NETWORKS.Train_ENAS(
             start_epoch=start_epoch,
             num_epochs=args.Epochs,
+            passes=args.Passes,
             controller=Controller,
             shared=Shared_Autoencoder,
             shared_optimizer=Shared_Autoencoder_Optimizer,

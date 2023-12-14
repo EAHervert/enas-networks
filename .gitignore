@@ -170,3 +170,5 @@ dmypy.json
 /Comparison/sample_images/
 /Comparison/data/
 /Comparison/instances/
+/Benchmarks/median_filters.ipynb
+/Benchmarks/loss_comparison_generation.ipynb

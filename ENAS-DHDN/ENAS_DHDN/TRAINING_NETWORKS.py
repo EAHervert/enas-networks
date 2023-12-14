@@ -7,9 +7,11 @@ from ENAS_DHDN.TRAINING_FUNCTIONS import evaluate_model, AverageMeter, SSIM, PSN
 
 # Here we train the Shared Network which is sampled from the Controller
 def Train_Shared(epoch,
+                 passes,
                  controller,
                  shared,
                  shared_optimizer,
+                 config,
                  dataloader_sidd_training,
                  sa_logger,
                  device=None,
@@ -18,9 +20,11 @@ def Train_Shared(epoch,
 
     Args:
         epoch: Current epoch.
+        passes: Number of passes though the training data.
         controller: Controller module that generates architectures to be trained.
         shared: Network that contains all possible architectures, with shared weights.
         shared_optimizer: Optimizer for the Shared Network.
+        config: config for the hyperparameters.
         dataloader_sidd_training: Training dataset.
         sa_logger: Logs the Shared network Loss and SSIM
         device: The GPU that we will use.
@@ -32,6 +36,7 @@ def Train_Shared(epoch,
     # Here we are using the Controller to give us the networks.
     # We don't modify the Controller, so we have it in evaluation mode rather than training mode.
     controller.eval()
+    shared.train()
 
     # Keep track of the accuracy and loss through the process.
     loss_batch = AverageMeter()
@@ -50,50 +55,51 @@ def Train_Shared(epoch,
 
     # Start the timer for the epoch.
     t1 = time.time()
-    for i_batch, sample_batch in enumerate(dataloader_sidd_training):
+    for pass_ in range(passes):
+        for i_batch, sample_batch in enumerate(dataloader_sidd_training):
 
-        # Pick an architecture to work with from the Graph Network (Shared)
-        if fixed_arc is None:
-            # Since we are just training the Autoencoders, we do not need to keep track of gradients for Controller.
+            # Pick an architecture to work with from the Graph Network (Shared)
+            if fixed_arc is None:
+                # Since we are just training the Autoencoders, we do not need to keep track of gradients for Controller.
+                with torch.no_grad():
+                    controller()
+                architecture = controller.sample_arc
+            else:
+                architecture = fixed_arc
+
+            x = sample_batch['NOISY']
+            y = shared(x.to(device), architecture)  # Net is the output of the network
+            t = sample_batch['GT']
+
+            loss_value = loss(y, t.to(device))
+            loss_batch.update(loss_value.item())
+
+            # Calculate values not needing to be backpropagated
             with torch.no_grad():
-                controller()
-            architecture = controller.sample_arc
-        else:
-            architecture = fixed_arc
+                loss_original_batch.update(loss(x.to(device), t.to(device)).item())
 
-        x = sample_batch['NOISY']
-        y = shared(x.to(device), architecture)  # Net is the output of the network
-        t = sample_batch['GT']
+                ssim_batch.update(SSIM(y, t.to(device)).item())
+                ssim_original_batch.update(SSIM(x, t).item())
 
-        loss_value = loss(y, t.to(device))
-        loss_batch.update(loss_value.item())
+                psnr_batch.update(PSNR(mse(y, t.to(device))).item())
+                psnr_original_batch.update(PSNR(mse(x.to(device), t.to(device))).item())
 
-        # Calculate values not needing to be backpropagated
-        with torch.no_grad():
-            loss_original_batch.update(loss(x.to(device), t.to(device)).item())
+            # Backpropagate to train model
+            shared_optimizer.zero_grad()
+            loss_value.backward()
+            nn.utils.clip_grad_norm_(shared.parameters(), config['Shared']['Child_Grad_Bound'])
+            shared_optimizer.step()
 
-            ssim_batch.update(SSIM(y, t.to(device)).item())
-            ssim_original_batch.update(SSIM(x, t).item())
+            if i_batch % 100 == 0:
+                Display_Loss = "Loss_Shared: %.6f" % loss_batch.val + "\tLoss_Original: %.6f" % loss_original_batch.val
+                Display_SSIM = "SSIM_Shared: %.6f" % ssim_batch.val + "\tSSIM_Original: %.6f" % ssim_original_batch.val
+                Display_PSNR = "PSNR_Shared: %.6f" % psnr_batch.val + "\tPSNR_Original: %.6f" % psnr_original_batch.val
 
-            psnr_batch.update(PSNR(mse(y, t.to(device))).item())
-            psnr_original_batch.update(PSNR(mse(x.to(device), t.to(device))).item())
+                print("Training Data for Epoch: ", epoch, "Image Batch: ", i_batch)
+                print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
 
-        # Backpropagate to train model
-        shared_optimizer.zero_grad()
-        loss_value.backward()
-        nn.utils.clip_grad_norm_(shared.parameters(), 1.0)  # Todo: Fix code
-        shared_optimizer.step()
-
-        if i_batch % 100 == 0:
-            Display_Loss = "Loss_Shared: %.6f" % loss_batch.val + "\tLoss_Original: %.6f" % loss_original_batch.val
-            Display_SSIM = "SSIM_Shared: %.6f" % ssim_batch.val + "\tSSIM_Original: %.6f" % ssim_original_batch.val
-            Display_PSNR = "PSNR_Shared: %.6f" % psnr_batch.val + "\tPSNR_Original: %.6f" % psnr_original_batch.val
-
-            print("Training Data for Epoch: ", epoch, "Image Batch: ", i_batch)
-            print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
-
-        # Free up space in GPU
-        del x, y, t
+            # Free up space in GPU
+            del x, y, t
 
     Display_Loss = "Loss_Shared: %.6f" % loss_batch.avg + "\tLoss_Original: %.6f" % loss_original_batch.avg
     Display_SSIM = "SSIM_Shared: %.6f" % ssim_batch.avg + "\tSSIM_Original: %.6f" % ssim_original_batch.avg
@@ -107,8 +113,6 @@ def Train_Shared(epoch,
     print('-' * 160 + '\n')
 
     sa_logger.writerow({'Shared_Loss': loss_batch.avg, 'Shared_Accuracy': ssim_batch.avg})
-
-    controller.train()
 
     meters = [loss_batch.avg, loss_original_batch.avg, ssim_batch.avg, ssim_original_batch.avg, psnr_batch.avg,
               psnr_original_batch.avg]
@@ -156,6 +160,7 @@ def Train_Controller(epoch,
     print('Epoch ' + str(epoch) + ': Training Controller')
 
     shared.eval()  # We are fixing an architecture and using a fixed architecture for training of the controller
+    controller.train()
 
     # Here we will have the following meters for the metrics
     reward_meter = AverageMeter()  # Reward R
@@ -167,8 +172,7 @@ def Train_Controller(epoch,
     t1 = time.time()
 
     controller.zero_grad()
-    # Todo: Make this modifiable at start
-    choices = [1, 5, 6, 10, 12, 23, 28, 32, 33, 44, 53, 55, 65, 74, 76]  # Randomly select validation image patches
+    choices = config['Training']['Validation_Samples']  # Randomly select validation image patches
     for i in range(config['Controller']['Controller_Train_Steps'] * config['Controller']['Controller_Num_Aggregate']):
         controller()  # perform forward pass to generate a new architecture
         architecture = controller.sample_arc
@@ -232,14 +236,13 @@ def Train_Controller(epoch,
     c_logger.writerow({'Controller_Reward': reward_meter.avg, 'Controller_Accuracy': val_acc_meter.avg,
                        'Controller_Loss': loss_meter.avg})
 
-    shared.train()
-
     return baseline, loss_meter.avg, val_acc_meter.avg, reward_meter.avg
 
 
 def Train_ENAS(
         start_epoch,
         num_epochs,
+        passes,
         controller,
         shared,
         shared_optimizer,
@@ -260,6 +263,7 @@ def Train_ENAS(
 
     Args:
         start_epoch: Epoch to begin on.
+        passes: Number of passes though the training data.
         controller: Controller module that generates architectures to be trained.
         shared: Network that contains all possible architectures, with shared weights.
         shared_optimizer: Optimizer for the Shared_Autoencoder.
@@ -281,9 +285,11 @@ def Train_ENAS(
         print("Epoch ", str(epoch), ": Training Shared Network")
         results = Train_Shared(
             epoch=epoch,
+            passes=passes,
             controller=controller,
             shared=shared,
             shared_optimizer=shared_optimizer,
+            config=config,
             dataloader_sidd_training=dataloader_sidd_training,
             sa_logger=logger[0],
             device=device
