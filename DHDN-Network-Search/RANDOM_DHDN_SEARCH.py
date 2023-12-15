@@ -27,6 +27,7 @@ parser.add_argument('--Output_File', default='RANDOM_DHDN', type=str)
 
 # Training:
 parser.add_argument('--Epochs', type=int, default=30)
+parser.add_argument('--Passes', type=int, default=1)
 parser.add_argument('--Log_Every', type=int, default=10)
 parser.add_argument('--Eval_Every_Epoch', type=int, default=1)
 parser.add_argument('--Seed', type=int, default=0)
@@ -177,45 +178,46 @@ def main():
     current_state_dict = Shared_Autoencoder.state_dict().copy()  # To deal with the issue of unlearning
     current_val = 0  # Value we will use to measure the "unlearning"
     for epoch in range(args.Epochs):
-        for i_batch, sample_batch in enumerate(dataloader_sidd_training):
-            if not args.Fixed_Arc:
-                architecture = random_architecture_generation(k_value=config['Shared']['K_Value'],
-                                                              kernel_bool=args.Kernel_Bool,
-                                                              down_bool=args.Down_Bool,
-                                                              up_bool=args.Up_Bool)
-            x = sample_batch['NOISY']
-            y0 = Shared_Autoencoder(x.to(device_0), architecture)
-            t = sample_batch['GT']
+        for pass_ in range(args.Passes):
+            for i_batch, sample_batch in enumerate(dataloader_sidd_training):
+                if not args.Fixed_Arc:
+                    architecture = random_architecture_generation(k_value=config['Shared']['K_Value'],
+                                                                  kernel_bool=args.Kernel_Bool,
+                                                                  down_bool=args.Down_Bool,
+                                                                  up_bool=args.Up_Bool)
+                x = sample_batch['NOISY']
+                y0 = Shared_Autoencoder(x.to(device_0), architecture)
+                t = sample_batch['GT']
 
-            loss_value_0 = loss_0(y0, t.to(device_0))
-            loss_batch.update(loss_value_0.item())
+                loss_value_0 = loss_0(y0, t.to(device_0))
+                loss_batch.update(loss_value_0.item())
 
-            # Calculate values not needing to be backpropagated
-            with torch.no_grad():
-                loss_original_batch.update(loss_0(x.to(device_0), t.to(device_0)).item())
+                # Calculate values not needing to be backpropagated
+                with torch.no_grad():
+                    loss_original_batch.update(loss_0(x.to(device_0), t.to(device_0)).item())
 
-                ssim_batch.update(SSIM(y0, t.to(device_0)).item())
-                ssim_original_batch.update(SSIM(x, t).item())
+                    ssim_batch.update(SSIM(y0, t.to(device_0)).item())
+                    ssim_original_batch.update(SSIM(x, t).item())
 
-                psnr_batch.update(PSNR(MSE(y0, t.to(device_0))).item())
-                psnr_original_batch.update(PSNR(MSE(x.to(device_0), t.to(device_0))).item())
+                    psnr_batch.update(PSNR(MSE(y0, t.to(device_0))).item())
+                    psnr_original_batch.update(PSNR(MSE(x.to(device_0), t.to(device_0))).item())
 
-            # Backpropagate to train model
-            Shared_Autoencoder_Optimizer.zero_grad()
-            loss_value_0.backward()
-            nn.utils.clip_grad_norm_(Shared_Autoencoder.parameters(), config['Shared']['Child_Grad_Bound'])
-            Shared_Autoencoder_Optimizer.step()
+                # Backpropagate to train model
+                Shared_Autoencoder_Optimizer.zero_grad()
+                loss_value_0.backward()
+                nn.utils.clip_grad_norm_(Shared_Autoencoder.parameters(), config['Shared']['Child_Grad_Bound'])
+                Shared_Autoencoder_Optimizer.step()
 
-            if i_batch % 100 == 0:
-                Display_Loss = "Loss_SHARED: %.6f" % loss_batch.val + "\tLoss_Original: %.6f" % loss_original_batch.val
-                Display_SSIM = "SSIM_SHARED: %.6f" % ssim_batch.val + "\tSSIM_Original: %.6f" % ssim_original_batch.val
-                Display_PSNR = "PSNR_SHARED: %.6f" % psnr_batch.val + "\tPSNR_Original: %.6f" % psnr_original_batch.val
+                if i_batch % 100 == 0:
+                    Display_Loss = "Loss_SHARED: %.6f" % loss_batch.val + "\tLoss_Original: %.6f" % loss_original_batch.val
+                    Display_SSIM = "SSIM_SHARED: %.6f" % ssim_batch.val + "\tSSIM_Original: %.6f" % ssim_original_batch.val
+                    Display_PSNR = "PSNR_SHARED: %.6f" % psnr_batch.val + "\tPSNR_Original: %.6f" % psnr_original_batch.val
 
-                print("Training Data for Epoch: ", epoch, "Image Batch: ", i_batch)
-                print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
+                    print("Training Data for Epoch: ", epoch, "Pass:", pass_, "Image Batch: ", i_batch)
+                    print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
 
-            # Free up space in GPU
-            del x, y0, t
+                # Free up space in GPU
+                del x, y0, t
 
         Display_Loss = "Loss_SHARED: %.6f" % loss_batch.avg + "\tLoss_Original: %.6f" % loss_original_batch.avg
         Display_SSIM = "SSIM_SHARED: %.6f" % ssim_batch.avg + "\tSSIM_Original: %.6f" % ssim_original_batch.avg

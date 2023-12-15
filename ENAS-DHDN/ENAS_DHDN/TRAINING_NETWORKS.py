@@ -95,7 +95,7 @@ def Train_Shared(epoch,
                 Display_SSIM = "SSIM_Shared: %.6f" % ssim_batch.val + "\tSSIM_Original: %.6f" % ssim_original_batch.val
                 Display_PSNR = "PSNR_Shared: %.6f" % psnr_batch.val + "\tPSNR_Original: %.6f" % psnr_original_batch.val
 
-                print("Training Data for Epoch: ", epoch, "Image Batch: ", i_batch)
+                print("Training Data for Epoch: ", epoch, "Pass:", pass_, "Image Batch: ", i_batch)
                 print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
 
             # Free up space in GPU
