@@ -16,7 +16,7 @@ import visdom
 import argparse
 
 from utilities.utils import CSVLogger, Logger
-from utilities.functions import display_time
+from utilities.functions import display_time, drop_weights
 
 # To supress warnings:
 if not sys.warnoptions:
@@ -43,11 +43,13 @@ parser.add_argument('--Kernel_Bool', type=bool, default=True)
 parser.add_argument('--Down_Bool', type=bool, default=True)
 parser.add_argument('--Up_Bool', type=bool, default=True)
 parser.add_argument('--Controller_Train_Every', type=int, default=1)
+parser.add_argument('--controller_train_all', type=bool, default=False)
 parser.add_argument('--training_csv', default='sidd_np_instances_064_128.csv', type=str)  # training samples to use
 parser.add_argument('--load_shared', default=False, type=bool)  # Load shared model(s)
 parser.add_argument('--load_controller', default=False, type=bool)  # Load Controller
-parser.add_argument('--model_controller_path', default='2023_12_02__22_49_09/controller_parameters.pth', type=str)
-parser.add_argument('--model_shared_path', default='2023_12_02__22_49_09/shared_network_parameters.pth', type=str)
+parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
+parser.add_argument('--model_controller_path', default='2023_12_15__16_25_17/controller_parameters.pth', type=str)
+parser.add_argument('--model_shared_path', default='2023_12_15__16_25_17/shared_network_parameters.pth', type=str)
 
 args = parser.parse_args()
 
@@ -65,6 +67,9 @@ def main():
     config = json.load(open(config_path))
     if not os.path.exists(dir_current + '/models/'):
         os.makedirs(dir_current + '/models/')
+
+    if args.controller_train_all:
+        config['Training']['Validation_Samples'] = list(range(80))
 
     # Define the devices:
     device_0 = torch.device(config['CUDA']['Device0'])
@@ -138,6 +143,9 @@ def main():
 
     if args.load_controller:
         state_dict_controller = torch.load(dir_current + model_controller_path, map_location=device_0)
+        if args.drop > 0:
+            state_dict_controller = drop_weights(state_dict_controller, p=args.drop, device=device_0)
+
         Controller.load_state_dict(state_dict_controller)
 
     Shared_Autoencoder = SHARED_DHDN.SharedDHDN(
@@ -153,6 +161,8 @@ def main():
 
     if args.load_shared:
         state_dict_shared = torch.load(dir_current + model_shared_path, map_location=device_0)
+        if args.drop > 0:
+            state_dict_shared = drop_weights(state_dict_shared, p=args.drop, device=device_0)
         Shared_Autoencoder.load_state_dict(state_dict_shared)
 
     # We will use the ADAM optimizer for the controller.
