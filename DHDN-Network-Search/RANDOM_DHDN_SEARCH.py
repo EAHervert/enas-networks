@@ -39,7 +39,7 @@ parser.add_argument('--Kernel_Bool', type=bool, default=True)
 parser.add_argument('--Down_Bool', type=bool, default=True)
 parser.add_argument('--Up_Bool', type=bool, default=True)
 parser.add_argument('--training_csv', default='sidd_np_instances_064_128.csv', type=str)  # training samples to use
-parser.add_argument('--controller_train_all', type=bool, default=False)
+parser.add_argument('--validation_all', type=bool, default=False)
 parser.add_argument('--load_shared', default=False, type=bool)  # Load shared model(s)
 parser.add_argument('--model_shared_path', default='2023_12_02__22_49_09/shared_network_parameters.pth', type=str)
 
@@ -60,7 +60,7 @@ def main():
     if not os.path.exists(dir_current + '/models/'):
         os.makedirs(dir_current + '/models/')
 
-    if args.controller_train_all:
+    if args.validation_all:
         config['Training']['Validation_Samples'] = list(range(80))
 
     # Define the devices:
