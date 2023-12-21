@@ -10,7 +10,7 @@
   "Training": {
     "Train_Batch_Size": 16,
     "Validation_Batch_Size": 16,
-    "Validation_Samples": [1, 5, 7, 10, 11, 16, 23, 27, 32, 33, 44, 46, 53, 55, 59, 61, 66, 67, 74, 76]
+    "Validation_Samples": 2
   },
   "CUDA": {
     "Device0": "cuda:0",
@@ -23,8 +23,8 @@
     "Controller_Entropy_Weight": 0.0001,
     "Controller_Grad_Bound": 2.5,
     "Controller_lr": 3.5e-4,
-    "Controller_Num_Aggregate": 8,
-    "Controller_Train_Steps": 16,
+    "Controller_Num_Aggregate": 16,
+    "Controller_Train_Steps": 20,
     "Controller_Bl_Dec": 0.99
   },
   "Shared": {

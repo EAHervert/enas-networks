@@ -1,6 +1,7 @@
 import os
 import torch
 import time
+import random
 
 from ENAS_DHDN.TRAINING_FUNCTIONS import evaluate_model, AverageMeter, SSIM, PSNR, nn, np
 
@@ -114,10 +115,11 @@ def Train_Shared(epoch,
 
     sa_logger.writerow({'Shared_Loss': loss_batch.avg, 'Shared_Accuracy': ssim_batch.avg})
 
-    meters = [loss_batch.avg, loss_original_batch.avg, ssim_batch.avg, ssim_original_batch.avg, psnr_batch.avg,
-              psnr_original_batch.avg]
+    dict_meters = {'Loss': loss_batch.avg, 'Loss_Original': loss_original_batch.avg, 'SSIM': ssim_batch.avg,
+                   'SSIM_Original': ssim_original_batch.avg, 'PSNR': psnr_batch.avg,
+                   'PSNR_Original': psnr_original_batch.avg}
 
-    return meters
+    return dict_meters
 
 
 # This is for training the controller network, which we do once we have gone through the exploration of the child
@@ -168,12 +170,14 @@ def Train_Controller(epoch,
     val_acc_meter = AverageMeter()  # Validation Accuracy
     loss_meter = AverageMeter()  # Loss
     SSIM_Meter = AverageMeter()
+    SSIM_Original_Meter = AverageMeter()
 
     t1 = time.time()
 
     controller.zero_grad()
-    choices = config['Training']['Validation_Samples']  # Randomly select validation image patches
     for i in range(config['Controller']['Controller_Train_Steps'] * config['Controller']['Controller_Num_Aggregate']):
+        # Randomly selects two batches to run the validation
+        choices = random.sample(range(80), k=config['Training']['Validation_Samples'])
         controller()  # perform forward pass to generate a new architecture
         architecture = controller.sample_arc
 
@@ -184,13 +188,17 @@ def Train_Controller(epoch,
 
                 with torch.no_grad():
                     y_v = shared(x_v.to(device), architecture)
-                    ssim_val = SSIM(y_v, t_v.to(device)).item()
-                    SSIM_Meter.update(ssim_val)  # Now, we will use only SSIM for the accuracy.
+                    SSIM_Meter.update(SSIM(y_v, t_v.to(device)).item())
+                    SSIM_Original_Meter.update(SSIM(x_v, t_v).item())
+
+        # Use the Normalized SSIM improvement as the accuracy
+        normalized_accuracy = (SSIM_Meter.avg - SSIM_Original_Meter.avg) / (1 - SSIM_Original_Meter.avg)
+
         # make sure that gradients aren't backpropped through the reward or baseline
-        reward = SSIM_Meter.avg
+        reward = normalized_accuracy
         reward += config['Controller']['Controller_Entropy_Weight'] * controller.sample_entropy.item()
         if baseline is None:
-            baseline = SSIM_Meter.avg
+            baseline = normalized_accuracy
         else:
             baseline -= (1 - config['Controller']['Controller_Bl_Dec']) * (baseline - reward)
 
@@ -198,7 +206,7 @@ def Train_Controller(epoch,
 
         reward_meter.update(reward)
         baseline_meter.update(baseline)
-        val_acc_meter.update(SSIM_Meter.avg)
+        val_acc_meter.update(normalized_accuracy)
         loss_meter.update(loss.item())
 
         loss.backward(retain_graph=True)
@@ -213,16 +221,17 @@ def Train_Controller(epoch,
                       str(i // config['Controller']['Controller_Num_Aggregate']) + \
                       '\tController_loss=%+.6f' % loss_meter.val + \
                       '\tEntropy=%.6f' % controller.sample_entropy.item() + \
-                      '\tAccuracy (SSIM)=%.6f' % val_acc_meter.val + \
+                      '\tAccuracy (Normalized SSIM)=%.6f' % val_acc_meter.val + \
                       '\tBaseline=%.6f' % baseline_meter.val
             print(display)
 
         del x_v, y_v, t_v
         SSIM_Meter.reset()
+        SSIM_Original_Meter.reset()
 
     print()
     print("Controller Average Loss: ", loss_meter.avg)
-    print("Controller Average Accuracy (SSIM): ", val_acc_meter.avg)
+    print("Controller Average Accuracy (Normalized SSIM): ", val_acc_meter.avg)
     print("Controller Average Reward: ", reward_meter.avg)
 
     t2 = time.time()
@@ -232,7 +241,10 @@ def Train_Controller(epoch,
     c_logger.writerow({'Controller_Reward': reward_meter.avg, 'Controller_Accuracy': val_acc_meter.avg,
                        'Controller_Loss': loss_meter.avg})
 
-    return baseline, loss_meter.avg, val_acc_meter.avg, reward_meter.avg
+    controller_dict = {'Baseline': baseline, 'Loss': loss_meter.avg, 'Accuracy': val_acc_meter.avg,
+                       'Reward': reward_meter.avg}
+
+    return controller_dict
 
 
 def Train_ENAS(
@@ -250,6 +262,7 @@ def Train_ENAS(
         vis,
         vis_window,
         config,
+        arc_bools=[True, True, True],
         log_every=10,
         eval_every_epoch=1,
         device=None,
@@ -279,7 +292,7 @@ def Train_ENAS(
     baseline = None
     for epoch in range(start_epoch, num_epochs):
         print("Epoch ", str(epoch), ": Training Shared Network")
-        results = Train_Shared(
+        training_results = Train_Shared(
             epoch=epoch,
             passes=passes,
             controller=controller,
@@ -291,30 +304,7 @@ def Train_ENAS(
             device=device
         )
 
-        loss, loss_Original, SSIM, SSIM_Original, PSNR, PSNR_Original = results
-
-        vis_window[list(vis_window)[0]] = vis.line(
-            X=np.column_stack([epoch] * 2),
-            Y=np.column_stack([loss, loss_Original]),
-            win=vis_window[list(vis_window)[0]],
-            opts=dict(title=list(vis_window)[0], xlabel='Epoch', ylabel='Loss', legend=['Network', 'Original']),
-            update='append' if epoch > 0 else None)
-
-        vis_window[list(vis_window)[1]] = vis.line(
-            X=np.column_stack([epoch] * 2),
-            Y=np.column_stack([SSIM, SSIM_Original]),
-            win=vis_window[list(vis_window)[1]],
-            opts=dict(title=list(vis_window)[1], xlabel='Epoch', ylabel='SSIM', legend=['Network', 'Original']),
-            update='append' if epoch > 0 else None)
-
-        vis_window[list(vis_window)[2]] = vis.line(
-            X=np.column_stack([epoch] * 2),
-            Y=np.column_stack([PSNR, PSNR_Original]),
-            win=vis_window[list(vis_window)[2]],
-            opts=dict(title=list(vis_window)[2], xlabel='Epoch', ylabel='PSNR', legend=['Network', 'Original']),
-            update='append' if epoch > 0 else None)
-
-        baseline, controller_loss, controller_val, reward = Train_Controller(
+        controller_results = Train_Controller(
             epoch=epoch,
             controller=controller,
             shared=shared,
@@ -326,33 +316,60 @@ def Train_ENAS(
             device=device
         )
 
+        baseline = controller_results['Baseline']  # Update the baseline for variance control
+
+        validation_results = evaluate_model(epoch=epoch, use_random=False, controller=controller, shared=shared,
+                                            dataloader_sidd_validation=dataloader_sidd_validation, config=config,
+                                            kernel_bool=arc_bools[0], down_bool=arc_bools[1], up_bool=arc_bools[2],
+                                            device=device)
+
+        Legend = ['Shared_Train', 'Orig_Train', 'Shared_Val', 'Orig_Val']
+
+        vis_window[list(vis_window)[0]] = vis.line(
+            X=np.column_stack([epoch] * 4),
+            Y=np.column_stack([training_results['Loss'], training_results['Loss_Original'], validation_results['Loss'],
+                               validation_results['Loss_Original']]),
+            win=vis_window[list(vis_window)[0]],
+            opts=dict(title=list(vis_window)[0], xlabel='Epoch', ylabel='Loss', legend=Legend),
+            update='append' if epoch > 0 else None)
+
+        vis_window[list(vis_window)[1]] = vis.line(
+            X=np.column_stack([epoch] * 4),
+            Y=np.column_stack([training_results['SSIM'], training_results['SSIM_Original'], validation_results['SSIM'],
+                               validation_results['SSIM_Original']]),
+            win=vis_window[list(vis_window)[1]],
+            opts=dict(title=list(vis_window)[1], xlabel='Epoch', ylabel='SSIM', legend=Legend),
+            update='append' if epoch > 0 else None)
+
+        vis_window[list(vis_window)[2]] = vis.line(
+            X=np.column_stack([epoch] * 4),
+            Y=np.column_stack([training_results['PSNR'], training_results['PSNR_Original'], validation_results['PSNR'],
+                               validation_results['PSNR_Original']]),
+            win=vis_window[list(vis_window)[2]],
+            opts=dict(title=list(vis_window)[2], xlabel='Epoch', ylabel='PSNR', legend=Legend),
+            update='append' if epoch > 0 else None)
+
         vis_window[list(vis_window)[3]] = vis.line(
             X=np.column_stack([epoch]),
-            Y=np.column_stack([controller_loss]),
+            Y=np.column_stack([controller_results['Loss']]),
             win=vis_window[list(vis_window)[3]],
             opts=dict(title=list(vis_window)[3], xlabel='Epoch', ylabel='Loss'),
             update='append' if epoch > 0 else None)
 
         vis_window[list(vis_window)[4]] = vis.line(
             X=np.column_stack([epoch]),
-            Y=np.column_stack([controller_val]),
+            Y=np.column_stack([controller_results['Accuracy']]),
             win=vis_window[list(vis_window)[4]],
             opts=dict(title=list(vis_window)[4], xlabel='Epoch', ylabel='Accuracy'),
             update='append' if epoch > 0 else None)
 
         vis_window[list(vis_window)[5]] = vis.line(
             X=np.column_stack([epoch]),
-            Y=np.column_stack([reward]),
+            Y=np.column_stack([controller_results['Reward']]),
             win=vis_window[list(vis_window)[5]],
             opts=dict(title=list(vis_window)[5], xlabel='Epoch', ylabel='Reward'),
             update='append' if epoch > 0 else None)
 
-        if epoch % eval_every_epoch == 0:
-            evaluate_model(epoch=epoch,
-                           controller=controller,
-                           shared=shared,
-                           dataloader_sidd_validation=dataloader_sidd_validation,
-                           device=device)
         '''
         state = {'Epoch': Epoch,
                  'args': args,

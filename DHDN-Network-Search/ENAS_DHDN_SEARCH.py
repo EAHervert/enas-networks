@@ -27,9 +27,6 @@ if not sys.warnoptions:
 parser = argparse.ArgumentParser(description='ENAS_SEARCH_DHDN')
 
 parser.add_argument('--Output_File', default='ENAS_DHDN', type=str)
-# parser.add_argument('--Resume', default='', type=str) # If we are resuming progress from a checkpoint,
-# we can place the checkpoint here.
-
 
 # Training:
 parser.add_argument('--Epochs', type=int, default=30)
@@ -241,6 +238,7 @@ def main():
             vis=vis,
             vis_window=vis_window,
             config=config,
+            arc_bools=[args.Kernel_Bool, args.Down_Bool, args.Up_Bool],
             log_every=args.Log_Every,
             eval_every_epoch=args.Eval_Every_Epoch,
             device=device_0,
