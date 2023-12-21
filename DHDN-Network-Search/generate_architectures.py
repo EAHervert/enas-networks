@@ -1,10 +1,13 @@
 import os
 import sys
 from ENAS_DHDN import CONTROLLER
+import numpy as np
 import datetime
 import json
+import pprint
 import torch
 import argparse
+from utilities.functions import random_architecture_generation
 
 # To supress warnings:
 if not sys.warnoptions:
@@ -20,6 +23,7 @@ parser.add_argument('--device', default='cuda:0', type=str)  # Which device to u
 parser.add_argument('--Kernel_Bool', type=bool, default=True)
 parser.add_argument('--Down_Bool', type=bool, default=True)
 parser.add_argument('--Up_Bool', type=bool, default=True)
+parser.add_argument('--method', type=str, default='model')
 parser.add_argument('--model_controller_path', default='2023_12_15__16_25_17/controller_parameters.pth',
                     type=str)
 
@@ -52,7 +56,30 @@ state_dict_controller = torch.load(dir_current + '/models/' + args.model_control
 Controller.load_state_dict(state_dict_controller)
 
 Controller.eval()
+architectures = []
 for i in range(args.number):
-    with torch.no_grad():
-        Controller()
-    print(Controller.sample_arc)
+    if args.method == 'model':
+        with torch.no_grad():
+            Controller()
+        architectures.append(Controller.sample_arc)
+    else:
+        architecture = random_architecture_generation(k_value=config['Shared']['K_Value'],
+                                                      kernel_bool=args.Kernel_Bool,
+                                                      down_bool=args.Down_Bool,
+                                                      up_bool=args.Up_Bool)
+        architectures.append(architecture)
+
+    print(architectures[-1])
+
+architectures_array = np.array(architectures)
+dict_arc = {}
+for i in range(len(architectures_array[-1])):
+    dict_arc[i] = {}
+    if not (i + 1) % 3:
+        for j in range(3):
+            dict_arc[i][j] = np.count_nonzero(architectures_array[:, i] == j)
+    else:
+        for j in range(8):
+            dict_arc[i][j] = np.count_nonzero(architectures_array[:, i] == j)
+
+pprint.pprint(dict_arc)

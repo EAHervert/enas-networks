@@ -196,9 +196,6 @@ def Train_Controller(epoch,
 
         loss = -1 * controller.sample_log_prob * (reward - baseline)
 
-        # Average gradient over controller_num_aggregate samples
-        loss = loss / config['Controller']['Controller_Num_Aggregate']
-
         reward_meter.update(reward)
         baseline_meter.update(baseline)
         val_acc_meter.update(SSIM_Meter.avg)
@@ -212,14 +209,13 @@ def Train_Controller(epoch,
             controller_optimizer.step()
             controller.zero_grad()
 
-            if (i + 1) % config['Controller']['Controller_Num_Aggregate'] == 0:
-                display = 'Epoch_Number=' + str(epoch) + '-' + \
-                          str(i // config['Controller']['Controller_Num_Aggregate']) + \
-                          '\tController_loss=%+.6f' % loss_meter.val + \
-                          '\tEntropy=%.6f' % controller.sample_entropy.item() + \
-                          '\tAccuracy (SSIM)=%.6f' % val_acc_meter.val + \
-                          '\tBaseline=%.6f' % baseline_meter.val
-                print(display)
+            display = 'Epoch_Number=' + str(epoch) + '-' + \
+                      str(i // config['Controller']['Controller_Num_Aggregate']) + \
+                      '\tController_loss=%+.6f' % loss_meter.val + \
+                      '\tEntropy=%.6f' % controller.sample_entropy.item() + \
+                      '\tAccuracy (SSIM)=%.6f' % val_acc_meter.val + \
+                      '\tBaseline=%.6f' % baseline_meter.val
+            print(display)
 
         del x_v, y_v, t_v
         SSIM_Meter.reset()

@@ -105,7 +105,8 @@ def get_best_arc(
         val_psnr.append(valid_PSNR)
         psnr_ori.append(valid_PSNR_Original)
         if verbose:
-            print_arc(architecture)
+            # print_arc(architecture)
+            print(architecture)
             print('SSIM=' + str(valid_SSIM))
             print('SSIM_Original=' + str(valid_SSIM_Original))
             print('PSNR=' + str(valid_PSNR))
