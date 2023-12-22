@@ -41,7 +41,7 @@ parser.add_argument('--Down_Bool', type=bool, default=True)
 parser.add_argument('--Up_Bool', type=bool, default=True)
 parser.add_argument('--Controller_Train_Every', type=int, default=1)
 parser.add_argument('--validation_all', type=bool, default=False)
-parser.add_argument('--training_csv', default='sidd_np_instances_064_128.csv', type=str)  # training samples to use
+parser.add_argument('--training_csv', default='sidd_np_instances_064_0128.csv', type=str)  # training samples to use
 parser.add_argument('--load_shared', default=False, type=bool)  # Load shared model(s)
 parser.add_argument('--load_controller', default=False, type=bool)  # Load Controller
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
@@ -239,8 +239,6 @@ def main():
             vis_window=vis_window,
             config=config,
             arc_bools=[args.Kernel_Bool, args.Down_Bool, args.Up_Bool],
-            log_every=args.Log_Every,
-            eval_every_epoch=args.Eval_Every_Epoch,
             device=device_0,
         )
     else:

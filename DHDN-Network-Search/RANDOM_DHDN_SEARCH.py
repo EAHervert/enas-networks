@@ -39,7 +39,7 @@ parser.add_argument('--Fixed_Arc', type=bool, default=False)
 parser.add_argument('--Kernel_Bool', type=bool, default=True)
 parser.add_argument('--Down_Bool', type=bool, default=True)
 parser.add_argument('--Up_Bool', type=bool, default=True)
-parser.add_argument('--training_csv', default='sidd_np_instances_064_128.csv', type=str)  # training samples to use
+parser.add_argument('--training_csv', default='sidd_np_instances_064_0128.csv', type=str)  # training samples to use
 parser.add_argument('--validation_all', type=bool, default=False)
 parser.add_argument('--load_shared', default=False, type=bool)  # Load shared model(s)
 parser.add_argument('--model_shared_path', default='2023_12_02__22_49_09/shared_network_parameters.pth', type=str)
@@ -235,22 +235,22 @@ def main():
 
         validation_results = evaluate_model(epoch=epoch, use_random=True, controller=None, shared=Shared_Autoencoder,
                                             dataloader_sidd_validation=dataloader_sidd_validation, config=config,
-                                            kernel_bool=args.Kernel_Bool, down_bool=args.Down_Bool,
-                                            up_bool=args.Up_Bool, n_samples=10, device=device_0)
+                                            arc_bools=[args.Kernel_Bool, args.Down_Bool, args.Up_Bool], n_samples=10,
+                                            device=device_0)
 
-        Display_Loss = ("Loss_SHARED: %.6f" % validation_results['Loss'] +
-                        "\tLoss_Original: %.6f" % validation_results['Loss_Original'])
-        Display_SSIM = ("SSIM_SHARED: %.6f" % validation_results['SSIM'] +
-                        "\tSSIM_Original: %.6f" % validation_results['SSIM_Original'])
-        Display_PSNR = ("PSNR_SHARED: %.6f" % validation_results['PSNR'] +
-                        "\tPSNR_Original: %.6f" % validation_results['PSNR_Original'])
+        Display_Loss = ("Loss_SHARED: %.6f" % validation_results['Validation_Loss'] +
+                        "\tLoss_Original: %.6f" % validation_results['Validation_Loss_Original'])
+        Display_SSIM = ("SSIM_SHARED: %.6f" % validation_results['Validation_SSIM'] +
+                        "\tSSIM_Original: %.6f" % validation_results['Validation_SSIM_Original'])
+        Display_PSNR = ("PSNR_SHARED: %.6f" % validation_results['Validation_PSNR'] +
+                        "\tPSNR_Original: %.6f" % validation_results['Validation_PSNR_Original'])
 
         # Avoidance of unlearning:
-        if current_val < validation_results['SSIM']:
+        if current_val < validation_results['Validation_SSIM']:
             current_state_dict = Shared_Autoencoder.state_dict().copy()
-            current_val = validation_results['SSIM']
+            current_val = validation_results['Validation_SSIM']
         # If we have that the new shared autoencoder performs significantly worse, load previous weights
-        elif current_val - validation_results['SSIM'] > args.tolerance:
+        elif current_val - validation_results['Validation_SSIM'] > args.tolerance:
             print('\n' + '-' * 160)
             print('Reload Previous Model State Dict.')
             print('-' * 160 + '\n')
@@ -263,17 +263,17 @@ def main():
 
         Logger_.writerow({
             'Loss_Batch': loss_batch.avg,
-            'Loss_Val': validation_results['Loss'],
+            'Loss_Val': validation_results['Validation_Loss'],
             'Loss_Original_Train': loss_original_batch.avg,
-            'Loss_Original_Val': validation_results['Loss_Original'],
+            'Loss_Original_Val': validation_results['Validation_Loss_Original'],
             'SSIM_Batch': ssim_batch.avg,
-            'SSIM_Val': validation_results['SSIM'],
+            'SSIM_Val': validation_results['Validation_SSIM'],
             'SSIM_Original_Train': ssim_original_batch.avg,
-            'SSIM_Original_Val': validation_results['SSIM_Original'],
+            'SSIM_Original_Val': validation_results['Validation_SSIM_Original'],
             'PSNR_Batch': psnr_batch.avg,
-            'PSNR_Val': validation_results['PSNR'],
+            'PSNR_Val': validation_results['Validation_PSNR'],
             'PSNR_Original_Train': psnr_original_batch.avg,
-            'PSNR_Original_Val': validation_results['PSNR_Original']
+            'PSNR_Original_Val': validation_results['Validation_PSNR_Original']
         })
 
         SA_Logger.writerow({'Shared_Loss': loss_batch.avg, 'Shared_Accuracy': ssim_batch.avg})
@@ -282,24 +282,24 @@ def main():
 
         vis_window['Loss_{date}'.format(date=d1)] = vis.line(
             X=np.column_stack([epoch] * 4),
-            Y=np.column_stack([loss_batch.avg, loss_original_batch.avg, validation_results['Loss'],
-                               validation_results['Loss_Original']]),
+            Y=np.column_stack([loss_batch.avg, loss_original_batch.avg, validation_results['Validation_Loss'],
+                               validation_results['Validation_Loss_Original']]),
             win=vis_window['SSIM_{date}'.format(date=d1)],
             opts=dict(title='SSIM_{date}'.format(date=d1), xlabel='Epoch', ylabel='SSIM', legend=Legend),
             update='append' if epoch > 0 else None)
 
         vis_window['SSIM_{date}'.format(date=d1)] = vis.line(
             X=np.column_stack([epoch] * 4),
-            Y=np.column_stack([ssim_batch.avg, ssim_original_batch.avg, validation_results['SSIM'],
-                               validation_results['SSIM_Original']]),
+            Y=np.column_stack([ssim_batch.avg, ssim_original_batch.avg, validation_results['Validation_SSIM'],
+                               validation_results['Validation_SSIM_Original']]),
             win=vis_window['SSIM_{date}'.format(date=d1)],
             opts=dict(title='SSIM_{date}'.format(date=d1), xlabel='Epoch', ylabel='SSIM', legend=Legend),
             update='append' if epoch > 0 else None)
 
         vis_window['PSNR_{date}'.format(date=d1)] = vis.line(
             X=np.column_stack([epoch] * 4),
-            Y=np.column_stack([psnr_batch.avg, psnr_original_batch.avg, validation_results['PSNR'],
-                               validation_results['PSNR_Original']]),
+            Y=np.column_stack([psnr_batch.avg, psnr_original_batch.avg, validation_results['Validation_PSNR'],
+                               validation_results['Validation_PSNR_Original']]),
             win=vis_window['PSNR_{date}'.format(date=d1)],
             opts=dict(title='PSNR_{date}'.format(date=d1), xlabel='Epoch', ylabel='PSNR', legend=Legend),
             update='append' if epoch > 0 else None)

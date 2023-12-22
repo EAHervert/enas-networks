@@ -262,29 +262,30 @@ def Train_ENAS(
         vis,
         vis_window,
         config,
-        arc_bools=[True, True, True],
-        log_every=10,
-        eval_every_epoch=1,
+        arc_bools=None,
         device=None,
-        args=None
 ):
     """Perform architecture search by training a Controller and Shared_Autoencoder.
 
     Args:
         start_epoch: Epoch to begin on.
+        num_epochs: Number of epochs to loop through.
         passes: Number of passes though the training data.
         controller: Controller module that generates architectures to be trained.
         shared: Network that contains all possible architectures, with shared weights.
         shared_optimizer: Optimizer for the Shared_Autoencoder.
         controller_optimizer: Optimizer for the Controller.
+        shared_scheduler: Controls the learning rate for the Shared_Autoencoder.
+        dataloader_sidd_training: Training dataset.
+        dataloader_sidd_validation: Validation dataset.
         config: config for the hyperparameters.
-        log_every: how often we output the results at the iteration.
         ...
 
     Returns: Nothing.
     """
 
-    # Hyperparameters
+    if arc_bools is None:
+        arc_bools = [True, True, True]
     dir_current = os.getcwd()
     if not os.path.exists(dir_current + '/models/'):
         os.makedirs(dir_current + '/models/')
@@ -320,31 +321,30 @@ def Train_ENAS(
 
         validation_results = evaluate_model(epoch=epoch, use_random=False, controller=controller, shared=shared,
                                             dataloader_sidd_validation=dataloader_sidd_validation, config=config,
-                                            kernel_bool=arc_bools[0], down_bool=arc_bools[1], up_bool=arc_bools[2],
-                                            device=device)
+                                            arc_bools=arc_bools, device=device)
 
         Legend = ['Shared_Train', 'Orig_Train', 'Shared_Val', 'Orig_Val']
 
         vis_window[list(vis_window)[0]] = vis.line(
             X=np.column_stack([epoch] * 4),
-            Y=np.column_stack([training_results['Loss'], training_results['Loss_Original'], validation_results['Loss'],
-                               validation_results['Loss_Original']]),
+            Y=np.column_stack([training_results['Loss'], training_results['Loss_Original'],
+                               validation_results['Validation_Loss'], validation_results['Validation_Loss_Original']]),
             win=vis_window[list(vis_window)[0]],
             opts=dict(title=list(vis_window)[0], xlabel='Epoch', ylabel='Loss', legend=Legend),
             update='append' if epoch > 0 else None)
 
         vis_window[list(vis_window)[1]] = vis.line(
             X=np.column_stack([epoch] * 4),
-            Y=np.column_stack([training_results['SSIM'], training_results['SSIM_Original'], validation_results['SSIM'],
-                               validation_results['SSIM_Original']]),
+            Y=np.column_stack([training_results['SSIM'], training_results['SSIM_Original'],
+                               validation_results['Validation_SSIM'], validation_results['Validation_SSIM_Original']]),
             win=vis_window[list(vis_window)[1]],
             opts=dict(title=list(vis_window)[1], xlabel='Epoch', ylabel='SSIM', legend=Legend),
             update='append' if epoch > 0 else None)
 
         vis_window[list(vis_window)[2]] = vis.line(
             X=np.column_stack([epoch] * 4),
-            Y=np.column_stack([training_results['PSNR'], training_results['PSNR_Original'], validation_results['PSNR'],
-                               validation_results['PSNR_Original']]),
+            Y=np.column_stack([training_results['PSNR'], training_results['PSNR_Original'],
+                               validation_results['Validation_PSNR'], validation_results['Validation_PSNR_Original']]),
             win=vis_window[list(vis_window)[2]],
             opts=dict(title=list(vis_window)[2], xlabel='Epoch', ylabel='PSNR', legend=Legend),
             update='append' if epoch > 0 else None)

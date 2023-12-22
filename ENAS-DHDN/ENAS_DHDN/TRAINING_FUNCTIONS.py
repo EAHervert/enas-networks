@@ -13,9 +13,7 @@ def evaluate_model(
         shared,
         dataloader_sidd_validation,
         config,
-        kernel_bool,
-        down_bool,
-        up_bool,
+        arc_bools=None,
         n_samples=10,
         device=None):
     """Print the validation and test accuracy for a Controller and Shared.
@@ -27,11 +25,15 @@ def evaluate_model(
         shared: Network that contains all possible architectures, with shared weights.
         dataloader_sidd_validation: Validation dataset.
         config: config for the hyperparameters.
+        arc_bools: Booleans for architecture selection
         n_samples: Number of architectures to test when looking for the best one.
         ...
 
     Returns: Nothing.
     """
+
+    if arc_bools is None:
+        arc_bools = [True, True, True]
 
     print('Here are ' + str(n_samples) + ' architectures:')
     results = get_best_arc(
@@ -40,9 +42,7 @@ def evaluate_model(
         shared=shared,
         dataloader_sidd_validation=dataloader_sidd_validation,
         config=config,
-        kernel_bool=kernel_bool,
-        down_bool=down_bool,
-        up_bool=up_bool,
+        arc_bools=arc_bools,
         n_samples=10,
         verbose=True,
         device=device
@@ -73,9 +73,7 @@ def get_best_arc(
         shared,
         dataloader_sidd_validation,
         config,
-        kernel_bool,
-        down_bool,
-        up_bool,
+        arc_bools=None,
         n_samples=10,
         verbose=False,
         device=None
@@ -88,6 +86,7 @@ def get_best_arc(
         shared: Network that contains all possible architectures, with shared weights.
         dataloader_sidd_validation: Validation dataset.
         config: config for the hyperparameters.
+        arc_bools: Booleans for architecture selection
         n_samples: Number of architectures to test when looking for the best one.
         verbose: If True, display the architecture and resulting validation accuracy.
 
@@ -97,6 +96,8 @@ def get_best_arc(
 
     All architectures are evaluated on the same minibatch from the validation set.
     """
+    if arc_bools is None:
+        arc_bools = [True, True, True]
 
     if not use_random:
         controller.eval()
@@ -121,9 +122,9 @@ def get_best_arc(
             architecture = controller.sample_arc
         else:
             architecture = random_architecture_generation(k_value=config['Shared']['K_Value'],
-                                                          kernel_bool=kernel_bool,
-                                                          down_bool=down_bool,
-                                                          up_bool=up_bool)
+                                                          kernel_bool=arc_bools[0],
+                                                          down_bool=arc_bools[1],
+                                                          up_bool=arc_bools[2])
         arcs.append(architecture)
 
         results = get_eval_accuracy(shared=shared, sample_arc=architecture,
