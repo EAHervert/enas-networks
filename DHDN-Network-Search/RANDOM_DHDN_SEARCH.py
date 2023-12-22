@@ -284,8 +284,8 @@ def main():
             X=np.column_stack([epoch] * 4),
             Y=np.column_stack([loss_batch.avg, loss_original_batch.avg, validation_results['Validation_Loss'],
                                validation_results['Validation_Loss_Original']]),
-            win=vis_window['SSIM_{date}'.format(date=d1)],
-            opts=dict(title='SSIM_{date}'.format(date=d1), xlabel='Epoch', ylabel='SSIM', legend=Legend),
+            win=vis_window['Loss_{date}'.format(date=d1)],
+            opts=dict(title='Loss_{date}'.format(date=d1), xlabel='Epoch', ylabel='Loss', legend=Legend),
             update='append' if epoch > 0 else None)
 
         vis_window['SSIM_{date}'.format(date=d1)] = vis.line(
