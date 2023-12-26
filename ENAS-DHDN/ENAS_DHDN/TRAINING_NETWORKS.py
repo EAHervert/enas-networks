@@ -39,7 +39,8 @@ def Train_Shared(epoch,
     """
     # Here we are using the Controller to give us the networks.
     # We don't modify the Controller, so we have it in evaluation mode rather than training mode.
-    controller.eval()
+    if controller is not None:
+        controller.eval()
     shared.train()
     t1 = time.time()
 
@@ -254,7 +255,6 @@ def Train_ENAS(
             device=device
         )
         if controller is not None:
-            print("Epoch ", str(epoch), ": Training Controller")
             controller_results = Train_Controller(
                 epoch=epoch,
                 controller=controller,
