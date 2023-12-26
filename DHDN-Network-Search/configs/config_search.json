@@ -3,19 +3,16 @@
   "Locations": {
     "Validation_Noisy": "/data/ValidationNoisyBlocksSrgb.mat",
     "Validation_GT": "/data/ValidationGtBlocksSrgb.mat",
-    "Benchmark": "/data/BenchmarkNoisyBlocksSrgb.mat",
-    "Output_File": "ENAS_DHDN_Search",
-    "Output_File_Random": "Random_DHDN_Search"
+    "Benchmark": "/data/BenchmarkNoisyBlocksSrgb.mat"
   },
   "Training": {
     "Train_Batch_Size": 16,
     "Validation_Batch_Size": 16,
-    "Validation_Samples": 2
+    "Validation_Samples": 1
   },
   "CUDA": {
     "Device0": "cuda:0",
-    "Device1": "cuda:1",
-    "DataParallel": true
+    "Device1": "cuda:1"
   },
   "Controller": {
     "Controller_LSTM_Size": 64,

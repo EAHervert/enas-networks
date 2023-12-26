@@ -6,9 +6,112 @@ from utilities.utils import AverageMeter  # Helps with keeping track of performa
 from utilities.functions import SSIM, PSNR, random_architecture_generation
 
 
+def train_loop(epoch,
+               controller,
+               shared,
+               shared_optimizer,
+               config,
+               dataloader_sidd_training,
+               fixed_arc,
+               arc_bools=None,
+               passes=1,
+               device=None):
+    """Trains the shared network based on outputs of controller (if passed).
+
+    Args:
+        epoch: Current epoch.
+        controller: Controller module that generates architectures to be trained.
+        shared: Network that contains all possible architectures, with shared weights.
+        shared_optimizer: Optimizer for the Shared Network.
+        dataloader_sidd_training: Training dataset.
+        config: config for the hyperparameters.
+        fixed_arc: Architecture to train, overrides the controller sample.
+        arc_bools: Booleans for architecture selection
+        passes: Number of passes through the training data.
+        ...
+
+    Returns: Nothing.
+    """
+
+    # Keep track of the accuracy and loss through the process.
+    if arc_bools is None:
+        arc_bools = [True, True, True]
+
+    loss_batch = AverageMeter()
+    loss_original_batch = AverageMeter()
+    ssim_batch = AverageMeter()  # Doubles as the accuracy.
+    ssim_original_batch = AverageMeter()
+    psnr_batch = AverageMeter()
+    psnr_original_batch = AverageMeter()
+
+    loss = nn.L1Loss()
+    mse = nn.MSELoss()
+
+    if device is not None:
+        loss = loss.to(device)
+        mse = mse.to(device)
+
+    # Start the timer for the epoch.
+    for pass_ in range(passes):
+        for i_batch, sample_batch in enumerate(dataloader_sidd_training):
+
+            # Pick an architecture to work with from the Graph Network (Shared)
+            if fixed_arc is None:
+                if controller is None:
+                    architecture = random_architecture_generation(k_value=config['Shared']['K_Value'],
+                                                                  kernel_bool=arc_bools[0],
+                                                                  down_bool=arc_bools[1],
+                                                                  up_bool=arc_bools[2])
+                else:
+                    with torch.no_grad():
+                        controller()  # perform forward pass to generate a new architecture.
+                    architecture = controller.sample_arc
+            else:
+                architecture = fixed_arc
+
+            x = sample_batch['NOISY']
+            y = shared(x.to(device), architecture)  # Net is the output of the network
+            t = sample_batch['GT']
+
+            loss_value = loss(y, t.to(device))
+            loss_batch.update(loss_value.item())
+
+            # Calculate values not needing to be backpropagated
+            with torch.no_grad():
+                loss_original_batch.update(loss(x.to(device), t.to(device)).item())
+
+                ssim_batch.update(SSIM(y, t.to(device)).item())
+                ssim_original_batch.update(SSIM(x, t).item())
+
+                psnr_batch.update(PSNR(mse(y, t.to(device))).item())
+                psnr_original_batch.update(PSNR(mse(x.to(device), t.to(device))).item())
+
+            # Backpropagate to train model
+            shared_optimizer.zero_grad()
+            loss_value.backward()
+            nn.utils.clip_grad_norm_(shared.parameters(), config['Shared']['Child_Grad_Bound'])
+            shared_optimizer.step()
+
+            if i_batch % 100 == 0:
+                Display_Loss = "Loss_Shared: %.6f" % loss_batch.val + "\tLoss_Original: %.6f" % loss_original_batch.val
+                Display_SSIM = "SSIM_Shared: %.6f" % ssim_batch.val + "\tSSIM_Original: %.6f" % ssim_original_batch.val
+                Display_PSNR = "PSNR_Shared: %.6f" % psnr_batch.val + "\tPSNR_Original: %.6f" % psnr_original_batch.val
+
+                print("Training Data for Epoch: ", epoch, "Pass:", pass_, "Image Batch: ", i_batch)
+                print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
+
+            # Free up space in GPU
+            del x, y, t
+
+    dict_train = {'Loss': loss_batch.avg, 'Loss_Original': loss_original_batch.avg, 'SSIM': ssim_batch.avg,
+                  'SSIM_Original': ssim_original_batch.avg, 'PSNR': psnr_batch.avg,
+                  'PSNR_Original': psnr_original_batch.avg}
+
+    return dict_train
+
+
 def evaluate_model(
         epoch,
-        use_random,
         controller,
         shared,
         dataloader_sidd_validation,
@@ -20,7 +123,6 @@ def evaluate_model(
 
     Args:
         epoch: Current epoch.
-        use_random: Whether to use a controller or randomly select architectures.
         controller: Controller module that generates architectures to be trained.
         shared: Network that contains all possible architectures, with shared weights.
         dataloader_sidd_validation: Validation dataset.
@@ -37,7 +139,6 @@ def evaluate_model(
 
     print('Here are ' + str(n_samples) + ' architectures:')
     results = get_best_arc(
-        use_random=use_random,
         controller=controller,
         shared=shared,
         dataloader_sidd_validation=dataloader_sidd_validation,
@@ -68,7 +169,6 @@ def evaluate_model(
 
 
 def get_best_arc(
-        use_random,
         controller,
         shared,
         dataloader_sidd_validation,
@@ -81,7 +181,6 @@ def get_best_arc(
     """Evaluate several architectures and return the best performing one.
 
     Args:
-        use_random: Whether to use a controller or randomly select architectures.
         controller: Controller module that generates architectures to be trained.
         shared: Network that contains all possible architectures, with shared weights.
         dataloader_sidd_validation: Validation dataset.
@@ -99,7 +198,7 @@ def get_best_arc(
     if arc_bools is None:
         arc_bools = [True, True, True]
 
-    if not use_random:
+    if controller is not None:
         controller.eval()
     shared.eval()
 
@@ -116,15 +215,15 @@ def get_best_arc(
     # From these architectures we find the best ones.
     for i in range(n_samples):
         # Generate an architecture.
-        if not use_random:
-            with torch.no_grad():
-                controller()  # perform forward pass to generate a new architecture.
-            architecture = controller.sample_arc
-        else:
+        if controller is None:
             architecture = random_architecture_generation(k_value=config['Shared']['K_Value'],
                                                           kernel_bool=arc_bools[0],
                                                           down_bool=arc_bools[1],
                                                           up_bool=arc_bools[2])
+        else:
+            with torch.no_grad():
+                controller()  # perform forward pass to generate a new architecture.
+            architecture = controller.sample_arc
         arcs.append(architecture)
 
         results = get_eval_accuracy(shared=shared, sample_arc=architecture,

@@ -1,9 +1,12 @@
 import os
+import numpy as np
 import torch
+import torch.nn as nn
 import time
 import random
 
-from ENAS_DHDN.TRAINING_FUNCTIONS import evaluate_model, AverageMeter, SSIM, PSNR, nn, np
+from utilities.functions import SSIM
+from ENAS_DHDN.TRAINING_FUNCTIONS import evaluate_model, AverageMeter, train_loop
 
 
 # Here we train the Shared Network which is sampled from the Controller
@@ -38,73 +41,19 @@ def Train_Shared(epoch,
     # We don't modify the Controller, so we have it in evaluation mode rather than training mode.
     controller.eval()
     shared.train()
-
-    # Keep track of the accuracy and loss through the process.
-    loss_batch = AverageMeter()
-    loss_original_batch = AverageMeter()
-    ssim_batch = AverageMeter()  # Doubles as the accuracy.
-    ssim_original_batch = AverageMeter()
-    psnr_batch = AverageMeter()
-    psnr_original_batch = AverageMeter()
-
-    loss = nn.L1Loss()
-    mse = nn.MSELoss()
-
-    if device is not None:
-        loss = loss.to(device)
-        mse = mse.to(device)
-
-    # Start the timer for the epoch.
     t1 = time.time()
-    for pass_ in range(passes):
-        for i_batch, sample_batch in enumerate(dataloader_sidd_training):
 
-            # Pick an architecture to work with from the Graph Network (Shared)
-            if fixed_arc is None:
-                # Since we are just training the Autoencoders, we do not need to keep track of gradients for Controller.
-                with torch.no_grad():
-                    controller()
-                architecture = controller.sample_arc
-            else:
-                architecture = fixed_arc
+    results_train = train_loop(epoch=epoch, controller=controller, shared=shared,
+                               shared_optimizer=shared_optimizer, config=config,
+                               dataloader_sidd_training=dataloader_sidd_training, fixed_arc=fixed_arc, arc_bools=None,
+                               passes=passes, device=device)
 
-            x = sample_batch['NOISY']
-            y = shared(x.to(device), architecture)  # Net is the output of the network
-            t = sample_batch['GT']
-
-            loss_value = loss(y, t.to(device))
-            loss_batch.update(loss_value.item())
-
-            # Calculate values not needing to be backpropagated
-            with torch.no_grad():
-                loss_original_batch.update(loss(x.to(device), t.to(device)).item())
-
-                ssim_batch.update(SSIM(y, t.to(device)).item())
-                ssim_original_batch.update(SSIM(x, t).item())
-
-                psnr_batch.update(PSNR(mse(y, t.to(device))).item())
-                psnr_original_batch.update(PSNR(mse(x.to(device), t.to(device))).item())
-
-            # Backpropagate to train model
-            shared_optimizer.zero_grad()
-            loss_value.backward()
-            nn.utils.clip_grad_norm_(shared.parameters(), config['Shared']['Child_Grad_Bound'])
-            shared_optimizer.step()
-
-            if i_batch % 100 == 0:
-                Display_Loss = "Loss_Shared: %.6f" % loss_batch.val + "\tLoss_Original: %.6f" % loss_original_batch.val
-                Display_SSIM = "SSIM_Shared: %.6f" % ssim_batch.val + "\tSSIM_Original: %.6f" % ssim_original_batch.val
-                Display_PSNR = "PSNR_Shared: %.6f" % psnr_batch.val + "\tPSNR_Original: %.6f" % psnr_original_batch.val
-
-                print("Training Data for Epoch: ", epoch, "Pass:", pass_, "Image Batch: ", i_batch)
-                print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
-
-            # Free up space in GPU
-            del x, y, t
-
-    Display_Loss = "Loss_Shared: %.6f" % loss_batch.avg + "\tLoss_Original: %.6f" % loss_original_batch.avg
-    Display_SSIM = "SSIM_Shared: %.6f" % ssim_batch.avg + "\tSSIM_Original: %.6f" % ssim_original_batch.avg
-    Display_PSNR = "PSNR_Shared: %.6f" % psnr_batch.avg + "\tPSNR_Original: %.6f" % psnr_original_batch.avg
+    Display_Loss = ("Loss_Shared: %.6f" % results_train['Loss'] +
+                    "\tLoss_Original: %.6f" % results_train['Loss_Original'])
+    Display_SSIM = ("SSIM_Shared: %.6f" % results_train['SSIM'] +
+                    "\tSSIM_Original: %.6f" % results_train['SSIM_Original'])
+    Display_PSNR = ("PSNR_Shared: %.6f" % results_train['PSNR'] +
+                    "\tPSNR_Original: %.6f" % results_train['PSNR_Original'])
 
     t2 = time.time()
     print('\n' + '-' * 160)
@@ -113,11 +62,11 @@ def Train_Shared(epoch,
     print("Epoch {epoch} Training Time: ".format(epoch=epoch), t2 - t1)
     print('-' * 160 + '\n')
 
-    sa_logger.writerow({'Shared_Loss': loss_batch.avg, 'Shared_Accuracy': ssim_batch.avg})
+    sa_logger.writerow({'Shared_Loss': results_train['Loss'], 'Shared_Accuracy': results_train['SSIM']})
 
-    dict_meters = {'Loss': loss_batch.avg, 'Loss_Original': loss_original_batch.avg, 'SSIM': ssim_batch.avg,
-                   'SSIM_Original': ssim_original_batch.avg, 'PSNR': psnr_batch.avg,
-                   'PSNR_Original': psnr_original_batch.avg}
+    dict_meters = {'Loss': results_train['Loss'], 'Loss_Original': results_train['Loss_Original'],
+                   'SSIM': results_train['SSIM'], 'SSIM_Original': results_train['SSIM_Original'],
+                   'PSNR': results_train['PSNR'], 'PSNR_Original': results_train['PSNR_Original']}
 
     return dict_meters
 
@@ -304,22 +253,26 @@ def Train_ENAS(
             sa_logger=logger[0],
             device=device
         )
+        if controller is not None:
+            print("Epoch ", str(epoch), ": Training Controller")
+            controller_results = Train_Controller(
+                epoch=epoch,
+                controller=controller,
+                shared=shared,
+                controller_optimizer=controller_optimizer,
+                dataloader_sidd_validation=dataloader_sidd_validation,
+                c_logger=logger[1],
+                config=config,
+                baseline=baseline,
+                device=device
+            )
 
-        controller_results = Train_Controller(
-            epoch=epoch,
-            controller=controller,
-            shared=shared,
-            controller_optimizer=controller_optimizer,
-            dataloader_sidd_validation=dataloader_sidd_validation,
-            c_logger=logger[1],
-            config=config,
-            baseline=baseline,
-            device=device
-        )
+            baseline = controller_results['Baseline']  # Update the baseline for variance control
+        else:
+            controller_results = None
 
-        baseline = controller_results['Baseline']  # Update the baseline for variance control
-
-        validation_results = evaluate_model(epoch=epoch, use_random=False, controller=controller, shared=shared,
+        print("Epoch ", str(epoch), ": Evaluating Models")
+        validation_results = evaluate_model(epoch=epoch, controller=controller, shared=shared,
                                             dataloader_sidd_validation=dataloader_sidd_validation, config=config,
                                             arc_bools=arc_bools, device=device)
 
@@ -349,26 +302,27 @@ def Train_ENAS(
             opts=dict(title=list(vis_window)[2], xlabel='Epoch', ylabel='PSNR', legend=Legend),
             update='append' if epoch > 0 else None)
 
-        vis_window[list(vis_window)[3]] = vis.line(
-            X=np.column_stack([epoch]),
-            Y=np.column_stack([controller_results['Loss']]),
-            win=vis_window[list(vis_window)[3]],
-            opts=dict(title=list(vis_window)[3], xlabel='Epoch', ylabel='Loss'),
-            update='append' if epoch > 0 else None)
+        if controller is not None:
+            vis_window[list(vis_window)[3]] = vis.line(
+                X=np.column_stack([epoch]),
+                Y=np.column_stack([controller_results['Loss']]),
+                win=vis_window[list(vis_window)[3]],
+                opts=dict(title=list(vis_window)[3], xlabel='Epoch', ylabel='Loss'),
+                update='append' if epoch > 0 else None)
 
-        vis_window[list(vis_window)[4]] = vis.line(
-            X=np.column_stack([epoch]),
-            Y=np.column_stack([controller_results['Accuracy']]),
-            win=vis_window[list(vis_window)[4]],
-            opts=dict(title=list(vis_window)[4], xlabel='Epoch', ylabel='Accuracy'),
-            update='append' if epoch > 0 else None)
+            vis_window[list(vis_window)[4]] = vis.line(
+                X=np.column_stack([epoch]),
+                Y=np.column_stack([controller_results['Accuracy']]),
+                win=vis_window[list(vis_window)[4]],
+                opts=dict(title=list(vis_window)[4], xlabel='Epoch', ylabel='Accuracy'),
+                update='append' if epoch > 0 else None)
 
-        vis_window[list(vis_window)[5]] = vis.line(
-            X=np.column_stack([epoch]),
-            Y=np.column_stack([controller_results['Reward']]),
-            win=vis_window[list(vis_window)[5]],
-            opts=dict(title=list(vis_window)[5], xlabel='Epoch', ylabel='Reward'),
-            update='append' if epoch > 0 else None)
+            vis_window[list(vis_window)[5]] = vis.line(
+                X=np.column_stack([epoch]),
+                Y=np.column_stack([controller_results['Reward']]),
+                win=vis_window[list(vis_window)[5]],
+                opts=dict(title=list(vis_window)[5], xlabel='Epoch', ylabel='Reward'),
+                update='append' if epoch > 0 else None)
 
         '''
         state = {'Epoch': Epoch,
