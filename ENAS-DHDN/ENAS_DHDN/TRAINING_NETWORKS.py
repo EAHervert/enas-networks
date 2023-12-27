@@ -254,6 +254,10 @@ def Train_ENAS(
 
     # Pre-Training model randomly to get starting point for convergence.
     if pre_train_epochs > 0:
+        print('\n' + '-' * 160)
+        print("Begin Pre-training.")
+        print('-' * 160 + '\n')
+
         for i in range(pre_train_epochs):
             train_loop(epoch=i,
                        controller=None,
@@ -266,8 +270,11 @@ def Train_ENAS(
                        device=device,
                        pre_train=True)
 
+        print('\n' + '-' * 160)
+        print("End Pre-training.")
+        print('-' * 160 + '\n')
+
     for epoch in range(start_epoch, num_epochs):
-        print("Epoch ", str(epoch), ": Training Shared Network")
         training_results = Train_Shared(
             epoch=epoch,
             passes=passes,
@@ -296,8 +303,6 @@ def Train_ENAS(
             baseline = controller_results['Baseline']  # Update the baseline for variance control
         else:
             controller_results = None
-
-        print("Epoch ", str(epoch), ": Evaluating Models")
         validation_results = evaluate_model(epoch=epoch,
                                             controller=controller,
                                             shared=shared,
