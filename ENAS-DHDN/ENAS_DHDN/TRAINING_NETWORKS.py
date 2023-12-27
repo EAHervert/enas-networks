@@ -222,6 +222,7 @@ def Train_ENAS(
         vis_window,
         config,
         arc_bools=None,
+        sample_size=-1,
         device=None,
 ):
     """Perform architecture search by training a Controller and Shared_Autoencoder.
@@ -239,6 +240,7 @@ def Train_ENAS(
         dataloader_sidd_training: Training dataset.
         dataloader_sidd_validation: Validation dataset.
         config: config for the hyperparameters.
+        sample_size: Number of the validation samples we will use for evaluation, -1 for all samples.
         ...
 
     Returns: Nothing.
@@ -309,6 +311,7 @@ def Train_ENAS(
                                             dataloader_sidd_validation=dataloader_sidd_validation,
                                             config=config,
                                             arc_bools=arc_bools,
+                                            sample_size=sample_size,
                                             device=device)
 
         Legend = ['Shared_Train', 'Orig_Train', 'Shared_Val', 'Orig_Val']

@@ -32,6 +32,7 @@ parser.add_argument('--output_file', default='ENAS_DHDN', type=str)
 parser.add_argument('--epochs', type=int, default=30)
 parser.add_argument('--pre_train_epochs', type=int, default=-1)  # Randomly pre-training model
 parser.add_argument('--passes', type=int, default=1)
+parser.add_argument('--sample_size', type=int, default=-1)  # How many samples from validation to evaluate on.
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--device', default='cuda:0', type=str)  # GPU to use
 # Put shared network on two devices instead of one

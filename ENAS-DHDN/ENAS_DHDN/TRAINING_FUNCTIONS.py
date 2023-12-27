@@ -123,6 +123,7 @@ def evaluate_model(
         config,
         arc_bools=None,
         n_samples=10,
+        sample_size=-1,
         device=None):
     """Print the validation and test accuracy for a Controller and Shared.
 
@@ -134,6 +135,7 @@ def evaluate_model(
         config: config for the hyperparameters.
         arc_bools: Booleans for architecture selection
         n_samples: Number of architectures to test when looking for the best one.
+        sample_size: Number of the validation samples we will use for evaluation, -1 for all samples.
         ...
 
     Returns: Nothing.
@@ -150,14 +152,25 @@ def evaluate_model(
         config=config,
         arc_bools=arc_bools,
         n_samples=10,
+        sample_size=sample_size,
         verbose=True,
         device=device
     )
 
     print('Best Architecture:')
     print(results['Best_Arc'])
+    accuracy = results['Best_Accuracy']
+    if sample_size > 0:
+        # Get the resulting accuracy from evaluating on all the validation data
+        results = get_eval_accuracy(shared=shared,
+                                    sample_arc=results['Best_Arc'],
+                                    dataloader_sidd_validation=dataloader_sidd_validation,
+                                    samples=None,
+                                    device=device)
+
+        accuracy = (results['SSIM'] - results['SSIM_Original']) / (1 - results['SSIM_Original'])
     display = 'Epoch ' + str(epoch) + ': Eval' + \
-              '\nAccuracy=%.6f' % results['Best_Accuracy'] + \
+              '\nAccuracy=%.6f' % accuracy + \
               '\nValidation_Loss=%.6f' % results['Loss'] + \
               '\tValidation_Loss_Original=%.6f' % results['Loss_Original'] + \
               '\nValidation_SSIM=%.6f' % results['SSIM'] + \
@@ -180,6 +193,7 @@ def get_best_arc(
         config,
         arc_bools=None,
         n_samples=10,
+        sample_size=-1,
         verbose=False,
         device=None
 ):
@@ -192,6 +206,7 @@ def get_best_arc(
         config: config for the hyperparameters.
         arc_bools: Booleans for architecture selection
         n_samples: Number of architectures to test when looking for the best one.
+        sample_size: Number of the validation samples we will use for evaluation, -1 for all samples.
         verbose: If True, display the architecture and resulting validation accuracy.
 
     Returns:
@@ -231,8 +246,15 @@ def get_best_arc(
             architecture = controller.sample_arc
         arcs.append(architecture)
 
-        results = get_eval_accuracy(shared=shared, sample_arc=architecture,
-                                    dataloader_sidd_validation=dataloader_sidd_validation, device=device)
+        if sample_size > 0:
+            samples = np.random.choice(80, sample_size, replace=False)
+        else:
+            samples = None
+        results = get_eval_accuracy(shared=shared,
+                                    sample_arc=architecture,
+                                    dataloader_sidd_validation=dataloader_sidd_validation,
+                                    samples=samples,
+                                    device=device)
 
         # We use the SSIM to get our accuracy.
         accuracy = (results['SSIM'] - results['SSIM_Original']) / (1 - results['SSIM_Original'])
@@ -276,14 +298,16 @@ def get_eval_accuracy(
         shared,
         sample_arc,
         dataloader_sidd_validation,
+        samples=None,
         device=None
 ):
     """Evaluate a given architecture.
 
     Args:
         shared: Network that contains all possible architectures, with shared weights.
-        dataloader_sidd_validation: Validation dataset.
         sample_arc: The architecture to use for the evaluation.
+        dataloader_sidd_validation: Validation dataset.
+        samples: Samples to use from dataloader, or None to use all samples.
 
     Returns:
         acc: Average accuracy.
@@ -305,18 +329,23 @@ def get_eval_accuracy(
     PSNR_Meter = AverageMeter()
     PSNR_Meter_Original = AverageMeter()
 
-    for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
-        x_v = validation_batch['NOISY']
-        t_v = validation_batch['GT']
+    # Loop through the entire training set if not to use samples
+    if samples is None:
+        samples = list(range(80))
 
-        with torch.no_grad():
-            y_v = shared(x_v.to(device), sample_arc)
-            Loss_Meter.update(loss(y_v, t_v.to(device)).item())
-            Loss_Meter_Original.update(loss(x_v, t_v).item())
-            SSIM_Meter.update(SSIM(y_v, t_v.to(device)).item())
-            SSIM_Meter_Original.update(SSIM(x_v, t_v).item())
-            PSNR_Meter.update(PSNR(mse(y_v, t_v.to(device))).item())
-            PSNR_Meter_Original.update(PSNR(mse(x_v, t_v)).item())
+    for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
+        if i_validation in samples:
+            x_v = validation_batch['NOISY']
+            t_v = validation_batch['GT']
+
+            with torch.no_grad():
+                y_v = shared(x_v.to(device), sample_arc)
+                Loss_Meter.update(loss(y_v, t_v.to(device)).item())
+                Loss_Meter_Original.update(loss(x_v, t_v).item())
+                SSIM_Meter.update(SSIM(y_v, t_v.to(device)).item())
+                SSIM_Meter_Original.update(SSIM(x_v, t_v).item())
+                PSNR_Meter.update(PSNR(mse(y_v, t_v.to(device))).item())
+                PSNR_Meter_Original.update(PSNR(mse(x_v, t_v)).item())
 
     dict_metrics = {'Loss': Loss_Meter.avg, 'Loss_Original': Loss_Meter_Original.avg, 'SSIM': SSIM_Meter.avg,
                     'SSIM_Original': SSIM_Meter_Original.avg, 'PSNR': PSNR_Meter.avg,
