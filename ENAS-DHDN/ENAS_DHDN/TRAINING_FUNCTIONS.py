@@ -157,8 +157,8 @@ def evaluate_model(
         device=device
     )
 
-    print('Best Architecture:')
-    print(results['Best_Arc'])
+    print('\n' + '-' * 120)
+    print('Best Architecture:', results['Best_Arc'])
     accuracy = results['Best_Accuracy']
     if sample_size > 0:
         # Get the resulting accuracy from evaluating on all the validation data
