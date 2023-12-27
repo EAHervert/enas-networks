@@ -263,7 +263,8 @@ def Train_ENAS(
                        dataloader_sidd_training=dataloader_sidd_training,
                        arc_bools=arc_bools,
                        fixed_arc=None,
-                       device=device)
+                       device=device,
+                       pre_train=True)
 
     for epoch in range(start_epoch, num_epochs):
         print("Epoch ", str(epoch), ": Training Shared Network")

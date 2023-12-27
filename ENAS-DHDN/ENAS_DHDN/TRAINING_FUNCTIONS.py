@@ -15,7 +15,8 @@ def train_loop(epoch,
                fixed_arc,
                arc_bools=None,
                passes=1,
-               device=None):
+               device=None,
+               pre_train=False):
     """Trains the shared network based on outputs of controller (if passed).
 
     Args:
@@ -28,6 +29,7 @@ def train_loop(epoch,
         fixed_arc: Architecture to train, overrides the controller sample.
         arc_bools: Booleans for architecture selection
         passes: Number of passes through the training data.
+        pre_train: If we are pre-training or doing standard training.
         ...
 
     Returns: Nothing.
@@ -97,7 +99,10 @@ def train_loop(epoch,
                 Display_SSIM = "SSIM_Shared: %.6f" % ssim_batch.val + "\tSSIM_Original: %.6f" % ssim_original_batch.val
                 Display_PSNR = "PSNR_Shared: %.6f" % psnr_batch.val + "\tPSNR_Original: %.6f" % psnr_original_batch.val
 
-                print("Training Data for Epoch: ", epoch, "Pass:", pass_, "Image Batch: ", i_batch)
+                if pre_train:
+                    print("Pre-Training Data for Epoch: ", epoch, "Pass:", pass_, "Image Batch: ", i_batch)
+                else:
+                    print("Training Data for Epoch: ", epoch, "Pass:", pass_, "Image Batch: ", i_batch)
                 print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
 
             # Free up space in GPU
