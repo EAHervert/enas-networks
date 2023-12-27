@@ -17,6 +17,7 @@ def Train_Shared(epoch,
                  shared_optimizer,
                  config,
                  dataloader_sidd_training,
+                 arc_bools,
                  sa_logger,
                  device=None,
                  fixed_arc=None):
@@ -30,6 +31,7 @@ def Train_Shared(epoch,
         shared_optimizer: Optimizer for the Shared Network.
         config: config for the hyperparameters.
         dataloader_sidd_training: Training dataset.
+        arc_bools: Booleans for architecture selection
         sa_logger: Logs the Shared network Loss and SSIM
         device: The GPU that we will use.
         fixed_arc: Architecture to train, overrides the controller sample.
@@ -44,10 +46,16 @@ def Train_Shared(epoch,
     shared.train()
     t1 = time.time()
 
-    results_train = train_loop(epoch=epoch, controller=controller, shared=shared,
-                               shared_optimizer=shared_optimizer, config=config,
-                               dataloader_sidd_training=dataloader_sidd_training, fixed_arc=fixed_arc, arc_bools=None,
-                               passes=passes, device=device)
+    results_train = train_loop(epoch=epoch,
+                               controller=controller,
+                               shared=shared,
+                               shared_optimizer=shared_optimizer,
+                               config=config,
+                               dataloader_sidd_training=dataloader_sidd_training,
+                               fixed_arc=fixed_arc,
+                               arc_bools=arc_bools,
+                               passes=passes,
+                               device=device)
 
     Display_Loss = ("Loss_Shared: %.6f" % results_train['Loss'] +
                     "\tLoss_Original: %.6f" % results_train['Loss_Original'])
@@ -199,6 +207,7 @@ def Train_Controller(epoch,
 
 def Train_ENAS(
         start_epoch,
+        pre_train_epochs,
         num_epochs,
         passes,
         controller,
@@ -219,6 +228,7 @@ def Train_ENAS(
 
     Args:
         start_epoch: Epoch to begin on.
+        pre_train_epochs: Number of epochs to pre-train the model randomly (Get better results).
         num_epochs: Number of epochs to loop through.
         passes: Number of passes though the training data.
         controller: Controller module that generates architectures to be trained.
@@ -241,6 +251,20 @@ def Train_ENAS(
         os.makedirs(dir_current + '/models/')
 
     baseline = None
+
+    # Pre-Training model randomly to get starting point for convergence.
+    if pre_train_epochs > 0:
+        for i in range(pre_train_epochs):
+            train_loop(epoch=i,
+                       controller=None,
+                       shared=shared,
+                       shared_optimizer=shared_optimizer,
+                       config=config,
+                       dataloader_sidd_training=dataloader_sidd_training,
+                       arc_bools=arc_bools,
+                       fixed_arc=None,
+                       device=device)
+
     for epoch in range(start_epoch, num_epochs):
         print("Epoch ", str(epoch), ": Training Shared Network")
         training_results = Train_Shared(
@@ -251,6 +275,7 @@ def Train_ENAS(
             shared_optimizer=shared_optimizer,
             config=config,
             dataloader_sidd_training=dataloader_sidd_training,
+            arc_bools=arc_bools,
             sa_logger=logger[0],
             device=device
         )
@@ -272,9 +297,13 @@ def Train_ENAS(
             controller_results = None
 
         print("Epoch ", str(epoch), ": Evaluating Models")
-        validation_results = evaluate_model(epoch=epoch, controller=controller, shared=shared,
-                                            dataloader_sidd_validation=dataloader_sidd_validation, config=config,
-                                            arc_bools=arc_bools, device=device)
+        validation_results = evaluate_model(epoch=epoch,
+                                            controller=controller,
+                                            shared=shared,
+                                            dataloader_sidd_validation=dataloader_sidd_validation,
+                                            config=config,
+                                            arc_bools=arc_bools,
+                                            device=device)
 
         Legend = ['Shared_Train', 'Orig_Train', 'Shared_Val', 'Orig_Val']
 
@@ -323,18 +352,6 @@ def Train_ENAS(
                 win=vis_window[list(vis_window)[5]],
                 opts=dict(title=list(vis_window)[5], xlabel='Epoch', ylabel='Reward'),
                 update='append' if epoch > 0 else None)
-
-        '''
-        state = {'Epoch': Epoch,
-                 'args': args,
-                 'Shared_State_Dict': Shared.state_dict(),
-                 'Controller_State_Dict': Controller.state_dict(),
-                 'Shared_Optimizer': Shared_Optimizer.state_dict(),
-                 'Controller_Optimizer': Controller_Optimizer.state_dict()}
-        filename = 'Checkpoints/' + Output_File + '.pth.tar'
-        torch.save(state, filename)
-        print()
-        '''
 
         shared_scheduler.step()
 

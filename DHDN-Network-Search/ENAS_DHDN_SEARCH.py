@@ -30,6 +30,7 @@ parser.add_argument('--output_file', default='ENAS_DHDN', type=str)
 
 # Training:
 parser.add_argument('--epochs', type=int, default=30)
+parser.add_argument('--pre_train_epochs', type=int, default=-1)  # Randomly pre-training model
 parser.add_argument('--passes', type=int, default=1)
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--device', default='cuda:0', type=str)  # GPU to use
@@ -203,19 +204,25 @@ def main():
     path_validation_gt = dir_current + config['Locations']['Validation_GT']
 
     # Todo: Make function that returns these datasets.
-    SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing())
-    SIDD_validation = dataset.DatasetSIDDMAT(mat_noisy_file=path_validation_noisy, mat_gt_file=path_validation_gt)
+    SIDD_training = dataset.DatasetSIDD(csv_file=path_training,
+                                        transform=dataset.RandomProcessing())
+    SIDD_validation = dataset.DatasetSIDDMAT(mat_noisy_file=path_validation_noisy,
+                                             mat_gt_file=path_validation_gt)
 
-    dataloader_sidd_training = DataLoader(dataset=SIDD_training, batch_size=config['Training']['Train_Batch_Size'],
-                                          shuffle=True, num_workers=16)
+    dataloader_sidd_training = DataLoader(dataset=SIDD_training,
+                                          batch_size=config['Training']['Train_Batch_Size'],
+                                          shuffle=True,
+                                          num_workers=16)
 
     dataloader_sidd_validation = DataLoader(dataset=SIDD_validation,
                                             batch_size=config['Training']['Validation_Batch_Size'],
-                                            shuffle=False, num_workers=8)
+                                            shuffle=False,
+                                            num_workers=8)
 
     if not args.fixed_arc:
         TRAINING_NETWORKS.Train_ENAS(
             start_epoch=0,
+            pre_train_epochs=args.pre_train_epochs,
             num_epochs=args.epochs,
             passes=args.passes,
             controller=Controller,
