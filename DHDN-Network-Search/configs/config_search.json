@@ -22,7 +22,7 @@
     "Controller_lr": 3.5e-4,
     "Controller_Num_Aggregate": 16,
     "Controller_Train_Steps": 20,
-    "Controller_Bl_Dec": 0.99
+    "Controller_Bl_Dec": 0.67
   },
   "Shared": {
     "Channels": 128,
