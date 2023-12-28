@@ -177,10 +177,12 @@ def Train_Controller(epoch,
 
             display = 'Epoch_Number=' + str(epoch) + '-' + \
                       str(i // config['Controller']['Controller_Num_Aggregate']) + \
+                      '\tController_log_probs=%+.6f' % controller.sample_log_prob.item() + \
                       '\tController_loss=%+.6f' % loss_meter.val + \
                       '\tEntropy=%.6f' % controller.sample_entropy.item() + \
                       '\tAccuracy (Normalized SSIM)=%.6f' % val_acc_meter.val + \
-                      '\tBaseline=%.6f' % baseline_meter.val
+                      '\tReward=%.6f' % val_acc_meter.val + \
+                      '\tBaseline=%.6f' % reward_meter.val
             print(display)
 
         del x_v, y_v, t_v
