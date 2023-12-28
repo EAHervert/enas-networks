@@ -133,6 +133,7 @@ def Train_Controller(epoch,
     t1 = time.time()
 
     controller.zero_grad()
+    loss = None
     for i in range(config['Controller']['Controller_Train_Steps'] * config['Controller']['Controller_Num_Aggregate']):
         # Randomly selects two batches to run the validation
         choices = random.sample(range(80), k=config['Training']['Validation_Samples'])
@@ -160,17 +161,21 @@ def Train_Controller(epoch,
         else:
             baseline -= (1 - config['Controller']['Controller_Bl_Dec']) * (baseline - reward)
 
-        loss = -1 * controller.sample_log_prob * (reward - baseline)
+        loss_item = -controller.sample_log_prob * (reward - baseline)
+        if loss is None:
+            loss = loss_item
+        else:
+            loss += loss_item
 
         reward_meter.update(reward)
         baseline_meter.update(baseline)
         val_acc_meter.update(normalized_accuracy)
-        loss_meter.update(loss.item())
-
-        loss.backward(retain_graph=True)
+        loss_meter.update(loss_item.item())
 
         # Aggregate gradients for controller_num_aggregate iteration, then update weights
         if (i + 1) % config['Controller']['Controller_Num_Aggregate'] == 0:
+            loss /= config['Controller']['Controller_Num_Aggregate']
+            loss.backward(retain_graph=True)
             nn.utils.clip_grad_norm_(controller.parameters(), config['Controller']['Controller_Grad_Bound'])
             controller_optimizer.step()
             controller.zero_grad()
@@ -184,6 +189,7 @@ def Train_Controller(epoch,
                       '\tReward=%.6f' % val_acc_meter.val + \
                       '\tBaseline=%.6f' % reward_meter.val
             print(display)
+            loss = None
 
         del x_v, y_v, t_v
         SSIM_Meter.reset()
