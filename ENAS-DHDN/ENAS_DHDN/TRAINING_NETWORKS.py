@@ -134,8 +134,9 @@ def Train_Controller(epoch,
 
     controller.zero_grad()
     for i in range(config['Controller']['Controller_Train_Steps'] * config['Controller']['Controller_Num_Aggregate']):
-        # Randomly selects two batches to run the validation
-        choices = random.sample(range(80), k=config['Training']['Validation_Samples'])
+        # Randomly selects "validation_samples" batches to run the validation for each controller_num_aggregate
+        if i % config['Controller']['Controller_Num_Aggregate'] == 0:
+            choices = random.sample(range(80), k=config['Training']['Validation_Samples'])
         controller()  # perform forward pass to generate a new architecture
         architecture = controller.sample_arc
 
@@ -182,9 +183,10 @@ def Train_Controller(epoch,
                       '\tController_loss=%+.6f' % loss_meter.val + \
                       '\tEntropy=%.6f' % controller.sample_entropy.item() + \
                       '\tAccuracy (Normalized SSIM)=%.6f' % val_acc_meter.val + \
-                      '\tReward=%.6f' % val_acc_meter.val + \
-                      '\tBaseline=%.6f' % reward_meter.val
+                      '\tReward=%.6f' % reward_meter.val + \
+                      '\tBaseline=%.6f' % baseline_meter.val
             print(display)
+            baseline = None
 
         del x_v, y_v, t_v
         SSIM_Meter.reset()
@@ -304,8 +306,7 @@ def Train_ENAS(
                 baseline=baseline,
                 device=device
             )
-
-            baseline = controller_results['Baseline']  # Update the baseline for variance control
+            baseline = None
         else:
             controller_results = None
         validation_results = evaluate_model(epoch=epoch,
