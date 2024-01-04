@@ -238,6 +238,7 @@ def main():
             vis_window=vis_window,
             config=config,
             arc_bools=[args.kernel_bool, args.down_bool, args.up_bool],
+            sample_size=args.sample_size,
             device=device_0,
         )
     else:  # Todo: add the fixed_arc training optionality
