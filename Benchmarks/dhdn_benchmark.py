@@ -17,6 +17,11 @@ from utilities.functions import SSIM, PSNR, generate_loggers, drop_weights, gaus
 current_time = datetime.datetime.now()
 d1 = current_time.strftime('%Y_%m_%d__%H_%M_%S')
 
+
+def list_of_ints(arg):
+    return list(map(int, arg.split(',')))
+
+
 # Parser
 parser = argparse.ArgumentParser(
     prog='DHDN_Benchmark_{date}'.format(date=d1),
@@ -27,10 +32,13 @@ parser.add_argument('--drop', default='-1', type=float)  # Drop weights for mode
 parser.add_argument('--gaussian', default='-1', type=float)  # Gaussian noise addition for model weight # initialization
 parser.add_argument('--load_models', default=False, type=bool)  # Load previous models
 parser.add_argument('--model_path_dhdn', default='2023_09_11_dhdn_SIDD.pth', type=str)  # Model path dhdn
+parser.add_argument('--encoder', default=[0, 0, 0, 0, 0, 0, 0, 0, 0], type=list_of_ints)  # Encoder of the DHDN
+parser.add_argument('--bottleneck', default=[0, 0], type=list_of_ints)  # Bottleneck of the Encoder
+parser.add_argument('--decoder', default=[0, 0, 0, 0, 0, 0, 0, 0, 0], type=list_of_ints)  # Decoder of the DHDN
 parser.add_argument('--model_path_edhdn', default='2023_09_11_edhdn_SIDD.pth', type=str)  # Model path edhdn
 parser.add_argument('--outer_sum', default=False, type=bool)  # To do outer sums for models
 parser.add_argument('--weight_adjust', default=False, type=bool)  # To Adjust the weights
-parser.add_argument('--training_csv', default='sidd_np_instances_064_128.csv', type=str)  # training samples to use
+parser.add_argument('--training_csv', default='sidd_np_instances_064_0128.csv', type=str)  # training samples to use
 parser.add_argument('--epochs', default=25, type=int)  # number of epochs to train on
 parser.add_argument('--learning_rate', default=1e-4, type=float)  # Learning Rate
 args = parser.parse_args()
@@ -76,11 +84,10 @@ device_0 = torch.device(config['CUDA']['Device0'])
 device_1 = torch.device(config['CUDA']['Device1'])
 
 # Load the models:
-encoder_0 = [0, 0, 0, 0, 0, 0, 0, 0, 0]  # vanilla DHDN
-encoder_1 = [0, 0, 2, 0, 0, 2, 0, 0, 2]  # Best searched model
-bottleneck, decoder = [0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]
-dhdn_architecture = encoder_0 + bottleneck + decoder
-edhdn_architecture = encoder_1 + bottleneck + decoder
+encoder_0, bottleneck_0, decoder_0 = [0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]
+dhdn_architecture = encoder_0 + bottleneck_0 + decoder_0
+edhdn_architecture = args.encoder + args.bottleneck + args.decoder
+print('Architecture being compared to DHDN Vanilla:', edhdn_architecture)
 
 dhdn = DHDN.SharedDHDN(architecture=dhdn_architecture, outer_sum=args.outer_sum)
 edhdn = DHDN.SharedDHDN(architecture=edhdn_architecture, outer_sum=args.outer_sum)
