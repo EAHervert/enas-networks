@@ -29,13 +29,11 @@ class _down_ENAS(nn.Module):
 
     def forward(self, x, int_):
         if int_ == 0:
-            out = self.relu(self.conv(self.maxpool(x)))
+            return self.relu(self.conv(self.maxpool(x)))
         elif int_ == 1:
-            out = self.relu(self.conv(self.avgpool(x)))
+            return self.relu(self.conv(self.avgpool(x)))
         elif int_ == 2:
-            out = self.relu(self.downconv(x))
-
-        return out
+            return self.relu(self.downconv(x))
 
 
 # This will be the branch that is fixed depending on the architecture.
@@ -69,13 +67,10 @@ class _down_Fixed(nn.Module):
         self.relu = nn.PReLU()
 
     def forward(self, x, int_):
-        out = self.down(x)
         if self.architecture_k != 2:
-            out = self.relu(self.conv(out))
+            return self.relu(self.conv(self.down(x)))
         else:
-            out = self.relu(out)
-
-        return out
+            return self.relu(self.down(x))
 
 
 # Using Max Pooling to downsample the images.
@@ -94,10 +89,7 @@ class _down_Max(nn.Module):
         self.relu = nn.PReLU()
 
     def forward(self, x):
-        out = self.maxpool(x)
-        out = self.relu(self.conv(out))
-
-        return out
+        return self.relu(self.conv(self.maxpool(x)))
 
 
 # Using Average Pooling to downsample the images.
@@ -116,10 +108,7 @@ class _down_Avg(nn.Module):
         self.relu = nn.PReLU()
 
     def forward(self, x):
-        out = self.pool(x)
-        out = self.relu(self.conv(out))
-
-        return out
+        return self.relu(self.conv(self.pool(x)))
 
 
 # Using Convolution to downsample the images.
@@ -137,9 +126,7 @@ class _down_Conv(nn.Module):
         self.relu = nn.PReLU()
 
     def forward(self, x):
-        out = self.relu(self.downconv(x))
-
-        return out
+        return self.relu(self.downconv(x))
 
 
 # Have a cell that contains the upsampling paths and a forward which can choose accordingly.
@@ -178,16 +165,12 @@ class _up_ENAS(nn.Module):
         )
 
     def forward(self, x, int_):
-        out = self.relu(self.conv(x))
-
         if int_ == 0:
-            out = self.PS(out)
+            return self.PS(self.relu(self.conv(x)))
         elif int_ == 1:
-            out = self.convT(out)
+            return self.convT(self.relu(self.conv(x)))
         elif int_ == 2:
-            out = self.BL(out)
-
-        return out
+            return self.BL(self.relu(self.conv(x)))
 
 
 # This will be the branch that is fixed depending on the architecture.
@@ -229,10 +212,7 @@ class _up_Fixed(nn.Module):
             )
 
     def forward(self, x, int_):
-        out = self.relu(self.conv(x))
-        out = self.up(out)
-
-        return out
+        return self.up(self.relu(self.conv(x)))
 
 
 # Using Pixel Shuffling to upsample the images.
@@ -251,10 +231,7 @@ class _up_PS(nn.Module):
         self.PS = nn.PixelShuffle(2)
 
     def forward(self, x):
-        out = self.relu(self.conv(x))
-        out = self.PS(out)
-
-        return out
+        return self.PS(self.relu(self.conv(x)))
 
 
 # Using Transpose Convolution to upsample the images.
@@ -279,10 +256,7 @@ class _up_ConvT(nn.Module):
         )
 
     def forward(self, x):
-        out = self.relu(self.conv(x))
-        out = self.convT(out)
-
-        return out
+        return self.convT(self.relu(self.conv(x)))
 
 
 # Using Bilinear Interpolation to downsample the images.
@@ -311,7 +285,4 @@ class _up_BL(nn.Module):
         )
 
     def forward(self, x):
-        out = self.relu(self.conv(x))
-        out = self.BL(out)
-
-        return out
+        return self.BL(self.relu(self.conv(x)))

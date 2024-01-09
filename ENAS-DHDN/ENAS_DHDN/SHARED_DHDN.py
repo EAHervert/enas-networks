@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from ENAS_DHDN.RESAMPLING import _down_ENAS, _down_Fixed, _up_ENAS, _up_Fixed
 from ENAS_DHDN.DRC import _DRC_block_ENAS, _DCR_block_Fixed
+from utilities.functions import val_to_kernel_array
 
 
 # Now, here comes the full network.
@@ -48,20 +49,8 @@ class SharedDHDN(nn.Module):
                     down_layer = _down_ENAS(self.channels * (2 ** i))
 
                 else:
-                    a11 = self.architecture[k] % 2
-                    a12 = self.architecture[k + 1] % 2
-
-                    if (self.architecture[k] == 1) or (self.architecture[k] == 5):
-                        a21 = 1
-                    else:
-                        a21 = 0
-                    if (self.architecture[k + 1] == 1) or (self.architecture[k + 1] == 5):
-                        a22 = 1
-                    else:
-                        a22 = 0
-
-                    a31 = self.architecture[k] // 4
-                    a32 = self.architecture[k + 1] // 4
+                    a11, a21, a31 = val_to_kernel_array(self.architecture[k])
+                    a12, a22, a32 = val_to_kernel_array(self.architecture[k + 1])
 
                     layer1 = _DCR_block_Fixed(self.channels * (2 ** i), [a11, a21, a31])
                     layer2 = _DCR_block_Fixed(self.channels * (2 ** i), [a12, a22, a32])
@@ -87,20 +76,8 @@ class SharedDHDN(nn.Module):
 
                 else:
                     up_layer = _up_Fixed(self.channels * 2 * (2 ** (self.network_size - i)), self.architecture[k])
-                    a11 = self.architecture[k + 1] % 2
-                    a12 = self.architecture[k + 2] % 2
-
-                    if (self.architecture[k + 1] == 1) or (self.architecture[k + 1] == 5):
-                        a21 = 1
-                    else:
-                        a21 = 0
-                    if (self.architecture[k + 2] == 1) or (self.architecture[k + 2] == 5):
-                        a22 = 1
-                    else:
-                        a22 = 0
-
-                    a31 = self.architecture[k + 1] // 4
-                    a32 = self.architecture[k + 2] // 4
+                    a11, a21, a31 = val_to_kernel_array(self.architecture[k + 1])
+                    a12, a22, a32 = val_to_kernel_array(self.architecture[k + 2])
 
                     layer1 = _DCR_block_Fixed(self.channels * (2 ** (self.network_size - i)), [a11, a21, a31])
                     layer2 = _DCR_block_Fixed(self.channels * (2 ** (self.network_size - i)), [a12, a22, a32])
@@ -139,24 +116,14 @@ class SharedDHDN(nn.Module):
             # First the encoder:
             if i < (self.network_size // 2 + 1):
                 # First Block:
-                a1 = architecture[k] % 2
-                if (architecture[k] == 1) or (architecture[k] == 5):
-                    a2 = 1
-                else:
-                    a2 = 0
-                a3 = architecture[k] // 4
+                a1, a2, a3 = val_to_kernel_array(architecture[k])
                 out_1 = self.layers[k](out, [a1, a2, a3])
                 if self.outer_sum:
                     out_1 += out
                 k += 1
 
                 # Second Block:
-                a1 = architecture[k] % 2
-                if (architecture[k] == 1) or (architecture[k] == 5):
-                    a2 = 1
-                else:
-                    a2 = 0
-                a3 = architecture[k] // 4
+                a1, a2, a3 = val_to_kernel_array(architecture[k])
                 out_2 = self.layers[k](out_1, [a1, a2, a3])
                 if self.outer_sum:
                     out_2 += out_1
@@ -184,24 +151,14 @@ class SharedDHDN(nn.Module):
                 index -= 1
 
                 # First Block:
-                a1 = architecture[k] % 2
-                if (architecture[k] == 1) or (architecture[k] == 5):
-                    a2 = 1
-                else:
-                    a2 = 0
-                a3 = architecture[k] // 4
+                a1, a2, a3 = val_to_kernel_array(architecture[k])
                 out_2 = self.layers[k](out_1, [a1, a2, a3])
                 if self.outer_sum:
                     out_2 += out_1
                 k += 1
 
                 # Second Block:
-                a1 = architecture[k] % 2
-                if (architecture[k] == 1) or (architecture[k] == 5):
-                    a2 = 1
-                else:
-                    a2 = 0
-                a3 = architecture[k] // 4
+                a1, a2, a3 = val_to_kernel_array(architecture[k])
                 out = self.layers[k](out_2, [a1, a2, a3])
                 if self.outer_sum:
                     out += out_2

@@ -7,6 +7,10 @@ from utilities.Pytorch_SSIM import ssim
 from utilities.utils import AverageMeter
 
 
+def val_to_kernel_array(k):
+    return k % 2, 1 * (k % 4 > 1), k // 4
+
+
 def macro_array(k, kernel_array, down_array, up_array):
     array = []
 

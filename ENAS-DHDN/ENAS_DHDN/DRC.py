@@ -15,7 +15,7 @@ import torch.nn as nn
 #  - - - - - - - - - - - - - - - - -
 
 # This class will represent the DRC block as a graph where we take the DRC block above and allow for the following:
-#   Different number of convolutions (parametarized by "size"
+#   Different number of convolutions parameterized by "size"
 class _DRC_block_ENAS(nn.Module):
     def __init__(self,
                  channel_in,
