@@ -9,6 +9,8 @@
   "Training": {
     "Train_Batch_Size": 16,
     "Validation_Batch_Size": 16,
+    "Child_Grad_Bound": 0.5,
+
     "Number_Images": 320
   },
   "CUDA": {

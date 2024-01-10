@@ -184,10 +184,13 @@ for epoch in range(args.epochs):
         # Backpropagate to train model
         optimizer_0.zero_grad()
         loss_value_0.backward()
+        nn.utils.clip_grad_norm_(dhdn.parameters(), config['Training']['Child_Grad_Bound'])
         optimizer_0.step()
 
         optimizer_1.zero_grad()
         loss_value_1.backward()
+        nn.utils.clip_grad_norm_(edhdn.parameters(), config['Training']['Child_Grad_Bound'])
+
         optimizer_1.step()
 
         if i_batch % 100 == 0:
