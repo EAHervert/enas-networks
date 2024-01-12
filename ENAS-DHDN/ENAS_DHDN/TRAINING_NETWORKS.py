@@ -228,6 +228,7 @@ def Train_ENAS(
         arc_bools=None,
         sample_size=-1,
         device=None,
+        pre_train_controller=False
 ):
     """Perform architecture search by training a Controller and Shared_Autoencoder.
 
@@ -245,6 +246,7 @@ def Train_ENAS(
         dataloader_sidd_validation: Validation dataset.
         config: config for the hyperparameters.
         sample_size: Number of the validation samples we will use for evaluation, -1 for all samples.
+        pre_train_controller: Pre-Training the controller when we have pre-trained shared network (optional).
         ...
 
     Returns: Nothing.
@@ -279,6 +281,20 @@ def Train_ENAS(
         print('\n' + '-' * 120)
         print("End Pre-training.")
         print('-' * 120 + '\n')
+
+    if pre_train_controller and controller is not None:
+        _ = Train_Controller(
+            epoch=-1,
+            controller=controller,
+            shared=shared,
+            controller_optimizer=controller_optimizer,
+            dataloader_sidd_validation=dataloader_sidd_validation,
+            c_logger=logger[1],
+            config=config,
+            baseline=baseline,
+            device=device
+        )
+        baseline = None
 
     for epoch in range(start_epoch, num_epochs):
         training_results = Train_Shared(

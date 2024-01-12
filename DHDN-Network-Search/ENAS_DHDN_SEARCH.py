@@ -32,7 +32,7 @@ parser.add_argument('--output_file', default='ENAS_DHDN', type=str)
 parser.add_argument('--epochs', type=int, default=30)
 parser.add_argument('--pre_train_epochs', type=int, default=-1)  # Randomly pre-training model
 parser.add_argument('--passes', type=int, default=1)
-parser.add_argument('--sample_size', type=int, default=-1)  # How many samples from validation to evaluate on.
+parser.add_argument('--sample_size', type=int, default=-1)  # How many samples from validation to evaluate
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--device', default='cuda:0', type=str)  # GPU to use
 # Put shared network on two devices instead of one
@@ -48,6 +48,7 @@ parser.add_argument('--load_shared', default=False, type=lambda x: (str(x).lower
 # Use Controller, False for random generation
 parser.add_argument('--use_controller', default=True, type=lambda x: (str(x).lower() == 'true'))
 parser.add_argument('--load_controller', default=False, type=lambda x: (str(x).lower() == 'true'))  # Load Controller
+parser.add_argument('--pre_train_controller', default=False, type=lambda x: (str(x).lower() == 'true'))
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--model_controller_path', default='2023_12_15__16_25_17/controller_parameters.pth', type=str)
 parser.add_argument('--model_shared_path', default='2023_12_15__16_25_17/shared_network_parameters.pth', type=str)
@@ -240,6 +241,7 @@ def main():
             arc_bools=[args.kernel_bool, args.down_bool, args.up_bool],
             sample_size=args.sample_size,
             device=device_0,
+            pre_train_controller=args.pre_train_controller
         )
     else:  # Todo: add the fixed_arc training optionality
         print("Exiting:")
