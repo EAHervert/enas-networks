@@ -1,0 +1,34 @@
+{
+  "Description": "ENAS_Search",
+  "Locations": {
+    "Validation_Noisy": "/data/ValidationNoisyBlocksSrgb.mat",
+    "Validation_GT": "/data/ValidationGtBlocksSrgb.mat",
+    "Benchmark": "/data/BenchmarkNoisyBlocksSrgb.mat"
+  },
+  "Training": {
+    "Train_Batch_Size": 16,
+    "Validation_Batch_Size": 16,
+    "Validation_Samples": 10,
+    "Training_CSV_Instances":
+    [
+      "sidd_np_instances_064_0016.csv",
+      "sidd_np_instances_064_0032.csv",
+      "sidd_np_instances_064_0064.csv",
+      "sidd_np_instances_064_0128.csv",
+      "sidd_np_instances_064_0256.csv"
+    ],
+    "Training_Epochs_Per_Instance": [3, 2, 1, 1, 1, 1]
+  },
+  "CUDA": {
+    "Device0": "cuda:0",
+    "Device1": "cuda:1"
+  },
+  "Shared": {
+    "Channels": 128,
+    "K_Value": 3,
+    "Child_Grad_Bound": 0.25,
+    "Child_lr": 1e-4,
+    "Child_gamma": 0.5,
+    "Step_Size": 2
+  }
+}

@@ -176,7 +176,6 @@ def Train_Controller(epoch,
 
         # Aggregate gradients for controller_num_aggregate iteration, then update weights
         if (i + 1) % config['Controller']['Controller_Num_Aggregate'] == 0:
-
             display = 'Epoch_Number=' + str(epoch) + '-' + \
                       str(i // config['Controller']['Controller_Num_Aggregate']) + \
                       '\tController_log_probs=%+.6f' % controller.sample_log_prob.item() + \
@@ -365,6 +364,19 @@ def Train_ENAS(
                 win=vis_window[list(vis_window)[5]],
                 opts=dict(title=list(vis_window)[5], xlabel='Epoch', ylabel='Reward'),
                 update='append' if epoch > 0 else None)
+
+            logger[2].writerow({'Loss_Batch': training_results['Loss'],
+                                'Loss_Val': validation_results['Validation_Loss'],
+                                'Loss_Original_Train': training_results['Loss_Original'],
+                                'Loss_Original_Val': validation_results['Validation_Loss_Original'],
+                                'SSIM_Batch': training_results['SSIM'],
+                                'SSIM_Val': validation_results['Validation_SSIM'],
+                                'SSIM_Original_Train': training_results['SSIM_Original'],
+                                'SSIM_Original_Val': validation_results['Validation_SSIM_Original'],
+                                'PSNR_Batch': training_results['PSNR'],
+                                'PSNR_Val': validation_results['Validation_PSNR'],
+                                'PSNR_Original_Train': training_results['PSNR_Original'],
+                                'PSNR_Original_Val': validation_results['Validation_PSNR_Original']})
 
         shared_scheduler.step()
 
