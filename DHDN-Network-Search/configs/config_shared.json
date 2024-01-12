@@ -13,11 +13,8 @@
     [
       "sidd_np_instances_064_0016.csv",
       "sidd_np_instances_064_0032.csv",
-      "sidd_np_instances_064_0064.csv",
-      "sidd_np_instances_064_0128.csv",
-      "sidd_np_instances_064_0256.csv"
-    ],
-    "Training_Epochs_Per_Instance": [3, 2, 1, 1, 1, 1]
+      "sidd_np_instances_064_0064.csv"],
+    "Training_Epochs_Per_Instance": [5, 3, 1]
   },
   "CUDA": {
     "Device0": "cuda:0",
@@ -29,6 +26,6 @@
     "Child_Grad_Bound": 0.25,
     "Child_lr": 1e-4,
     "Child_gamma": 0.5,
-    "Step_Size": 2
+    "Step_Size": 3
   }
 }

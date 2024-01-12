@@ -152,24 +152,14 @@ def main():
 
     # Noise Dataset
     path_training = dir_current + '/instances/' + training_csv[milestones_index]
-    path_validation_noisy = dir_current + config['Locations']['Validation_Noisy']
-    path_validation_gt = dir_current + config['Locations']['Validation_GT']
 
     # Todo: Make function that returns these datasets.
     SIDD_training = dataset.DatasetSIDD(csv_file=path_training,
                                         transform=dataset.RandomProcessing())
-    SIDD_validation = dataset.DatasetSIDDMAT(mat_noisy_file=path_validation_noisy,
-                                             mat_gt_file=path_validation_gt)
-
     dataloader_sidd_training = DataLoader(dataset=SIDD_training,
                                           batch_size=config['Training']['Train_Batch_Size'],
                                           shuffle=True,
                                           num_workers=16)
-
-    dataloader_sidd_validation = DataLoader(dataset=SIDD_validation,
-                                            batch_size=config['Training']['Validation_Batch_Size'],
-                                            shuffle=False,
-                                            num_workers=8)
 
     if not args.fixed_arc:
         for epoch in range(args.epochs):
@@ -197,56 +187,44 @@ def main():
                                                               sa_logger=SA_Logger,
                                                               device=device_0,
                                                               )
-            validation_results = evaluate_model(epoch=epoch,
-                                                controller=Controller,
-                                                shared=Shared_Autoencoder,
-                                                dataloader_sidd_validation=dataloader_sidd_validation,
-                                                config=config,
-                                                arc_bools=[args.kernel_bool, args.up_bool, args.down_bool],
-                                                sample_size=args.sample_size,
-                                                device=device_0)
-
-            Legend = ['Shared_Train', 'Orig_Train', 'Shared_Val', 'Orig_Val']
+            Legend = ['Shared_Train', 'Orig_Train']
 
             vis_window[list(vis_window)[0]] = vis.line(
-                X=np.column_stack([epoch] * 4),
-                Y=np.column_stack([training_results['Loss'], training_results['Loss_Original'],
-                                   validation_results['Validation_Loss'],
-                                   validation_results['Validation_Loss_Original']]),
+                X=np.column_stack([epoch] * 2),
+                Y=np.column_stack([training_results['Loss'], training_results['Loss_Original']]),
                 win=vis_window[list(vis_window)[0]],
                 opts=dict(title=list(vis_window)[0], xlabel='Epoch', ylabel='Loss', legend=Legend),
                 update='append' if epoch > 0 else None)
 
             vis_window[list(vis_window)[1]] = vis.line(
-                X=np.column_stack([epoch] * 4),
-                Y=np.column_stack([training_results['SSIM'], training_results['SSIM_Original'],
-                                   validation_results['Validation_SSIM'],
-                                   validation_results['Validation_SSIM_Original']]),
+                X=np.column_stack([epoch] * 2),
+                Y=np.column_stack([training_results['SSIM'], training_results['SSIM_Original']]),
                 win=vis_window[list(vis_window)[1]],
                 opts=dict(title=list(vis_window)[1], xlabel='Epoch', ylabel='SSIM', legend=Legend),
                 update='append' if epoch > 0 else None)
 
             vis_window[list(vis_window)[2]] = vis.line(
-                X=np.column_stack([epoch] * 4),
-                Y=np.column_stack([training_results['PSNR'], training_results['PSNR_Original'],
-                                   validation_results['Validation_PSNR'],
-                                   validation_results['Validation_PSNR_Original']]),
+                X=np.column_stack([epoch] * 2),
+                Y=np.column_stack([training_results['PSNR'], training_results['PSNR_Original']]),
                 win=vis_window[list(vis_window)[2]],
                 opts=dict(title=list(vis_window)[2], xlabel='Epoch', ylabel='PSNR', legend=Legend),
                 update='append' if epoch > 0 else None)
 
             CSV_Logger.writerow({'Loss_Batch': training_results['Loss'],
-                                 'Loss_Val': validation_results['Validation_Loss'],
+                                 'Loss_Val': -1,
                                  'Loss_Original_Train': training_results['Loss_Original'],
-                                 'Loss_Original_Val': validation_results['Validation_Loss_Original'],
+                                 'Loss_Original_Val': -1,
                                  'SSIM_Batch': training_results['SSIM'],
-                                 'SSIM_Val': validation_results['Validation_SSIM'],
+                                 'SSIM_Val': -1,
                                  'SSIM_Original_Train': training_results['SSIM_Original'],
-                                 'SSIM_Original_Val': validation_results['Validation_SSIM_Original'],
+                                 'SSIM_Original_Val': -1,
                                  'PSNR_Batch': training_results['PSNR'],
-                                 'PSNR_Val': validation_results['Validation_PSNR'],
+                                 'PSNR_Val': -1,
                                  'PSNR_Original_Train': training_results['PSNR_Original'],
-                                 'PSNR_Original_Val': validation_results['Validation_PSNR_Original']})
+                                 'PSNR_Original_Val': -1})
+
+        for i in range(2 ** (milestones_index - 1)):
+            Shared_Autoencoder_Scheduler.step()
 
     else:  # Todo: add the fixed_arc training optionality
         print("Exiting:")
