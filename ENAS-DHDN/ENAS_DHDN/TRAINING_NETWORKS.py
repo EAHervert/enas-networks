@@ -65,11 +65,11 @@ def Train_Shared(epoch,
                     "\tPSNR_Original: %.6f" % results_train['PSNR_Original'])
 
     t2 = time.time()
-    print('\n' + '-' * 160)
+    print('\n' + '-' * 120)
     print("Training Data for Epoch: ", epoch)
     print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
     print("Epoch {epoch} Training Time: ".format(epoch=epoch), t2 - t1)
-    print('-' * 160 + '\n')
+    print('-' * 120 + '\n')
 
     sa_logger.writerow({'Shared_Loss': results_train['Loss'], 'Shared_Accuracy': results_train['SSIM']})
 
@@ -260,9 +260,9 @@ def Train_ENAS(
 
     # Pre-Training model randomly to get starting point for convergence.
     if pre_train_epochs > 0:
-        print('\n' + '-' * 160)
+        print('\n' + '-' * 120)
         print("Begin Pre-training.")
-        print('-' * 160 + '\n')
+        print('-' * 120 + '\n')
 
         for i in range(pre_train_epochs):
             train_loop(epoch=i,
@@ -276,9 +276,9 @@ def Train_ENAS(
                        device=device,
                        pre_train=True)
 
-        print('\n' + '-' * 160)
+        print('\n' + '-' * 120)
         print("End Pre-training.")
-        print('-' * 160 + '\n')
+        print('-' * 120 + '\n')
 
     for epoch in range(start_epoch, num_epochs):
         training_results = Train_Shared(

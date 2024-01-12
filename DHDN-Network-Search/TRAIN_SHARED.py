@@ -41,7 +41,7 @@ parser.add_argument('--fixed_arc', action='store_true', default=False)
 parser.add_argument('--kernel_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
 parser.add_argument('--down_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
 parser.add_argument('--up_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
-# Use Controller, False for random generation
+parser.add_argument('--training_csv', default='sidd_np_instances_064_0128.csv', type=str)  # training samples to use
 
 args = parser.parse_args()
 
@@ -144,37 +144,29 @@ def main():
         gamma=config['Shared']['Child_gamma']
     )
 
-    milestones = [config['Training']['Training_Epochs_Per_Instance'][0]]
-    for m in config['Training']['Training_Epochs_Per_Instance'][1:]:
-        milestones.append(m + milestones[-1])
-    training_csv = config['Training']['Training_CSV_Instances']
-    milestones_index = 0
-
     # Noise Dataset
-    path_training = dir_current + '/instances/' + training_csv[milestones_index]
+    path_training = dir_current + '/instances/' + args.training_csv
+    path_validation_noisy = dir_current + config['Locations']['Validation_Noisy']
+    path_validation_gt = dir_current + config['Locations']['Validation_GT']
 
     # Todo: Make function that returns these datasets.
     SIDD_training = dataset.DatasetSIDD(csv_file=path_training,
                                         transform=dataset.RandomProcessing())
+    SIDD_validation = dataset.DatasetSIDDMAT(mat_noisy_file=path_validation_noisy,
+                                             mat_gt_file=path_validation_gt)
+
     dataloader_sidd_training = DataLoader(dataset=SIDD_training,
                                           batch_size=config['Training']['Train_Batch_Size'],
                                           shuffle=True,
                                           num_workers=16)
 
+    dataloader_sidd_validation = DataLoader(dataset=SIDD_validation,
+                                            batch_size=config['Training']['Validation_Batch_Size'],
+                                            shuffle=False,
+                                            num_workers=8)
+
     if not args.fixed_arc:
         for epoch in range(args.epochs):
-            if epoch == milestones[milestones_index]:
-                milestones_index += 1
-                # Noise Dataset
-                path_training = dir_current + '/instances/' + training_csv[milestones_index]
-                # Todo: Make function that returns these datasets.
-                SIDD_training = dataset.DatasetSIDD(csv_file=path_training,
-                                                    transform=dataset.RandomProcessing())
-                dataloader_sidd_training = DataLoader(dataset=SIDD_training,
-                                                      batch_size=config['Training']['Train_Batch_Size'],
-                                                      shuffle=True,
-                                                      num_workers=16)
-
             training_results = TRAINING_NETWORKS.Train_Shared(epoch=epoch,
                                                               passes=1,
                                                               controller=Controller,
@@ -223,8 +215,29 @@ def main():
                                  'PSNR_Original_Train': training_results['PSNR_Original'],
                                  'PSNR_Original_Val': -1})
 
-        for i in range(2 ** (milestones_index - 1)):
             Shared_Autoencoder_Scheduler.step()
+
+        validation_results = evaluate_model(epoch=args.epochs,
+                                            controller=Controller,
+                                            shared=Shared_Autoencoder,
+                                            dataloader_sidd_validation=dataloader_sidd_validation,
+                                            config=config,
+                                            arc_bools=[args.kernel_bool, args.up_bool, args.down_bool],
+                                            n_samples=10,
+                                            sample_size=args.sample_size,
+                                            device=device_0)
+
+        Display_Loss = ("Validation_Loss: %.6f" % validation_results['Validation_Loss'] +
+                        "\tValidation_Loss_Original: %.6f" % validation_results['Validation_Loss_Original'])
+        Display_SSIM = ("Validation_SSIM: %.6f" % validation_results['Validation_SSIM'] +
+                        "\tValidation_SSIM_Original: %.6f" % validation_results['Validation_SSIM_Original'])
+        Display_PSNR = ("Validation_PSNR: %.6f" % validation_results['Validation_PSNR'] +
+                        "\tValidation_PSNR_Original: %.6f" % validation_results['Validation_PSNR_Original'])
+
+        print('\n' + '-' * 120)
+        print("Validation Data for Epoch: ", args.epochs)
+        print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
+        print('-' * 120 + '\n')
 
     else:  # Todo: add the fixed_arc training optionality
         print("Exiting:")
