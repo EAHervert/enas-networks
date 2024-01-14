@@ -8,7 +8,7 @@
   "Training": {
     "Train_Batch_Size": 16,
     "Validation_Batch_Size": 16,
-    "Validation_Samples": 10
+    "Validation_Samples": 2
   },
   "CUDA": {
     "Device0": "cuda:0",
@@ -20,6 +20,6 @@
     "Child_Grad_Bound": 0.25,
     "Child_lr": 1e-4,
     "Child_gamma": 0.5,
-    "Step_Size": 2
+    "Step_Size": 3
   }
 }
