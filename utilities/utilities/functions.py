@@ -317,3 +317,7 @@ def random_architecture_generation(k_value=3, kernel_bool=True, down_bool=True, 
         bottleneck.append(random.randint(0, 7) if kernel_bool else 0)
 
     return encoder + bottleneck + decoder
+
+
+def list_of_ints(arg):
+    return list(map(int, arg.split(',')))

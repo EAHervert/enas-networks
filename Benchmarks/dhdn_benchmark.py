@@ -12,15 +12,11 @@ import visdom
 import argparse
 
 from utilities.utils import CSVLogger, Logger
-from utilities.functions import SSIM, PSNR, generate_loggers, drop_weights, gaussian_add_weights, clip_weights
+from utilities.functions import (SSIM, PSNR, generate_loggers, drop_weights, gaussian_add_weights, clip_weights,
+                                 list_of_ints)
 
 current_time = datetime.datetime.now()
 d1 = current_time.strftime('%Y_%m_%d__%H_%M_%S')
-
-
-def list_of_ints(arg):
-    return list(map(int, arg.split(',')))
-
 
 # Parser
 parser = argparse.ArgumentParser(

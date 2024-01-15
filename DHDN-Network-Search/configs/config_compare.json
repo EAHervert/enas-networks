@@ -1,0 +1,25 @@
+{
+  "Description": "ENAS_Compare",
+  "Locations": {
+    "Validation_Noisy": "/data/ValidationNoisyBlocksSrgb.mat",
+    "Validation_GT": "/data/ValidationGtBlocksSrgb.mat",
+    "Benchmark": "/data/BenchmarkNoisyBlocksSrgb.mat"
+  },
+  "Training": {
+    "Train_Batch_Size": 16,
+    "Validation_Batch_Size": 16,
+    "Validation_Samples": 10
+  },
+  "CUDA": {
+    "Device0": "cuda:0",
+    "Device1": "cuda:1"
+  },
+  "Shared": {
+    "Channels": 128,
+    "K_Value": 3,
+    "Child_Grad_Bound": 0.25,
+    "Child_lr": 1e-5,
+    "Child_gamma": 0.5,
+    "Step_Size": 3
+  }
+}
