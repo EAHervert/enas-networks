@@ -83,3 +83,9 @@ for i in range(len(architectures_array[-1])):
             dict_arc[i][j] = np.count_nonzero(architectures_array[:, i] == j)
 
 pprint.pprint(dict_arc)
+
+argmax_arc = []
+for key in dict_arc.keys():
+    argmax_arc.append(np.argmax(list(dict_arc[key].values())))
+
+print(argmax_arc)

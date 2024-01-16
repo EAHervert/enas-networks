@@ -175,3 +175,4 @@ dmypy.json
 /Benchmarks/ieee_image_generation.ipynb
 /Benchmarks/gaussian_filters.ipynb
 /Benchmarks/reward_validation_sidd.ipynb
+/utilities/tests/

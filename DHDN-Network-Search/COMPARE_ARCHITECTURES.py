@@ -27,6 +27,7 @@ parser.add_argument('--output_file', default='Evaluate_Shared_DHDN', type=str)
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--arc_1', default=default_arc, type=list_of_ints)  # Encoder of the DHDN
 parser.add_argument('--arc_2', default=default_arc, type=list_of_ints)  # Encoder of the DHDN
+parser.add_argument('--sample_size', type=int, default=-1)  # How many samples from validation to evaluate
 parser.add_argument('--load_shared', default=False, type=lambda x: (str(x).lower() == 'true'))  # Load shared model(s)
 parser.add_argument('--model_shared_path', default='2023_12_15__16_25_17/shared_network_parameters.pth', type=str)
 parser.add_argument('--device', default='cuda:0', type=str)  # GPU to use
@@ -51,7 +52,7 @@ def main():
     model_shared_path = '/models/' + args.model_shared_path
 
     device_0 = torch.device(args.device)  # Define the devices
-
+    samples = None if args.sample_size == -1 else args.sample_size
     # Create the CSV Logger:
     Result_Path = 'results/' + args.output_file + '/' + d1
     if not os.path.isdir(Result_Path):
@@ -105,12 +106,12 @@ def main():
     results_1 = get_eval_accuracy(shared=Shared_Autoencoder,
                                   sample_arc=args.arc_1,
                                   dataloader_sidd_validation=dataloader_sidd_validation,
-                                  samples=None,
+                                  samples=samples,
                                   device=device_0)
     results_2 = get_eval_accuracy(shared=Shared_Autoencoder,
                                   sample_arc=args.arc_2,
                                   dataloader_sidd_validation=dataloader_sidd_validation,
-                                  samples=None,
+                                  samples=samples,
                                   device=device_0)
 
     Display_Loss = ("Loss_1: %.6f" % results_1['Loss'] + "\tLoss_2: %.6f" % results_2['Loss'] +
