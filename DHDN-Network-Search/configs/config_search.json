@@ -8,7 +8,7 @@
   "Training": {
     "Train_Batch_Size": 16,
     "Validation_Batch_Size": 16,
-    "Validation_Samples": 10
+    "Validation_Samples": 8
   },
   "CUDA": {
     "Device0": "cuda:0",
@@ -21,7 +21,7 @@
     "Controller_Grad_Bound": 5.0,
     "Controller_lr": 3.5e-4,
     "Controller_Num_Aggregate": 10,
-    "Controller_Train_Steps": 24,
+    "Controller_Train_Steps": 30,
     "Controller_Bl_Dec": 0.99
   },
   "Shared": {
