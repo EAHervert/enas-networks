@@ -29,6 +29,8 @@ parser.add_argument('--output_file', default='Controller_DHDN', type=str)
 parser.add_argument('--epochs', type=int, default=30)
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--sample_size', type=int, default=-1)  # How many samples from validation to evaluate
+parser.add_argument('--controller_num_aggregate', type=int, default=8)  # Steps in same samples
+parser.add_argument('--controller_train_steps', type=int, default=35)  # Total different sample sets
 parser.add_argument('--load_shared', default=False, type=lambda x: (str(x).lower() == 'true'))  # Load shared model(s)
 parser.add_argument('--model_shared_path', default='2023_12_15__16_25_17/shared_network_parameters.pth', type=str)
 parser.add_argument('--load_controller', default=False, type=lambda x: (str(x).lower() == 'true'))  # Load controller
@@ -144,7 +146,6 @@ def main():
                                             shuffle=False,
                                             num_workers=8)
     Shared_Autoencoder.eval()
-    Controller.train()
 
     # Here we will have the following meters for the metrics
     reward_meter = AverageMeter()  # Reward R
@@ -158,10 +159,11 @@ def main():
     choices = random.sample(range(80), k=config['Training']['Validation_Samples'])
     baseline = None
     for epoch in range(args.epochs):
+        Controller.train()  # Train Controller
         for i in range(
-                config['Controller']['Controller_Train_Steps'] * config['Controller']['Controller_Num_Aggregate']):
+                args.controller_train_steps * args.controller_num_aggregate):
             # Randomly selects "validation_samples" batches to run the validation for each controller_num_aggregate
-            if i % config['Controller']['Controller_Num_Aggregate'] == 0:
+            if i % args.controller_num_aggregate == 0:
                 choices = random.sample(range(80), k=config['Training']['Validation_Samples'])
             Controller()  # perform forward pass to generate a new architecture
             architecture = Controller.sample_arc
@@ -201,9 +203,9 @@ def main():
             Controller.zero_grad()
 
             # Aggregate gradients for controller_num_aggregate iteration, then update weights
-            if (i + 1) % config['Controller']['Controller_Num_Aggregate'] == 0:
+            if (i + 1) % args.controller_num_aggregate == 0:
                 display = 'Epoch_Number=' + str(epoch) + '-' + \
-                          str(i // config['Controller']['Controller_Num_Aggregate']) + \
+                          str(i // args.controller_num_aggregate) + \
                           '\tController_log_probs=%+.6f' % Controller.sample_log_prob.item() + \
                           '\tController_loss=%+.6f' % loss_meter.val + \
                           '\tEntropy=%.6f' % Controller.sample_entropy.item() + \
@@ -243,6 +245,7 @@ def main():
             opts=dict(title=list(vis_window)[5], xlabel='Epoch', ylabel='Reward'),
             update='append' if epoch > 0 else None)
 
+        # Controller in eval mode called in evaluate_model
         validation_results = evaluate_model(epoch=epoch,
                                             controller=Controller,
                                             shared=Shared_Autoencoder,
