@@ -5,6 +5,7 @@ from ENAS_DHDN import SHARED_DHDN
 from ENAS_DHDN import CONTROLLER
 import datetime
 import json
+import time
 import numpy as np
 import torch
 import torch.nn as nn
@@ -13,7 +14,7 @@ import argparse
 import visdom
 import random
 
-from utilities.functions import SSIM
+from utilities.functions import SSIM, display_time
 from utilities.utils import CSVLogger, Logger
 from ENAS_DHDN.TRAINING_FUNCTIONS import evaluate_model, AverageMeter
 
@@ -29,8 +30,10 @@ parser.add_argument('--output_file', default='Controller_DHDN', type=str)
 parser.add_argument('--epochs', type=int, default=30)
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--sample_size', type=int, default=-1)  # How many samples from validation to evaluate
+parser.add_argument('--validation_samples', type=int, default=5)  # How many samples from validation to evaluate
 parser.add_argument('--controller_num_aggregate', type=int, default=8)  # Steps in same samples
 parser.add_argument('--controller_train_steps', type=int, default=35)  # Total different sample sets
+parser.add_argument('--controller_lr', type=float, default=5e-4)  # Total different sample sets
 parser.add_argument('--load_shared', default=False, type=lambda x: (str(x).lower() == 'true'))  # Load shared model(s)
 parser.add_argument('--model_shared_path', default='2023_12_15__16_25_17/shared_network_parameters.pth', type=str)
 parser.add_argument('--load_controller', default=False, type=lambda x: (str(x).lower() == 'true'))  # Load controller
@@ -59,6 +62,10 @@ def main():
     config = json.load(open(config_path))
     model_controller_path = '/models/' + args.model_controller_path
     model_shared_path = '/models/' + args.model_shared_path
+
+    Model_Path = 'models/' + d1
+    if not os.path.isdir(Model_Path):
+        os.mkdir(Model_Path)
 
     device_0 = torch.device(args.device)  # Define the devices
     samples = None if args.sample_size == -1 else args.sample_size
@@ -90,6 +97,7 @@ def main():
         'Ctrl_Accuracy_{d1}'.format(d1=d1): None, 'Ctrl_Reward_{d1}'.format(d1=d1): None
     }
 
+    t_init = time.time()
     np.random.seed(args.seed)
     sys.stdout = Logger(filename=Result_Path + '/log.log')
 
@@ -130,7 +138,7 @@ def main():
     # We will use the ADAM optimizer for the controller.
     # https://github.com/melodyguan/enas/blob/master/src/utils.py#L218
     Controller_Optimizer = torch.optim.Adam(params=Controller.parameters(),
-                                            lr=config['Controller']['Controller_lr'],
+                                            lr=args.controller_lr,
                                             betas=(0.9, 0.999))
 
     # Noise Dataset
@@ -156,7 +164,7 @@ def main():
     SSIM_Original_Meter = AverageMeter()
 
     Controller.zero_grad()
-    choices = random.sample(range(80), k=config['Training']['Validation_Samples'])
+    choices = random.sample(range(80), k=args.validation_samples)
     baseline = None
     for epoch in range(args.epochs):
         Controller.train()  # Train Controller
@@ -164,7 +172,7 @@ def main():
                 args.controller_train_steps * args.controller_num_aggregate):
             # Randomly selects "validation_samples" batches to run the validation for each controller_num_aggregate
             if i % args.controller_num_aggregate == 0:
-                choices = random.sample(range(80), k=config['Training']['Validation_Samples'])
+                choices = random.sample(range(80), k=args.validation_samples)
             Controller()  # perform forward pass to generate a new architecture
             architecture = Controller.sample_arc
 
@@ -219,6 +227,7 @@ def main():
         print("Controller Average Loss: ", loss_meter.avg)
         print("Controller Average Accuracy (Normalized SSIM): ", val_acc_meter.avg)
         print("Controller Average Reward: ", reward_meter.avg)
+        print("Controller Learning Rate:", Controller_Optimizer.param_groups[0]['lr'])
         print('\n' + '-' * 120)
 
         Ctrl_Logger.writerow({'Controller_Reward': reward_meter.avg, 'Controller_Accuracy': val_acc_meter.avg,
@@ -287,6 +296,12 @@ def main():
 
     CSV_Logger.close()
     Ctrl_Logger.close()
+
+    t_final = time.time()
+    display_time(t_final - t_init)
+
+    Controller_Path = Model_Path + '/pre_trained_controller_parameters.pth'
+    torch.save(Controller.state_dict(), Controller_Path)
 
 
 if __name__ == "__main__":
