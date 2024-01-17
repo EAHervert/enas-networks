@@ -27,6 +27,7 @@ if not sys.warnoptions:
 parser = argparse.ArgumentParser(description='ENAS_SEARCH_DHDN')
 
 parser.add_argument('--output_file', default='Controller_DHDN', type=str)
+parser.add_argument('--number', type=int, default=1000)
 parser.add_argument('--epochs', type=int, default=30)
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--sample_size', type=int, default=-1)  # How many samples from validation to evaluate
@@ -293,6 +294,29 @@ def main():
                              'SSIM_Original': validation_results['Validation_SSIM_Original'],
                              'PSNR': validation_results['Validation_PSNR'],
                              'PSNR_Original': validation_results['Validation_PSNR_Original']})
+        architectures = []
+        for i in range(args.number):
+            with torch.no_grad():
+                Controller()
+            architectures.append(Controller.sample_arc)
+        architectures_array = np.array(architectures)
+        dict_arc = {}
+        for i in range(len(architectures_array[-1])):
+            dict_arc[i] = {}
+            if not (i + 1) % 3:
+                for j in range(3):
+                    dict_arc[i][j] = np.count_nonzero(architectures_array[:, i] == j) / args.number
+            else:
+                for j in range(8):
+                    dict_arc[i][j] = np.count_nonzero(architectures_array[:, i] == j) / args.number
+        argmax_arc = []
+        print('\n' + '-' * 120)
+        print('Controller Distribution:')
+        for key in dict_arc.keys():
+            print(key, dict_arc[key])
+            argmax_arc.append(np.argmax(list(dict_arc[key].values())))
+        print('Architecture argmax:', argmax_arc)
+        print('\n' + '-' * 120)
 
     CSV_Logger.close()
     Ctrl_Logger.close()
