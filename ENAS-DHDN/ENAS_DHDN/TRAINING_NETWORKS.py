@@ -246,6 +246,7 @@ def Train_ENAS(
         dataloader_sidd_validation: Validation dataset.
         config: config for the hyperparameters.
         sample_size: Number of the validation samples we will use for evaluation, -1 for all samples.
+        device: The GPU that we will use.
         pre_train_controller: Pre-Training the controller when we have pre-trained shared network (optional).
         ...
 

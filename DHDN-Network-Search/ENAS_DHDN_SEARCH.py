@@ -144,8 +144,8 @@ def main():
             kernel_bool=args.kernel_bool,
             down_bool=args.down_bool,
             up_bool=args.up_bool,
-            LSTM_size=config['Controller']['Controller_LSTM_Size'],
-            LSTM_num_layers=config['Controller']['Controller_LSTM_Num_Layers']
+            lstm_size=config['Controller']['Controller_LSTM_Size'],
+            lstm_num_layers=config['Controller']['Controller_LSTM_Num_Layers']
         )
         Controller = Controller.to(device_0)
 

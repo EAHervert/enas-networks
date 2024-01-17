@@ -47,8 +47,8 @@ Controller = CONTROLLER.Controller(
     kernel_bool=args.Kernel_Bool,
     down_bool=args.Down_Bool,
     up_bool=args.Up_Bool,
-    LSTM_size=config['Controller']['Controller_LSTM_Size'],
-    LSTM_num_layers=config['Controller']['Controller_LSTM_Num_Layers']
+    lstm_size=config['Controller']['Controller_LSTM_Size'],
+    lstm_num_layers=config['Controller']['Controller_LSTM_Num_Layers']
 )
 
 Controller = Controller.to(device_0)

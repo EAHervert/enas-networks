@@ -27,8 +27,8 @@ class Controller(nn.Module):
                  kernel_bool=True,
                  down_bool=True,
                  up_bool=True,
-                 LSTM_size=32,
-                 LSTM_num_layers=1):
+                 lstm_size=32,
+                 lstm_num_layers=1):
         super(Controller, self).__init__()
 
         # Network Hyperparameters
@@ -40,14 +40,19 @@ class Controller(nn.Module):
         self.up_bool = up_bool
 
         # Arrays
-        self.kernel_array = []
-        self.down_array = []
-        self.up_array = []
+        self.kernel_array = [0 for _ in range(4 * self.k_value + 2)]
+        self.down_array = [0 for _ in range(self.k_value)]
+        self.up_array = [0 for _ in range(self.k_value)]
+        self.sample_arc = macro_array(self.k_value, self.kernel_array, self.down_array, self.up_array)
+
+        # Values for Controller Training
+        self.sample_entropy = None
+        self.sample_log_prob = None
 
         # LSTM Network Parameters
         # The controller will contain LSTM cells.
-        self.LSTM_size = LSTM_size
-        self.LSTM_num_layers = LSTM_num_layers
+        self.LSTM_size = lstm_size
+        self.LSTM_num_layers = lstm_num_layers
 
         self._create_params()
 
@@ -67,22 +72,29 @@ class Controller(nn.Module):
         # https://pytorch.org/docs/master/generated/torch.nn.Embedding.html
         self.g_emb = nn.Embedding(1, self.LSTM_size)
 
-        # The layer outputs embedded into the LSTM_Size
-        self.w_emb_kernel = nn.Embedding(8, self.LSTM_size)
-        self.w_emb_down = nn.Embedding(3, self.LSTM_size)
-        self.w_emb_up = nn.Embedding(3, self.LSTM_size)
-
         if self.kernel_bool:
             # Will take the output of the LSTM and give values corresponding to the DCR Blocks
             self.w_kernel = nn.Linear(self.LSTM_size, 8, bias=False)
+            self.w_emb_kernel = nn.Embedding(8, self.LSTM_size)
+        else:
+            self.w_kernel = None
+            self.w_emb_kernel = None
 
         if self.down_bool:
             # Will take the output of the LSTM and give values corresponding to the Down Blocks
             self.w_down = nn.Linear(self.LSTM_size, 3, bias=False)
+            self.w_emb_down = nn.Embedding(3, self.LSTM_size)
+        else:
+            self.w_down = None
+            self.w_emb_down = None
 
         if self.up_bool:
             # Will take the output of the LSTM and give values corresponding to the Down Blocks
             self.w_up = nn.Linear(self.LSTM_size, 3, bias=False)
+            self.w_emb_up = nn.Embedding(3, self.LSTM_size)
+        else:
+            self.w_up = None
+            self.w_emb_up = None
 
         self.softmax = nn.Softmax(dim=1)
 
@@ -105,22 +117,29 @@ class Controller(nn.Module):
         # the input for the hidden state will be h_0 = vector(0)
         h0 = None  # setting h0 to None will initialize LSTM state with 0s
 
-        # Reinitialize the arrays:
-        self.kernel_array = []
-        self.down_array = []
-        self.up_array = []
-
         # For the REINFORCE Algorithm.
         entropies = []
         log_probs = []
 
         inputs = self.g_emb.weight
+        w_array = [self.w_kernel, self.w_down, self.w_up]
+        arrays = [self.kernel_array, self.down_array, self.up_array]
+        emb = [self.w_emb_kernel, self.w_emb_down, self.w_emb_up]
+        indexes = [-1, -1, -1]
+        # Generate the Architecture:
+        for i in range(6 * self.k_value + 2):
+            if (i + 1) % 3 != 0:
+                index = 0
+                boolean = self.kernel_bool
+            elif i < 3 * self.k_value + 1:
+                index = 1
+                boolean = self.down_bool
+            else:
+                index = 2
+                boolean = self.up_bool
 
-        # DCR Blocks:
-        if self.kernel_bool:
-
-            # Let us do the Kernel Array:
-            for DCR_block in range(4 * self.k_value + 2):
+            indexes[index] += 1
+            if boolean:
                 inputs = inputs.unsqueeze(0)  # Will return a tensor with dimension 1 by dim(inputs).
 
                 # Feed in the input tensor which specifies the input and the hidden state from the previous step
@@ -128,13 +147,13 @@ class Controller(nn.Module):
                 output = output.squeeze(0)  # Will return a tensor with dimension dim(inputs)[original].
                 h0 = hn  # Have the hidden output be the initial hidden input for the next step.
 
-                logit = self.w_kernel(output)  # Using the output and passing it through a linear layer.
+                logit = w_array[index](output)  # Using the output and passing it through a linear layer.
                 # Have the network generate probabilities to pick the layers that we need.
                 probs = self.softmax(logit)
                 DCR_dist = Categorical(probs=probs)
                 DCR_layer = DCR_dist.sample()
 
-                self.kernel_array.append(DCR_layer.item())
+                arrays[index][indexes[index]] = DCR_layer.item()
 
                 # Here we have the log probabilities and entropy of the distribution.
                 # These values will be used for the REINFORCE Algorithm
@@ -143,83 +162,11 @@ class Controller(nn.Module):
                 entropy = DCR_dist.entropy()
                 entropies.append(entropy.view(-1))
 
-                inputs = self.w_emb_kernel(DCR_layer)
+                inputs = emb[index](DCR_layer)
 
-        else:
-            self.kernel_array = [0] * (4 * self.k_value + 2)
-
-        # Down Blocks:
-        if self.down_bool:
-
-            # Let us do the Down Array:
-            for down_block in range(self.k_value):
-                inputs = inputs.unsqueeze(0)  # Will return a tensor with dimension 1xdim(inputs).
-
-                # Feed in the input tensor which specifies the input and the hidden state from the previous step
-                output, hn = self.w_lstm(inputs, h0)
-                output = output.squeeze(0)  # Will return a tensor with dimension dim(inputs)[original].
-                h0 = hn  # Have the hidden output be the initial hidden input for the next step.
-
-                # Since we are generating the Down Blocks:
-                logit = self.w_down(output)  # Using the output and passing it through a linear layer.
-                # Have the network generate probabilities to pick the layers that we need.
-                probs = self.softmax(logit)
-                down_dist = Categorical(probs=probs)
-                down_layer = down_dist.sample()
-
-                # Append the
-                self.down_array.append(down_layer.item())
-
-                # Here we have the log probabilities and entropy of the distribution.
-                # These values will be used for the REINFORCE Algorithm
-                log_prob = down_dist.log_prob(down_layer)
-                log_probs.append(log_prob.view(-1))
-                entropy = down_dist.entropy()
-                entropies.append(entropy.view(-1))
-
-                inputs = self.w_emb_down(down_layer)
-
-        else:
-            self.down_array = [0] * (4 * self.k_value + 2)
-
-        # Up Blocks:
-        if self.up_bool:
-
-            # Let us do the Up Array:
-            for DCR_block in range(self.k_value):
-                inputs = inputs.unsqueeze(0)  # Will return a tensor with dimension 1xdim(inputs).
-
-                # Feed in the input tensor which specifies the input and the hidden state from the previous step
-                output, hn = self.w_lstm(inputs, h0)
-                output = output.squeeze(0)  # Will return a tensor with dimension dim(inputs)[original].
-                h0 = hn  # Have the hidden output be the initial hidden input for the next step.
-
-                # Since we are generating the Up Blocks:
-                logit = self.w_up(output)  # Using the output and passing it through a linear layer.
-                # Have the network generate probabilities to pick the layers that we need.
-                probs = self.softmax(logit)
-                up_dist = Categorical(probs=probs)
-                up_layer = up_dist.sample()
-
-                # Append the
-                self.up_array.append(up_layer.item())
-
-                # Here we have the log probabilities and entropy of the distripution.
-                # These values will be used for the REINFORCE Algorithm
-                log_prob = up_dist.log_prob(up_layer)
-                log_probs.append(log_prob.view(-1))
-                entropy = up_dist.entropy()
-                entropies.append(entropy.view(-1))
-
-                inputs = self.w_emb_up(up_layer)
-
-        else:
-            self.up_array = [0] * (4 * self.k_value + 2)
+                del output, hn, logit, probs, log_prob, entropy
 
         self.sample_arc = macro_array(self.k_value, self.kernel_array, self.down_array, self.up_array)
 
-        entropies = torch.cat(entropies)
-        self.sample_entropy = torch.sum(entropies)
-
-        log_probs = torch.cat(log_probs)
-        self.sample_log_prob = torch.sum(log_probs)
+        self.sample_entropy = torch.sum(torch.cat(entropies))
+        self.sample_log_prob = torch.sum(torch.cat(log_probs))
