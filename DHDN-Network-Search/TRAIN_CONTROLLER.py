@@ -35,6 +35,8 @@ parser.add_argument('--validation_samples', type=int, default=5)  # How many sam
 parser.add_argument('--controller_num_aggregate', type=int, default=8)  # Steps in same samples
 parser.add_argument('--controller_train_steps', type=int, default=35)  # Total different sample sets
 parser.add_argument('--controller_lr', type=float, default=5e-4)  # Total different sample sets
+parser.add_argument('--controller_lstm_size', type=int, default=64)  # Total different sample sets
+parser.add_argument('--controller_lstm_num_layers', type=int, default=1)  # Total different sample sets
 parser.add_argument('--load_shared', default=False, type=lambda x: (str(x).lower() == 'true'))  # Load shared model(s)
 parser.add_argument('--model_shared_path', default='2023_12_15__16_25_17/shared_network_parameters.pth', type=str)
 parser.add_argument('--load_controller', default=False, type=lambda x: (str(x).lower() == 'true'))  # Load controller
@@ -127,8 +129,8 @@ def main():
         kernel_bool=args.kernel_bool,
         down_bool=args.down_bool,
         up_bool=args.up_bool,
-        lstm_size=config['Controller']['Controller_LSTM_Size'],
-        lstm_num_layers=config['Controller']['Controller_LSTM_Num_Layers']
+        lstm_size=args.controller_lstm_size,
+        lstm_num_layers=args.controller_lstm_num_layers
     )
     Controller = Controller.to(device_0)
 
