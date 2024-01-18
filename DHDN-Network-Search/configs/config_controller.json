@@ -14,8 +14,6 @@
     "Device1": "cuda:1"
   },
   "Controller": {
-    "Controller_LSTM_Size": 64,
-    "Controller_LSTM_Num_Layers": 1,
     "Controller_Entropy_Weight": 0.0001,
     "Controller_Grad_Bound": 5.0,
     "Controller_Bl_Dec": 0.99

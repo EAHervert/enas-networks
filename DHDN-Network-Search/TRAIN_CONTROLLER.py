@@ -95,9 +95,8 @@ def main():
 
     vis.env = args.output_file
     vis_window = {
-        'SN_Loss_{d1}'.format(d1=d1): None, 'SN_SSIM_{d1}'.format(d1=d1): None,
-        'SN_PSNR_{d1}'.format(d1=d1): None, 'Ctrl_Loss_{d1}'.format(d1=d1): None,
-        'Ctrl_Accuracy_{d1}'.format(d1=d1): None, 'Ctrl_Reward_{d1}'.format(d1=d1): None
+        'Ctrl_Loss_{d1}'.format(d1=d1): None, 'Ctrl_Accuracy_{d1}'.format(d1=d1): None,
+        'Ctrl_Reward_{d1}'.format(d1=d1): None
     }
 
     t_init = time.time()
@@ -236,25 +235,25 @@ def main():
         Ctrl_Logger.writerow({'Controller_Reward': reward_meter.avg, 'Controller_Accuracy': val_acc_meter.avg,
                               'Controller_Loss': loss_meter.avg})
 
-        vis_window[list(vis_window)[3]] = vis.line(
+        vis_window[list(vis_window)[0]] = vis.line(
             X=np.column_stack([epoch]),
             Y=np.column_stack([loss_meter.avg]),
-            win=vis_window[list(vis_window)[3]],
-            opts=dict(title=list(vis_window)[3], xlabel='Epoch', ylabel='Loss'),
+            win=vis_window[list(vis_window)[0]],
+            opts=dict(title=list(vis_window)[0], xlabel='Epoch', ylabel='Loss'),
             update='append' if epoch > 0 else None)
 
-        vis_window[list(vis_window)[4]] = vis.line(
+        vis_window[list(vis_window)[1]] = vis.line(
             X=np.column_stack([epoch]),
             Y=np.column_stack([val_acc_meter.avg]),
-            win=vis_window[list(vis_window)[4]],
-            opts=dict(title=list(vis_window)[4], xlabel='Epoch', ylabel='Accuracy'),
+            win=vis_window[list(vis_window)[1]],
+            opts=dict(title=list(vis_window)[1], xlabel='Epoch', ylabel='Accuracy'),
             update='append' if epoch > 0 else None)
 
-        vis_window[list(vis_window)[5]] = vis.line(
+        vis_window[list(vis_window)[2]] = vis.line(
             X=np.column_stack([epoch]),
             Y=np.column_stack([reward_meter.avg]),
-            win=vis_window[list(vis_window)[5]],
-            opts=dict(title=list(vis_window)[5], xlabel='Epoch', ylabel='Reward'),
+            win=vis_window[list(vis_window)[2]],
+            opts=dict(title=list(vis_window)[2], xlabel='Epoch', ylabel='Reward'),
             update='append' if epoch > 0 else None)
 
         # Controller in eval mode called in evaluate_model
@@ -266,29 +265,6 @@ def main():
                                             arc_bools=[args.kernel_bool, args.down_bool, args.up_bool],
                                             sample_size=samples,
                                             device=device_0)
-
-        Legend = ['Shared_Val', 'Orig_Val']
-
-        vis_window[list(vis_window)[0]] = vis.line(
-            X=np.column_stack([epoch] * 2),
-            Y=np.column_stack([validation_results['Validation_Loss'], validation_results['Validation_Loss_Original']]),
-            win=vis_window[list(vis_window)[0]],
-            opts=dict(title=list(vis_window)[0], xlabel='Epoch', ylabel='Loss', legend=Legend),
-            update='append' if epoch > 0 else None)
-
-        vis_window[list(vis_window)[1]] = vis.line(
-            X=np.column_stack([epoch] * 2),
-            Y=np.column_stack([validation_results['Validation_SSIM'], validation_results['Validation_SSIM_Original']]),
-            win=vis_window[list(vis_window)[1]],
-            opts=dict(title=list(vis_window)[1], xlabel='Epoch', ylabel='SSIM', legend=Legend),
-            update='append' if epoch > 0 else None)
-
-        vis_window[list(vis_window)[2]] = vis.line(
-            X=np.column_stack([epoch] * 2),
-            Y=np.column_stack([validation_results['Validation_PSNR'], validation_results['Validation_PSNR_Original']]),
-            win=vis_window[list(vis_window)[2]],
-            opts=dict(title=list(vis_window)[2], xlabel='Epoch', ylabel='PSNR', legend=Legend),
-            update='append' if epoch > 0 else None)
 
         CSV_Logger.writerow({'Loss': validation_results['Validation_Loss'],
                              'Loss_Original': validation_results['Validation_Loss_Original'],
