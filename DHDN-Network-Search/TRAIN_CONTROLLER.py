@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader
 import argparse
 import visdom
 import random
+from collections import OrderedDict
 
 from utilities.functions import SSIM, display_time
 from utilities.utils import CSVLogger, Logger
@@ -121,6 +122,12 @@ def main():
 
     if args.load_shared:
         state_dict_shared = torch.load(dir_current + model_shared_path, map_location=device_0)
+        if not args.data_parallel:
+            state_dict_shared_new = OrderedDict()
+            for k, v in state_dict_shared.items():
+                state_dict_shared_new[k.replace("module.", "")] = v
+            state_dict_shared = state_dict_shared_new
+
         Shared_Autoencoder.load_state_dict(state_dict_shared)
 
     Controller = CONTROLLER.Controller(
