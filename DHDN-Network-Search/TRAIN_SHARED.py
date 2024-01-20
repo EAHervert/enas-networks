@@ -16,7 +16,6 @@ import argparse
 
 from utilities.utils import CSVLogger, Logger
 from utilities.functions import display_time
-from ENAS_DHDN.TRAINING_FUNCTIONS import evaluate_model
 
 # To supress warnings:
 if not sys.warnoptions:
@@ -30,7 +29,6 @@ parser.add_argument('--output_file', default='Pre_Train_DHDN', type=str)
 
 # Training:
 parser.add_argument('--epochs', type=int, default=30)
-parser.add_argument('--sample_size', type=int, default=-1)  # How many samples from validation to evaluate on.
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--device', default='cuda:0', type=str)  # GPU to use
 # Put shared network on two devices instead of one
@@ -81,9 +79,8 @@ def main():
 
     # Create the CSV Logger:
     File_Name = Result_Path + '/data.csv'
-    Field_Names = ['Loss_Batch', 'Loss_Val', 'Loss_Original_Train', 'Loss_Original_Val',
-                   'SSIM_Batch', 'SSIM_Val', 'SSIM_Original_Train', 'SSIM_Original_Val',
-                   'PSNR_Batch', 'PSNR_Val', 'PSNR_Original_Train', 'PSNR_Original_Val']
+    Field_Names = ['Loss_Batch', 'Loss_Original_Train', 'SSIM_Batch', 'SSIM_Original_Train', 'PSNR_Batch',
+                   'PSNR_Original_Train']
     CSV_Logger = CSVLogger(fieldnames=Field_Names, filename=File_Name)
 
     # This window will show the SSIM and PSNR of the different networks.
@@ -95,9 +92,7 @@ def main():
 
     vis.env = args.output_file
     vis_window = {
-        'SN_Loss_{d1}'.format(d1=d1): None, 'SN_SSIM_{d1}'.format(d1=d1): None,
-        'SN_PSNR_{d1}'.format(d1=d1): None, 'Ctrl_Loss_{d1}'.format(d1=d1): None,
-        'Ctrl_Accuracy_{d1}'.format(d1=d1): None, 'Ctrl_Reward_{d1}'.format(d1=d1): None
+        'SN_Loss_{d1}'.format(d1=d1): None, 'SN_SSIM_{d1}'.format(d1=d1): None, 'SN_PSNR_{d1}'.format(d1=d1): None
     }
 
     t_init = time.time()
@@ -146,24 +141,14 @@ def main():
 
     # Noise Dataset
     path_training = dir_current + '/instances/' + args.training_csv
-    path_validation_noisy = dir_current + config['Locations']['Validation_Noisy']
-    path_validation_gt = dir_current + config['Locations']['Validation_GT']
 
     # Todo: Make function that returns these datasets.
     SIDD_training = dataset.DatasetSIDD(csv_file=path_training,
                                         transform=dataset.RandomProcessing(),
                                         device=device_0)
-    SIDD_validation = dataset.DatasetSIDDMAT(mat_noisy_file=path_validation_noisy,
-                                             mat_gt_file=path_validation_gt,
-                                             device=device_0)
-
     dataloader_sidd_training = DataLoader(dataset=SIDD_training,
                                           batch_size=config['Training']['Train_Batch_Size'],
                                           shuffle=True)
-    dataloader_sidd_validation = DataLoader(dataset=SIDD_validation,
-                                            batch_size=config['Training']['Validation_Batch_Size'],
-                                            shuffle=False)
-
     if not args.fixed_arc:
         for epoch in range(args.epochs):
             training_results = TRAINING_NETWORKS.Train_Shared(epoch=epoch,
@@ -202,41 +187,14 @@ def main():
                 update='append' if epoch > 0 else None)
 
             CSV_Logger.writerow({'Loss_Batch': training_results['Loss'],
-                                 'Loss_Val': -1,
                                  'Loss_Original_Train': training_results['Loss_Original'],
-                                 'Loss_Original_Val': -1,
                                  'SSIM_Batch': training_results['SSIM'],
-                                 'SSIM_Val': -1,
                                  'SSIM_Original_Train': training_results['SSIM_Original'],
-                                 'SSIM_Original_Val': -1,
                                  'PSNR_Batch': training_results['PSNR'],
-                                 'PSNR_Val': -1,
-                                 'PSNR_Original_Train': training_results['PSNR_Original'],
-                                 'PSNR_Original_Val': -1})
+                                 'PSNR_Original_Train': training_results['PSNR_Original']
+                                 })
 
             Shared_Autoencoder_Scheduler.step()
-
-        validation_results = evaluate_model(epoch=args.epochs,
-                                            controller=Controller,
-                                            shared=Shared_Autoencoder,
-                                            dataloader_sidd_validation=dataloader_sidd_validation,
-                                            config=config,
-                                            arc_bools=[args.kernel_bool, args.up_bool, args.down_bool],
-                                            n_samples=10,
-                                            sample_size=args.sample_size,
-                                            device=device_0)
-
-        Display_Loss = ("Validation_Loss: %.6f" % validation_results['Validation_Loss'] +
-                        "\tValidation_Loss_Original: %.6f" % validation_results['Validation_Loss_Original'])
-        Display_SSIM = ("Validation_SSIM: %.6f" % validation_results['Validation_SSIM'] +
-                        "\tValidation_SSIM_Original: %.6f" % validation_results['Validation_SSIM_Original'])
-        Display_PSNR = ("Validation_PSNR: %.6f" % validation_results['Validation_PSNR'] +
-                        "\tValidation_PSNR_Original: %.6f" % validation_results['Validation_PSNR_Original'])
-
-        print('\n' + '-' * 120)
-        print("Validation Data for Epoch: ", args.epochs)
-        print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
-        print('-' * 120 + '\n')
 
     else:  # Todo: add the fixed_arc training optionality
         print("Exiting:")
