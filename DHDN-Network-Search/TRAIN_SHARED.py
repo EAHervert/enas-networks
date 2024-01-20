@@ -212,7 +212,10 @@ def main():
     else:  # Todo: fix with above
         Shared_Path = Model_Path + '/{arc}__parameters.pth'.format(arc=args.fixed_arc)
 
-    torch.save(Shared_Autoencoder.module.state_dict(), Shared_Path)
+    if args.data_parallel:
+        torch.save(Shared_Autoencoder.module.state_dict(), Shared_Path)
+    else:
+        torch.save(Shared_Autoencoder.state_dict(), Shared_Path)
 
 
 if __name__ == "__main__":
