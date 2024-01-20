@@ -57,7 +57,6 @@ def train_loop(epoch,
     # Start the timer for the epoch.
     for pass_ in range(passes):
         for i_batch, sample_batch in enumerate(dataloader_sidd_training):
-
             # Pick an architecture to work with from the Graph Network (Shared)
             if fixed_arc is None:
                 if controller is None:
@@ -73,21 +72,21 @@ def train_loop(epoch,
                 architecture = fixed_arc
 
             x = sample_batch['NOISY']
-            y = shared(x.to(device), architecture)  # Net is the output of the network
+            y = shared(x, architecture)  # Net is the output of the network
             t = sample_batch['GT']
 
-            loss_value = loss(y, t.to(device))
+            loss_value = loss(y, t)
             loss_batch.update(loss_value.item())
 
             # Calculate values not needing to be backpropagated
             with torch.no_grad():
-                loss_original_batch.update(loss(x.to(device), t.to(device)).item())
+                loss_original_batch.update(loss(x, t).item())
 
-                ssim_batch.update(SSIM(y, t.to(device)).item())
+                ssim_batch.update(SSIM(y, t).item())
                 ssim_original_batch.update(SSIM(x, t).item())
 
-                psnr_batch.update(PSNR(mse(y, t.to(device))).item())
-                psnr_original_batch.update(PSNR(mse(x.to(device), t.to(device))).item())
+                psnr_batch.update(PSNR(mse(y, t)).item())
+                psnr_original_batch.update(PSNR(mse(x, t)).item())
 
             # Backpropagate to train model
             shared_optimizer.zero_grad()
@@ -342,12 +341,12 @@ def get_eval_accuracy(
             t_v = validation_batch['GT']
 
             with torch.no_grad():
-                y_v = shared(x_v.to(device), sample_arc)
-                Loss_Meter.update(loss(y_v, t_v.to(device)).item())
+                y_v = shared(x_v, sample_arc)
+                Loss_Meter.update(loss(y_v, t_v).item())
                 Loss_Meter_Original.update(loss(x_v, t_v).item())
-                SSIM_Meter.update(SSIM(y_v, t_v.to(device)).item())
+                SSIM_Meter.update(SSIM(y_v, t_v).item())
                 SSIM_Meter_Original.update(SSIM(x_v, t_v).item())
-                PSNR_Meter.update(PSNR(mse(y_v, t_v.to(device))).item())
+                PSNR_Meter.update(PSNR(mse(y_v, t_v)).item())
                 PSNR_Meter_Original.update(PSNR(mse(x_v, t_v)).item())
 
     dict_metrics = {'Loss': Loss_Meter.avg, 'Loss_Original': Loss_Meter_Original.avg, 'SSIM': SSIM_Meter.avg,

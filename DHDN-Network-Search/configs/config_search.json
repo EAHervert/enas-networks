@@ -8,7 +8,7 @@
   "Training": {
     "Train_Batch_Size": 16,
     "Validation_Batch_Size": 16,
-    "Validation_Samples": 8
+    "Validation_Samples": 5
   },
   "CUDA": {
     "Device0": "cuda:0",
@@ -19,9 +19,9 @@
     "Controller_LSTM_Num_Layers": 1,
     "Controller_Entropy_Weight": 0.0001,
     "Controller_Grad_Bound": 5.0,
-    "Controller_lr": 3.5e-4,
-    "Controller_Num_Aggregate": 8,
-    "Controller_Train_Steps": 35,
+    "Controller_lr": 5e-4,
+    "Controller_Num_Aggregate": 6,
+    "Controller_Train_Steps": 32,
     "Controller_Bl_Dec": 0.99
   },
   "Shared": {

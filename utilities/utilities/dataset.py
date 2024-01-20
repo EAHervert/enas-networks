@@ -13,7 +13,7 @@ warnings.filterwarnings("ignore")
 class DatasetSIDD(Dataset):
     """SIDD dataset."""
 
-    def __init__(self, csv_file, transform=None, raw_images=False):
+    def __init__(self, csv_file, transform=None, raw_images=False, device='cpu'):
         """
         Arguments:
             csv_file (string): Path to the csv file with annotations.
@@ -23,6 +23,7 @@ class DatasetSIDD(Dataset):
         self.csv_instances = pd.read_csv(csv_file)
         self.transform = transform
         self.raw_images = raw_images
+        self.device = torch.device(device)
 
     def __len__(self):
         return len(self.csv_instances)
@@ -40,8 +41,8 @@ class DatasetSIDD(Dataset):
         gt = np.load(gt_name)  # numpy array -> float32
 
         # Numpy HxWxC -> Torch CxHxW
-        noisy_final = torch.tensor(noisy).permute(2, 0, 1)
-        gt_final = torch.tensor(gt).permute(2, 0, 1)
+        noisy_final = torch.tensor(noisy, device=self.device).permute(2, 0, 1)
+        gt_final = torch.tensor(gt, device=self.device).permute(2, 0, 1)
 
         # Final sample output
         if self.raw_images:
@@ -62,7 +63,7 @@ class DatasetSIDD(Dataset):
 class DatasetSIDDMAT(Dataset):
     """SIDD dataset from .mat file."""
 
-    def __init__(self, mat_noisy_file, mat_gt_file=None, transform=None, raw_images=False):
+    def __init__(self, mat_noisy_file, mat_gt_file=None, transform=None, raw_images=False, device='cpu'):
         """
         Arguments:
             .mat file (.mat): Path to the mat file.
@@ -73,6 +74,7 @@ class DatasetSIDDMAT(Dataset):
         self.mat_noisy_dict = loadmat(mat_noisy_file)
         self.mat_noisy = self.mat_noisy_dict[next(reversed(self.mat_noisy_dict))]
         self.size_noisy = self.mat_noisy.shape
+        self.device = torch.device(device)
 
         # GT if available
         if mat_gt_file is not None:
@@ -107,8 +109,8 @@ class DatasetSIDDMAT(Dataset):
             gt = np.zeros_like(noisy)
 
         # Numpy HxWxC -> Torch CxHxW
-        noisy_final = torch.tensor(noisy).permute(2, 0, 1)
-        gt_final = torch.tensor(gt).permute(2, 0, 1)
+        noisy_final = torch.tensor(noisy, device=self.device).permute(2, 0, 1)
+        gt_final = torch.tensor(gt, device=self.device).permute(2, 0, 1)
 
         # Final sample output
         if self.raw_images:
@@ -126,6 +128,7 @@ class DatasetSIDDMAT(Dataset):
         return sample_item
 
 
+# Todo: Update Davis Dataset
 class DatasetDAVIS(Dataset):
     """DAVIS dataset."""
 

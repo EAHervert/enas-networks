@@ -151,19 +151,18 @@ def main():
 
     # Todo: Make function that returns these datasets.
     SIDD_training = dataset.DatasetSIDD(csv_file=path_training,
-                                        transform=dataset.RandomProcessing())
+                                        transform=dataset.RandomProcessing(),
+                                        device=device_0)
     SIDD_validation = dataset.DatasetSIDDMAT(mat_noisy_file=path_validation_noisy,
-                                             mat_gt_file=path_validation_gt)
+                                             mat_gt_file=path_validation_gt,
+                                             device=device_0)
 
     dataloader_sidd_training = DataLoader(dataset=SIDD_training,
                                           batch_size=config['Training']['Train_Batch_Size'],
-                                          shuffle=True,
-                                          num_workers=16)
-
+                                          shuffle=True)
     dataloader_sidd_validation = DataLoader(dataset=SIDD_validation,
                                             batch_size=config['Training']['Validation_Batch_Size'],
-                                            shuffle=False,
-                                            num_workers=8)
+                                            shuffle=False)
 
     if not args.fixed_arc:
         for epoch in range(args.epochs):
@@ -255,8 +254,9 @@ def main():
     else:  # Todo: fix with above
         Shared_Path = Model_Path + '/{arc}__parameters.pth'.format(arc=args.fixed_arc)
 
-    torch.save(Shared_Autoencoder.state_dict(), Shared_Path)
+    torch.save(Shared_Autoencoder.module.state_dict(), Shared_Path)
 
 
 if __name__ == "__main__":
+    torch.multiprocessing.set_start_method('spawn')
     main()
