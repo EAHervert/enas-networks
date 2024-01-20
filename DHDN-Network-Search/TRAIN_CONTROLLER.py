@@ -115,20 +115,14 @@ def main():
         outer_sum=args.outer_sum
     )
 
+    if args.load_shared:
+        state_dict_shared = torch.load(dir_current + model_shared_path, map_location='cpu')
+        Shared_Autoencoder.load_state_dict(state_dict_shared)
+
     if args.data_parallel:
         Shared_Autoencoder = nn.DataParallel(Shared_Autoencoder, device_ids=[0, 1]).cuda()
     else:
         Shared_Autoencoder = Shared_Autoencoder.to(device_0)
-
-    if args.load_shared:
-        state_dict_shared = torch.load(dir_current + model_shared_path, map_location=device_0)
-        if not args.data_parallel:
-            state_dict_shared_new = OrderedDict()
-            for k, v in state_dict_shared.items():
-                state_dict_shared_new[k.replace("module.", "")] = v
-            state_dict_shared = state_dict_shared_new
-
-        Shared_Autoencoder.load_state_dict(state_dict_shared)
 
     Controller = CONTROLLER.Controller(
         k_value=config['Shared']['K_Value'],
@@ -191,8 +185,8 @@ def main():
                     t_v = validation_batch['GT']
 
                     with torch.no_grad():
-                        y_v = Shared_Autoencoder(x_v.to(device_0), architecture)
-                        SSIM_Meter.update(SSIM(y_v, t_v.to(device_0)).item())
+                        y_v = Shared_Autoencoder(x_v, architecture)
+                        SSIM_Meter.update(SSIM(y_v, t_v).item())
                         SSIM_Original_Meter.update(SSIM(x_v, t_v).item())
 
             # Use the Normalized SSIM improvement as the accuracy
