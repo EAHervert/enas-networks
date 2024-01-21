@@ -1,3 +1,5 @@
+import random
+
 from scipy.io import loadmat
 import torch
 import pandas as pd
@@ -184,6 +186,8 @@ class DatasetDAVIS(Dataset):
 # Randomly flip the image in the H and W channel
 class RandomProcessing(object):
     """Randomly flip the image in the H and W channel"""
+    def __init__(self, cutout_images=False):
+        self.cutout_images = cutout_images
 
     def __call__(self, sample):
         r_val = np.random.choice([0, 1, 2, 3])  # Rotates image 90 degrees r_val times
@@ -199,5 +203,21 @@ class RandomProcessing(object):
         noisy = torch.rot90(noisy, k=r_val, dims=[1, 2])
         gt = torch.rot90(gt, k=r_val, dims=[1, 2])
 
+        if self.cutout_images:
+            noisy, gt = self.cutout(noisy, gt, 8)
+
         return {'NOISY': noisy,
                 'GT': gt}
+
+    @staticmethod
+    def cutout(image1, image2, size):
+        """Cutout a size x size block to the original image"""
+        out1 = image1.copy()
+        out2 = image2.copy()
+        h, w, c = image1.shape
+        h_i = random.randrange(h - size)
+        w_i = random.randrange(w - size)
+        out1[h_i:h_i + size, w_i:w_i + size] = np.zeros((size, size, c))
+        out2[h_i:h_i + size, w_i:w_i + size] = np.zeros((size, size, c))
+
+        return out1, out2

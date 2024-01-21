@@ -94,12 +94,12 @@ def main():
 
     # Todo: Make function that returns these datasets.
     SIDD_validation = dataset.DatasetSIDDMAT(mat_noisy_file=path_validation_noisy,
-                                             mat_gt_file=path_validation_gt)
+                                             mat_gt_file=path_validation_gt,
+                                             device=device_0)
 
     dataloader_sidd_validation = DataLoader(dataset=SIDD_validation,
                                             batch_size=config['Training']['Validation_Batch_Size'],
-                                            shuffle=False,
-                                            num_workers=8)
+                                            shuffle=False)
 
     print('Architecture 1:', args.arc_1)
     print('Architecture 2:', args.arc_2)

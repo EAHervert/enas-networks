@@ -13,7 +13,6 @@ from torch.utils.data import DataLoader
 import argparse
 import visdom
 import random
-from collections import OrderedDict
 
 from utilities.functions import SSIM, display_time
 from utilities.utils import CSVLogger, Logger

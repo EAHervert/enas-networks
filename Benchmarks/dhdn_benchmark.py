@@ -126,8 +126,7 @@ scheduler_0 = torch.optim.lr_scheduler.StepLR(optimizer_0, 3, 0.5, -1)
 scheduler_1 = torch.optim.lr_scheduler.StepLR(optimizer_1, 3, 0.5, -1)
 
 # Define the Loss and evaluation metrics:
-loss_0 = nn.L1Loss().to(device_0)
-loss_1 = nn.L1Loss().to(device_1)
+loss = nn.L1Loss().to(device_0)
 MSE = nn.MSELoss().to(device_0)
 
 # Now, let us define our loggers:
@@ -145,37 +144,38 @@ psnr_batch_val_0, psnr_original_batch_val = loggers0[1][4:]
 loss_batch_val_1, _, ssim_batch_val_1, _, psnr_batch_val_1, _ = loggers1[1]
 
 # Load the Training and Validation Data:
-SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing())
-SIDD_validation = dataset.DatasetSIDDMAT(mat_noisy_file=path_validation_noisy, mat_gt_file=path_validation_gt)
+SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing(), device=device_0)
+SIDD_validation = dataset.DatasetSIDDMAT(mat_noisy_file=path_validation_noisy, mat_gt_file=path_validation_gt,
+                                         device=device_0)
 
 dataloader_sidd_training = DataLoader(dataset=SIDD_training, batch_size=config['Training']['Train_Batch_Size'],
-                                      shuffle=True, num_workers=16)
+                                      shuffle=True)
 dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=config['Training']['Validation_Batch_Size'],
-                                        shuffle=False, num_workers=8)
+                                        shuffle=False)
 
 for epoch in range(args.epochs):
     for i_batch, sample_batch in enumerate(dataloader_sidd_training):
         x = sample_batch['NOISY']
-        y0 = dhdn(x.to(device_0))
+        y0 = dhdn(x)
         y1 = edhdn(x.to(device_1))
         t = sample_batch['GT']
 
-        loss_value_0 = loss_0(y0, t.to(device_0))
-        loss_value_1 = loss_1(y1, t.to(device_1))
+        loss_value_0 = loss(y0, t)
+        loss_value_1 = loss(y1.to(device_0), t)
         loss_batch_0.update(loss_value_0.item())
         loss_batch_1.update(loss_value_1.item())
 
         # Calculate values not needing to be backpropagated
         with torch.no_grad():
-            loss_original_batch.update(loss_0(x.to(device_0), t.to(device_0)).item())
+            loss_original_batch.update(loss(x, t).item())
 
-            ssim_batch_0.update(SSIM(y0, t.to(device_0)).item())
-            ssim_batch_1.update(SSIM(y1, t.to(device_1)).item())
+            ssim_batch_0.update(SSIM(y0, t).item())
+            ssim_batch_1.update(SSIM(y1.to(device_0), t).item())
             ssim_original_batch.update(SSIM(x, t).item())
 
-            psnr_batch_0.update(PSNR(MSE(y0, t.to(device_0))).item())
-            psnr_batch_1.update(PSNR(MSE(y1.to(device_0), t.to(device_0))).item())
-            psnr_original_batch.update(PSNR(MSE(x.to(device_0), t.to(device_0))).item())
+            psnr_batch_0.update(PSNR(MSE(y0, t)).item())
+            psnr_batch_1.update(PSNR(MSE(y1.to(device_0), t)).item())
+            psnr_original_batch.update(PSNR(MSE(x, t)).item())
 
         # Backpropagate to train model
         optimizer_0.zero_grad()
@@ -219,20 +219,20 @@ for epoch in range(args.epochs):
         x_v = validation_batch['NOISY']
         t_v = validation_batch['GT']
         with torch.no_grad():
-            y_v0 = dhdn(x_v.to(device_0))
+            y_v0 = dhdn(x_v)
             y_v1 = edhdn(x_v.to(device_1))
 
-            loss_batch_val_0.update(loss_0(y_v0, t_v.to(device_0)).item())
-            loss_batch_val_1.update(loss_1(y_v1, t_v.to(device_1)).item())
-            loss_original_batch_val.update(loss_0(x_v.to(device_0), t_v.to(device_0)).item())
+            loss_batch_val_0.update(loss(y_v0, t_v).item())
+            loss_batch_val_1.update(loss(y_v1.to(device_0), t_v).item())
+            loss_original_batch_val.update(loss(x_v, t_v).item())
 
-            ssim_batch_val_0.update(SSIM(y_v0, t_v.to(device_0)).item())
-            ssim_batch_val_1.update(SSIM(y_v1, t_v.to(device_1)).item())
+            ssim_batch_val_0.update(SSIM(y_v0, t_v).item())
+            ssim_batch_val_1.update(SSIM(y_v1.to(device_0), t_v).item())
             ssim_original_batch_val.update(SSIM(x_v, t_v).item())
 
-            psnr_batch_val_0.update(PSNR(MSE(y_v0, t_v.to(device_0))).item())
-            psnr_batch_val_1.update(PSNR(MSE(y_v1, t_v.to(device_1))).item())
-            psnr_original_batch_val.update(PSNR(MSE(x_v.to(device_0), t_v.to(device_0))).item())
+            psnr_batch_val_0.update(PSNR(MSE(y_v0, t_v)).item())
+            psnr_batch_val_1.update(PSNR(MSE(y_v1.to(device_0), t_v)).item())
+            psnr_original_batch_val.update(PSNR(MSE(x_v, t_v)).item())
 
         # Free up space in GPU
         del x_v, y_v0, y_v1, t_v
