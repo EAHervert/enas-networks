@@ -34,6 +34,7 @@ parser.add_argument('--device', default='cuda:0', type=str)  # GPU to use
 # Put shared network on two devices instead of one
 parser.add_argument('--data_parallel', default=True, type=lambda x: (str(x).lower() == 'true'))
 # To do outer sums for models
+parser.add_argument('--cutout_images', default=False, type=lambda x: (str(x).lower() == 'true'))
 parser.add_argument('--outer_sum', default=False, type=lambda x: (str(x).lower() == 'true'))
 parser.add_argument('--fixed_arc', action='store_true', default=False)
 parser.add_argument('--kernel_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
@@ -144,7 +145,7 @@ def main():
 
     # Todo: Make function that returns these datasets.
     SIDD_training = dataset.DatasetSIDD(csv_file=path_training,
-                                        transform=dataset.RandomProcessing(),
+                                        transform=dataset.RandomProcessing(cutout_images=args.cutout_images),
                                         device=device_0)
     dataloader_sidd_training = DataLoader(dataset=SIDD_training,
                                           batch_size=config['Training']['Train_Batch_Size'],
