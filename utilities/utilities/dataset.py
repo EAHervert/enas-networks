@@ -212,12 +212,10 @@ class RandomProcessing(object):
     @staticmethod
     def cutout(image1, image2, size):
         """Cutout a size x size block to the original image"""
-        out1 = image1.copy()
-        out2 = image2.copy()
-        h, w, c = image1.shape
+        c, h, w = list(image1.size())
         h_i = random.randrange(h - size)
         w_i = random.randrange(w - size)
-        out1[h_i:h_i + size, w_i:w_i + size] = np.zeros((size, size, c))
-        out2[h_i:h_i + size, w_i:w_i + size] = np.zeros((size, size, c))
+        image1[:, h_i:h_i + size, w_i:w_i + size] = torch.zeros((c, size, size))
+        image2[:, h_i:h_i + size, w_i:w_i + size] = torch.zeros((c, size, size))
 
-        return out1, out2
+        return image1, image2
