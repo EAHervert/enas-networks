@@ -79,14 +79,14 @@ def main():
         outer_sum=args.outer_sum
     )
 
+    if args.load_shared:
+        state_dict_shared = torch.load(dir_current + model_shared_path, map_location='cpu')
+        Shared_Autoencoder.load_state_dict(state_dict_shared)
+
     if args.data_parallel:
         Shared_Autoencoder = nn.DataParallel(Shared_Autoencoder, device_ids=[0, 1]).cuda()
     else:
         Shared_Autoencoder = Shared_Autoencoder.to(device_0)
-
-    if args.load_shared:
-        state_dict_shared = torch.load(dir_current + model_shared_path, map_location=device_0)
-        Shared_Autoencoder.load_state_dict(state_dict_shared)
 
     # Noise Dataset
     path_validation_noisy = dir_current + config['Locations']['Validation_Noisy']
