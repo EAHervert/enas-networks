@@ -93,7 +93,7 @@ if args.load_model:
 # Create the Visdom window:
 # This window will show the SSIM and PSNR of the different networks.
 vis = visdom.Visdom(
-    server='eng-ml-01.utdallas.edu',
+    server='eng-ml-03.utdallas.edu',
     port=8097,
     use_incoming_socket=False
 )
@@ -134,7 +134,7 @@ dataloader_sidd_training = DataLoader(dataset=SIDD_training,
                                       shuffle=True)
 dataloader_sidd_validation = DataLoader(dataset=SIDD_validation,
                                         batch_size=config['Training']['Validation_Batch_Size'],
-                                        shuffle=False, num_workers=8)
+                                        shuffle=False)
 
 for epoch in range(args.epochs):
     for i_batch, sample_batch in enumerate(dataloader_sidd_training):
