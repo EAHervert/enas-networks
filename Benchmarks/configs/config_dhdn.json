@@ -1,17 +1,24 @@
 {
   "Description": "DHDN_Compare",
   "Locations": {
-    "Validation_Noisy": "/data/ValidationNoisyBlocksSrgb.mat",
-    "Validation_GT": "/data/ValidationGtBlocksSrgb.mat",
-    "Benchmark": "/data/BenchmarkNoisyBlocksSrgb.mat",
-    "Output_File": "DHDN_SIDD_Vanilla"
+    "SIDD": {
+      "Validation_Noisy": "/data/ValidationNoisyBlocksSrgb.mat",
+      "Validation_GT": "/data/ValidationGtBlocksSrgb.mat",
+      "Benchmark": "/data/BenchmarkNoisyBlocksSrgb.mat",
+      "Output_File": "DHDN_SIDD_Vanilla"
+    },
+    "DIV2K": {
+      "Validation_Noisy": "/data/ValidationNoisyBlocksSrgb.mat",
+      "Validation_GT": "/data/ValidationGtBlocksSrgb.mat",
+      "Benchmark": "/data/BenchmarkNoisyBlocksSrgb.mat",
+      "Output_File": "DHDN_SIDD_Vanilla"
+    }
   },
   "Training": {
+    "Learning_Rate": 1e-4,
     "Train_Batch_Size": 16,
     "Validation_Batch_Size": 16,
-    "Child_Grad_Bound": 0.5,
-
-    "Number_Images": 320
+    "Child_Grad_Bound": 0.5
   },
   "CUDA": {
     "Device0": "cuda:0",

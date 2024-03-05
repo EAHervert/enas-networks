@@ -176,3 +176,5 @@ dmypy.json
 /Benchmarks/gaussian_filters.ipynb
 /Benchmarks/reward_validation_sidd.ipynb
 /utilities/tests/
+/Benchmarks/sidd_statistics.ipynb
+/Benchmarks/SIDD_Sampling_Statistics.ipynb

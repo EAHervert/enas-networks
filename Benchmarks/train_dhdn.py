@@ -12,7 +12,7 @@ import visdom
 import argparse
 
 from utilities.utils import CSVLogger, Logger
-from utilities.functions import SSIM, PSNR, generate_loggers, drop_weights, gaussian_add_weights, clip_weights
+from utilities.functions import SSIM, PSNR, generate_loggers, drop_weights, clip_weights
 
 current_time = datetime.datetime.now()
 d1 = current_time.strftime('%Y_%m_%d__%H_%M_%S')
@@ -22,9 +22,15 @@ parser = argparse.ArgumentParser(
     prog='Train_DHDN_{date}'.format(date=d1),
     description='Compares Vanilla DHDN to optimized DHDN',
 )
+parser.add_argument('--name', default='Default', type=str)  # Name to save Models
 parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to train on
+parser.add_argument('--epochs', type=int, default=10)
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
-parser.add_argument('--gaussian', default='-1', type=float)  # Gaussian noise addition for model weight # initialization
+parser.add_argument('--clip_weights', default=False, type=lambda s: (str(s).lower() == 'true'))  # Load previous models
+parser.add_argument('--load_model', default=False, type=lambda s: (str(s).lower() == 'true'))  # Load previous models
+parser.add_argument('--model_path_dhdn', default='dhdn_SIDD.pth', type=str)  # Model path dhdn
+parser.add_argument('--training_path_csv', default='sidd_np_instances_064_0016.csv', type=str)  # Model path dhdn
+parser.add_argument('--save_every', default='5', type=float)  # Save model every x epochs
 args = parser.parse_args()
 
 # Hyperparameters
@@ -36,13 +42,19 @@ if not os.path.exists(dir_current + '/models/'):
 
 # Noise Dataset
 if args.noise == 'SIDD':
-    path_training = dir_current + config['Locations']['Training_File']
-    path_validation_noisy = dir_current + config['Locations']['Validation_Noisy']
-    path_validation_gt = dir_current + config['Locations']['Validation_GT']
+    path_training = dir_current + '/instances/' + args.training_path_csv
+    path_validation_noisy = dir_current + config['Locations']['SIDD']['Validation_Noisy']
+    path_validation_gt = dir_current + config['Locations']['SIDD']['Validation_GT']
     Result_Path = dir_current + '/SIDD/{date}/'.format(date=d1)
-elif args.noise in ['GAUSSIAN_10', 'GAUSSIAN_25', 'GAUSSIAN_50', 'RAIN', 'SALT_PEPPER', 'MIXED']:
-    path_training = dir_current + '/instances/davis_np_instances_128.csv'
-    path_validation = dir_current + '/instances/davis_np_instances_256.csv'
+# elif args.noise in ['GAUSSIAN_10', 'GAUSSIAN_25', 'GAUSSIAN_50', 'RAIN', 'SALT_PEPPER', 'MIXED']:
+#     path_training = dir_current + '/instances/davis_np_instances_128.csv'
+#     path_validation_noisy = dir_current + config['Locations']['Validation_Noisy']
+#     path_validation_gt = dir_current + config['Locations']['Validation_GT']
+#     Result_Path = dir_current + '/{noise}/{date}/'.format(noise=args.noise, date=d1)
+elif args.noise == 'DIV2K':
+    path_training = dir_current + '/instances/' + args.training_path_csv
+    path_validation_noisy = dir_current + config['Locations']['DIV2K']['Validation_Noisy']
+    path_validation_gt = dir_current + config['Locations']['DIV2K']['Validation_GT']
     Result_Path = dir_current + '/{noise}/{date}/'.format(noise=args.noise, date=d1)
 else:
     print('Incorrect Noise Selection!')
@@ -70,16 +82,12 @@ encoder, bottleneck, decoder = [0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0], [0, 0, 0, 0,
 dhdn_architecture = encoder + bottleneck + decoder
 
 dhdn = DHDN.SharedDHDN(architecture=dhdn_architecture)
-
 dhdn.to(device)
 
-if config['Training']['Load_Previous_Model']:
-    state_dict_dhdn = torch.load(dir_current + config['Training']['Model_Path_DHDN'], map_location=device)
-
+if args.load_model:
+    state_dict_dhdn = torch.load(dir_current + args.model_path_dhdn, map_location=device)
     if args.drop > 0:
         state_dict_dhdn = drop_weights(state_dict_dhdn, p=args.drop, device=device)
-    if args.gaussian > 0:
-        state_dict_dhdn = gaussian_add_weights(state_dict_dhdn, k=args.gaussian, device=device)
 
     dhdn.load_state_dict(state_dict_dhdn)
 
@@ -115,32 +123,36 @@ loss_batch_val, loss_original_batch_val, ssim_batch_val, ssim_original_batch_val
 psnr_batch_val, psnr_original_batch_val = loggers0[1][4:]
 
 # Load the Training and Validation Data:
-SIDD_training = dataset.DatasetSIDD(csv_file=path_training, transform=dataset.RandomProcessing())
-SIDD_validation = dataset.DatasetSIDDMAT(mat_noisy_file=path_validation_noisy, mat_gt_file=path_validation_gt)
+SIDD_training = dataset.DatasetSIDD(csv_file=path_training,
+                                    transform=dataset.RandomProcessing(),
+                                    device=device)
+SIDD_validation = dataset.DatasetSIDDMAT(mat_noisy_file=path_validation_noisy,
+                                         mat_gt_file=path_validation_gt,
+                                         device=device)
 
-dataloader_sidd_training = DataLoader(dataset=SIDD_training, batch_size=config['Training']['Train_Batch_Size'],
-                                      shuffle=True, num_workers=16)
-dataloader_sidd_validation = DataLoader(dataset=SIDD_validation, batch_size=config['Training']['Validation_Batch_Size'],
+dataloader_sidd_training = DataLoader(dataset=SIDD_training,
+                                      batch_size=config['Training']['Train_Batch_Size'],
+                                      shuffle=True)
+dataloader_sidd_validation = DataLoader(dataset=SIDD_validation,
+                                        batch_size=config['Training']['Validation_Batch_Size'],
                                         shuffle=False, num_workers=8)
 
-for epoch in range(config['Training']['Epochs']):
+for epoch in range(args.epochs):
     for i_batch, sample_batch in enumerate(dataloader_sidd_training):
         x = sample_batch['NOISY']
         y0 = dhdn(x.to(device))
         t = sample_batch['GT']
 
-        loss_value = loss(y0, t.to(device))
+        loss_value = loss(y0, t)
         loss_batch.update(loss_value.item())
 
         # Calculate values not needing to be backpropagated
         with torch.no_grad():
-            loss_original_batch.update(loss(x.to(device), t.to(device)).item())
-
-            ssim_batch.update(SSIM(y0, t.to(device)).item())
+            loss_original_batch.update(loss(x, t).item())
+            ssim_batch.update(SSIM(y0, t).item())
             ssim_original_batch.update(SSIM(x, t).item())
-
-            psnr_batch.update(PSNR(MSE(y0, t.to(device))).item())
-            psnr_original_batch.update(PSNR(MSE(x.to(device), t.to(device))).item())
+            psnr_batch.update(PSNR(MSE(y0, t)).item())
+            psnr_original_batch.update(PSNR(MSE(x, t)).item())
 
         # Backpropagate to train model
         optimizer.zero_grad()
@@ -166,19 +178,18 @@ for epoch in range(config['Training']['Epochs']):
     print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
 
     for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
-        x_v = validation_batch['NOISY']
-        t_v = validation_batch['GT']
+
         with torch.no_grad():
-            y_v0 = dhdn(x_v.to(device))
+            x_v = validation_batch['NOISY']
+            t_v = validation_batch['GT']
+            y_v0 = dhdn(x_v)
 
-            loss_batch_val.update(loss(y_v0, t_v.to(device)).item())
-            loss_original_batch_val.update(loss(x_v.to(device), t_v.to(device)).item())
-
-            ssim_batch_val.update(SSIM(y_v0, t_v.to(device)).item())
+            loss_batch_val.update(loss(y_v0, t_v).item())
+            loss_original_batch_val.update(loss(x_v, t_v).item())
+            ssim_batch_val.update(SSIM(y_v0, t_v).item())
             ssim_original_batch_val.update(SSIM(x_v, t_v).item())
-
-            psnr_batch_val.update(PSNR(MSE(y_v0, t_v.to(device))).item())
-            psnr_original_batch_val.update(PSNR(MSE(x_v.to(device), t_v.to(device))).item())
+            psnr_batch_val.update(PSNR(MSE(y_v0, t_v)).item())
+            psnr_original_batch_val.update(PSNR(MSE(x_v, t_v)).item())
 
         # Free up space in GPU
         del x_v, y_v0, t_v
@@ -237,14 +248,16 @@ for epoch in range(config['Training']['Epochs']):
 
     scheduler.step()
 
-    # Save every 10 instances
-    if epoch > 0 and not epoch % 10:
-        model_path_0 = dir_current + '/models/{date}_dhdn_SIDD_{epoch}.pth'.format(date=d1, epoch=epoch)
+    # Save every validation instance
+    if epoch > 0 and not epoch % args.save_every:
+        model_path_0 = dir_current + '/models/{date}_dhdn_SIDD_{name}_{epoch}.pth'.format(date=d1, epoch=epoch,
+                                                                                          name=args.name)
         torch.save(dhdn.state_dict(), model_path_0)
         # modify weights to avoid overfitting
-        state_dict_dhdn = clip_weights(dhdn.state_dict(), k=3, device=device)
-        dhdn.load_state_dict(state_dict_dhdn)
+        if args.clip_weights:
+            state_dict_dhdn = clip_weights(dhdn.state_dict(), k=3, device=device)
+            dhdn.load_state_dict(state_dict_dhdn)
 
 # Save final model
-model_path_0 = dir_current + '/models/{date}_dhdn_SIDD.pth'.format(date=d1)
+model_path_0 = dir_current + '/models/{date}_dhdn_SIDD_{name}.pth'.format(date=d1, name=args.name)
 torch.save(dhdn.state_dict(), model_path_0)
