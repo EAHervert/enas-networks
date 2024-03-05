@@ -11,7 +11,7 @@
       "Validation_Noisy": "/data/ValidationNoisyBlocksSrgb.mat",
       "Validation_GT": "/data/ValidationGtBlocksSrgb.mat",
       "Benchmark": "/data/BenchmarkNoisyBlocksSrgb.mat",
-      "Output_File": "DHDN_SIDD_Vanilla"
+      "Output_File": "DHDN_DIV2K_Vanilla"
     }
   },
   "Training": {

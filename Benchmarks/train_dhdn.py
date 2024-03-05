@@ -46,13 +46,15 @@ if args.noise == 'SIDD':
     path_validation_noisy = dir_current + config['Locations']['SIDD']['Validation_Noisy']
     path_validation_gt = dir_current + config['Locations']['SIDD']['Validation_GT']
     Result_Path = dir_current + '/SIDD/{date}/'.format(date=d1)
-    Log_Path = Result_Path + '/' + config['Locations']['SIDD']['Output_File']
+    Output_Path = config['Locations']['SIDD']['Output_File']
+    Log_Path = Result_Path + '/' + Output_Path
 elif args.noise == 'DIV2K':
     path_training = dir_current + '/instances/' + args.training_path_csv
     path_validation_noisy = dir_current + config['Locations']['DIV2K']['Validation_Noisy']
     path_validation_gt = dir_current + config['Locations']['DIV2K']['Validation_GT']
     Result_Path = dir_current + '/{noise}/{date}/'.format(noise='DIV2K', date=d1)
-    Log_Path = Result_Path + '/' + config['Locations']['DIV2K']['Output_File']
+    Output_Path = config['Locations']['DIV2K']['Output_File']
+    Log_Path = Result_Path + '/' + Output_Path
 else:
     print('Incorrect Noise Selection!')
     exit()
@@ -97,7 +99,7 @@ vis = visdom.Visdom(
 )
 
 # Display the data to the window:
-vis.env = config['Locations']['Output_File']
+vis.env = Output_Path
 vis_window = {'SSIM_{date}'.format(date=d1): None, 'PSNR_{date}'.format(date=d1): None}
 
 # Training Optimization and Scheduling:
