@@ -26,6 +26,7 @@ parser.add_argument('--name', default='Default', type=str)  # Name to save Model
 parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to train on
 parser.add_argument('--epochs', type=int, default=10)
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
+parser.add_argument('--device', default='cuda:0', type=str)  # GPU to use
 parser.add_argument('--clip_weights', default=False, type=lambda s: (str(s).lower() == 'true'))  # Load previous models
 parser.add_argument('--load_model', default=False, type=lambda s: (str(s).lower() == 'true'))  # Load previous models
 parser.add_argument('--model_path_dhdn', default='dhdn_SIDD.pth', type=str)  # Model path dhdn
@@ -74,7 +75,7 @@ Field_Names = ['Loss_Batch', 'Loss_Val', 'Loss_Original_Train', 'Loss_Original_V
 Logger = CSVLogger(fieldnames=Field_Names, filename=File_Name)
 
 # Define the devices:
-device = torch.device(config['CUDA']['Device0'])
+device = torch.device(args.device)
 
 # Load the models:
 encoder, bottleneck, decoder = [0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]  # vanilla DHDN
