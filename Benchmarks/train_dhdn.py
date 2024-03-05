@@ -20,7 +20,7 @@ d1 = current_time.strftime('%Y_%m_%d__%H_%M_%S')
 # Parser
 parser = argparse.ArgumentParser(
     prog='Train_DHDN_{date}'.format(date=d1),
-    description='Compares Vanilla DHDN to optimized DHDN',
+    description='Trains Vanilla DHDN',
 )
 parser.add_argument('--name', default='Default', type=str)  # Name to save Models
 parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to train on
@@ -46,16 +46,13 @@ if args.noise == 'SIDD':
     path_validation_noisy = dir_current + config['Locations']['SIDD']['Validation_Noisy']
     path_validation_gt = dir_current + config['Locations']['SIDD']['Validation_GT']
     Result_Path = dir_current + '/SIDD/{date}/'.format(date=d1)
-# elif args.noise in ['GAUSSIAN_10', 'GAUSSIAN_25', 'GAUSSIAN_50', 'RAIN', 'SALT_PEPPER', 'MIXED']:
-#     path_training = dir_current + '/instances/davis_np_instances_128.csv'
-#     path_validation_noisy = dir_current + config['Locations']['Validation_Noisy']
-#     path_validation_gt = dir_current + config['Locations']['Validation_GT']
-#     Result_Path = dir_current + '/{noise}/{date}/'.format(noise=args.noise, date=d1)
+    Log_Path = Result_Path + '/' + config['Locations']['SIDD']['Output_File']
 elif args.noise == 'DIV2K':
     path_training = dir_current + '/instances/' + args.training_path_csv
     path_validation_noisy = dir_current + config['Locations']['DIV2K']['Validation_Noisy']
     path_validation_gt = dir_current + config['Locations']['DIV2K']['Validation_GT']
-    Result_Path = dir_current + '/{noise}/{date}/'.format(noise=args.noise, date=d1)
+    Result_Path = dir_current + '/{noise}/{date}/'.format(noise='DIV2K', date=d1)
+    Log_Path = Result_Path + '/' + config['Locations']['DIV2K']['Output_File']
 else:
     print('Incorrect Noise Selection!')
     exit()
@@ -63,12 +60,12 @@ else:
 if not os.path.isdir(Result_Path):
     os.mkdir(Result_Path)
 
-if not os.path.isdir(Result_Path + '/' + config['Locations']['Output_File']):
-    os.mkdir(Result_Path + '/' + config['Locations']['Output_File'])
-sys.stdout = Logger(Result_Path + '/' + config['Locations']['Output_File'] + '/log.log')
+if not os.path.isdir(Log_Path):
+    os.mkdir(Log_Path)
+sys.stdout = Logger(Log_Path + '/log.log')
 
 # Create the CSV Logger:
-File_Name = Result_Path + '/' + config['Locations']['Output_File'] + '/data.csv'
+File_Name = Log_Path + '/data.csv'
 Field_Names = ['Loss_Batch', 'Loss_Val', 'Loss_Original_Train', 'Loss_Original_Val',
                'SSIM_Batch', 'SSIM_Val', 'SSIM_Original_Train', 'SSIM_Original_Val',
                'PSNR_Batch', 'PSNR_Val', 'PSNR_Original_Train', 'PSNR_Original_Val']
