@@ -65,7 +65,11 @@ def main():
     if not os.path.isdir('Logs_DHDN/'):
         os.mkdir('Logs_DHDN/')
 
-    Result_Path = 'Logs_DHDN/' + args.output_file + '/' + d1
+    Output_Path = 'Logs_DHDN/' + args.output_file + '/'
+    if not os.path.isdir(Output_Path):
+        os.mkdir(Output_Path)
+
+    Result_Path = Output_Path + d1
     if not os.path.isdir(Result_Path):
         os.mkdir(Result_Path)
 

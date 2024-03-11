@@ -27,7 +27,10 @@ class DatasetNoise(Dataset):
         self.csv_instances = pd.read_csv(csv_file)
         self.transform = transform
         self.raw_images = raw_images
-        self.device = torch.device(device)
+        if device == 'cpu':
+            self.device = torch.device(device)
+        else:
+            self.device = device
 
     def __len__(self):
         return len(self.csv_instances)
@@ -70,7 +73,10 @@ class DatasetMAT(Dataset):
         self.mat_noisy_dict = loadmat(mat_noisy_file)
         self.mat_noisy = self.mat_noisy_dict[next(reversed(self.mat_noisy_dict))]
         self.size_noisy = self.mat_noisy.shape
-        self.device = torch.device(device)
+        if device == 'cpu':
+            self.device = torch.device(device)
+        else:
+            self.device = device
 
         # GT if available
         if mat_gt_file is not None:
