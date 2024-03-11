@@ -25,7 +25,7 @@ parser = argparse.ArgumentParser(
     prog='Image_Generation_Compare'.format(date=d1),
     description='Generates image for testing different models',
 )
-parser.add_argument('--name', default='test', type=str)  # Name of the folder to save
+parser.add_argument('--name', default='tests', type=str)  # Name of the folder to save
 parser.add_argument('--image_path', default='sample_images/sample_1_ns.png', type=str)  # path to image
 parser.add_argument('--device', default='cuda:0', type=str)  # Which device to use
 parser.add_argument('--model', default='RDUNet', type=str)  # Model path to weights

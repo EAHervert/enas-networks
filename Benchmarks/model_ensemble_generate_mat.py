@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser(
     prog='Model_Ensemble_Mat_Generation_'.format(date=d1),
     description='Generates .mat file for testing model performance',
 )
-parser.add_argument('--name', default='test', type=str)  # Name of the folder to save
+parser.add_argument('--name', default='tests', type=str)  # Name of the folder to save
 parser.add_argument('--type', default='validation', type=str)  # Name of the folder to save
 parser.add_argument('--architecture', default='DHDN', type=str)  # DHDN or EDHDN
 parser.add_argument('--model_file_0', default='models/model_0.pth', type=str)  # Model path to weights

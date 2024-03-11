@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser(
     prog='Train_Model_{date}'.format(date=d1),
     description='Train given model for purpose of comparison',
 )
-parser.add_argument('--name', default='test', type=str)  # Name of the model
+parser.add_argument('--name', default='tests', type=str)  # Name of the model
 parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to train on
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--model', default='DnCNN', type=str)  # Model to select

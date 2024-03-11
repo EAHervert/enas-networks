@@ -28,7 +28,7 @@ parser = argparse.ArgumentParser(
     prog='Mat_Generation_'.format(date=d1),
     description='Generates .mat file for testing model performance',
 )
-parser.add_argument('--name', default='test', type=str)  # Name of the folder to save
+parser.add_argument('--name', default='tests', type=str)  # Name of the folder to save
 parser.add_argument('--type', default='validation', type=str)  # Name of the folder to save
 parser.add_argument('--device', default='cuda:0', type=str)  # Which device to use to generate .mat file
 parser.add_argument('--architecture', default='DHDN', type=str)  # DHDN, EDHDN, or DHDN_Color

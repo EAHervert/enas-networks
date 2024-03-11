@@ -5,12 +5,23 @@ import torch.nn as nn
 # This will be part of the searching for the ideal architecture.
 
 # This will be the full branch.
-class _down_ENAS(nn.Module):
+class _down_DNAS(nn.Module):
     def __init__(self, channel_in):
-        super(_down_ENAS, self).__init__()
-
-        self.maxpool = nn.MaxPool2d(2)
-        self.avgpool = nn.AvgPool2d(2)
+        super(_down_DNAS, self).__init__()
+        self.maxpool = nn.Sequential(nn.MaxPool2d(2),
+                                     nn.Conv2d(
+                                         in_channels=channel_in,
+                                         out_channels=2 * channel_in,
+                                         kernel_size=1,
+                                         stride=1,
+                                         padding=0))
+        self.avgpool = nn.Sequential(nn.AvgPool2d(2),
+                                     nn.Conv2d(
+                                         in_channels=channel_in,
+                                         out_channels=2 * channel_in,
+                                         kernel_size=1,
+                                         stride=1,
+                                         padding=0))
         self.downconv = nn.Conv2d(
             in_channels=channel_in,
             out_channels=2 * channel_in,
@@ -18,22 +29,16 @@ class _down_ENAS(nn.Module):
             stride=2,
             padding=0
         )
-        self.conv = nn.Conv2d(
-            in_channels=channel_in,
-            out_channels=2 * channel_in,
-            kernel_size=1,
-            stride=1,
-            padding=0
-        )
+
+        self.downsamples = nn.ModuleList([self.maxpool, self.avgpool, self.downconv])
         self.relu = nn.PReLU()
 
-    def forward(self, x, int_):
-        if int_ == 0:
-            return self.relu(self.conv(self.maxpool(x)))
-        elif int_ == 1:
-            return self.relu(self.conv(self.avgpool(x)))
-        elif int_ == 2:
-            return self.relu(self.downconv(x))
+    def forward(self, x, alphas):
+        out = 0
+        for index, alpha in enumerate(alphas):
+            out += alpha * self.downsamples[index](x)
+
+        return self.relu(out)
 
 
 # This will be the branch that is fixed depending on the architecture.
@@ -66,7 +71,7 @@ class _down_Fixed(nn.Module):
 
         self.relu = nn.PReLU()
 
-    def forward(self, x, int_):
+    def forward(self, x):
         if self.architecture_k != 2:
             return self.relu(self.conv(self.down(x)))
         else:
@@ -78,7 +83,7 @@ class _down_Max(nn.Module):
     def __init__(self, channel_in):
         super(_down_Max, self).__init__()
 
-        self.maxpool = nn.MaxPool2d(2)
+        self.pool = nn.MaxPool2d(2)
         self.conv = nn.Conv2d(
             in_channels=channel_in,
             out_channels=2 * channel_in,
@@ -89,7 +94,7 @@ class _down_Max(nn.Module):
         self.relu = nn.PReLU()
 
     def forward(self, x):
-        return self.relu(self.conv(self.maxpool(x)))
+        return self.relu(self.conv(self.pool(x)))
 
 
 # Using Average Pooling to downsample the images.
@@ -133,18 +138,19 @@ class _down_Conv(nn.Module):
 # This will be part of the searching for the ideal architecture.
 
 # This will be the full branch.
-class _up_ENAS(nn.Module):
+class _up_DNAS(nn.Module):
     def __init__(self, channel_in):
-        super(_up_ENAS, self).__init__()
+        super(_up_DNAS, self).__init__()
 
-        self.conv = nn.Conv2d(
+        self.preprocess = nn.Sequential(nn.Conv2d(
             in_channels=channel_in,
             out_channels=channel_in,
             kernel_size=1,
             stride=1,
             padding=0
+        ),
+            nn.PReLU()
         )
-        self.relu = nn.PReLU()
         self.PS = nn.PixelShuffle(2)
         self.convT = nn.ConvTranspose2d(
             in_channels=channel_in,
@@ -163,14 +169,15 @@ class _up_ENAS(nn.Module):
             ),
             nn.Upsample(scale_factor=2, mode='bilinear')
         )
+        self.upsamples = nn.ModuleList([self.PS, self.convT, self.BL])
 
-    def forward(self, x, int_):
-        if int_ == 0:
-            return self.PS(self.relu(self.conv(x)))
-        elif int_ == 1:
-            return self.convT(self.relu(self.conv(x)))
-        elif int_ == 2:
-            return self.BL(self.relu(self.conv(x)))
+    def forward(self, x, alphas):
+        out = self.preprocess(x)
+        out_final = 0
+        for index, alpha in enumerate(alphas):
+            out_final += alpha * self.upsamples[index](out)
+
+        return out_final
 
 
 # This will be the branch that is fixed depending on the architecture.
@@ -211,7 +218,7 @@ class _up_Fixed(nn.Module):
                 nn.Upsample(scale_factor=2, mode='bilinear')
             )
 
-    def forward(self, x, int_):
+    def forward(self, x):
         return self.up(self.relu(self.conv(x)))
 
 

@@ -164,7 +164,7 @@ dmypy.json
 /Benchmarks/sample_images/
 /Benchmarks/image_processing.ipynb
 /Benchmarks/qualitative_crop_analysis.ipynb
-/DHDN-Network-Search/instances/
+/DHDN-ENAS-Network-Search/instances/
 /Benchmarks/denoising_methods.ipynb
 /Comparison/models/
 /Comparison/sample_images/
@@ -178,3 +178,5 @@ dmypy.json
 /utilities/tests/
 /Benchmarks/sidd_statistics.ipynb
 /Benchmarks/SIDD_Sampling_Statistics.ipynb
+/Benchmarks/visualize_testing.ipynb
+/Benchmarks/visualize_validation.ipynb

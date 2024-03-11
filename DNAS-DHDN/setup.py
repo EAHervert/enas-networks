@@ -2,9 +2,9 @@
 
 from distutils.core import setup
 
-setup(name='utilities',
-      version='4.0.0',
-      description='methods and transforms for image processing and analysis',
+setup(name='DNAS_DHDN',
+      version='0.0.1',
+      description='Differentiable Neural Architecture Search for DHDN',
       author='Esau Hervert Hernandez',
       author_email='eah170630@utdallas.edu'
       )

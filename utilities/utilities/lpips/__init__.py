@@ -48,7 +48,7 @@ class LPIPS(nn.Module):
         The following parameters should only be changed if training the network
 
         eval_mode : bool
-            [True] is for test mode (default)
+            [True] is for tests mode (default)
             [False] is for training mode
         pnet_tune
             [False] keep base/trunk frozen

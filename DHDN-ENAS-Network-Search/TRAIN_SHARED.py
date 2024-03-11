@@ -144,9 +144,9 @@ def main():
     path_training = dir_current + '/instances/' + args.training_csv
 
     # Todo: Make function that returns these datasets.
-    SIDD_training = dataset.DatasetSIDD(csv_file=path_training,
-                                        transform=dataset.RandomProcessing(cutout_images=args.cutout_images),
-                                        device=device_0)
+    SIDD_training = dataset.DatasetNoise(csv_file=path_training,
+                                         transform=dataset.RandomProcessing(cutout_images=args.cutout_images),
+                                         device=device_0)
     dataloader_sidd_training = DataLoader(dataset=SIDD_training,
                                           batch_size=config['Training']['Train_Batch_Size'],
                                           shuffle=True)

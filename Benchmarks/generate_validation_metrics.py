@@ -23,7 +23,7 @@ parser = argparse.ArgumentParser(
     prog='Validation_Metrics'.format(date=d1),
     description='Generates Validation metrics file for testing model performance',
 )
-parser.add_argument('--name', default='test', type=str)  # Name of the results
+parser.add_argument('--name', default='tests', type=str)  # Name of the results
 parser.add_argument('--path', default='results/denoise_test.mat', type=str)  # path to denoised .mat file
 args = parser.parse_args()
 

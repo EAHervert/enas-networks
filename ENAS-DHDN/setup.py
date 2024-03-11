@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name='ENAS_DHDN',
-      version='7.0.dev1',
+      version='7.1.0',
       description='DHDN component of the ENAS Networks',
       author='Esau Hervert Hernandez',
       author_email='eah170630@utdallas.edu'

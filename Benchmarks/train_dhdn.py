@@ -42,23 +42,16 @@ if not os.path.exists(dir_current + '/models/'):
     os.makedirs(dir_current + '/models/')
 
 # Noise Dataset
-if args.noise == 'SIDD':
-    path_training = dir_current + '/instances/' + args.training_path_csv
-    path_validation_noisy = dir_current + config['Locations']['SIDD']['Validation_Noisy']
-    path_validation_gt = dir_current + config['Locations']['SIDD']['Validation_GT']
-    Result_Path = dir_current + '/SIDD/{date}/'.format(date=d1)
-    Output_Path = config['Locations']['SIDD']['Output_File']
-    Log_Path = Result_Path + '/' + Output_Path
-elif args.noise == 'DIV2K':
-    path_training = dir_current + '/instances/' + args.training_path_csv
-    path_validation_noisy = dir_current + config['Locations']['DIV2K']['Validation_Noisy']
-    path_validation_gt = dir_current + config['Locations']['DIV2K']['Validation_GT']
-    Result_Path = dir_current + '/{noise}/{date}/'.format(noise='DIV2K', date=d1)
-    Output_Path = config['Locations']['DIV2K']['Output_File']
-    Log_Path = Result_Path + '/' + Output_Path
-else:
+if args.noise not in config['Locations'].values():
     print('Incorrect Noise Selection!')
     exit()
+
+path_training = dir_current + '/instances/' + args.training_path_csv
+path_validation_noisy = dir_current + config['Locations'][args.noise]['Validation_Noisy']
+path_validation_gt = dir_current + config['Locations'][args.noise]['Validation_GT']
+Result_Path = dir_current + '/{noise}/{date}_{name}/'.format(date=d1, name=args.name, noise=args.noise)
+Output_Path = config['Locations'][args.noise]['Output_File']
+Log_Path = Result_Path + '/' + Output_Path
 
 if not os.path.isdir(Result_Path):
     os.mkdir(Result_Path)
@@ -123,22 +116,22 @@ loss_batch_val, loss_original_batch_val, ssim_batch_val, ssim_original_batch_val
 psnr_batch_val, psnr_original_batch_val = loggers0[1][4:]
 
 # Load the Training and Validation Data:
-SIDD_training = dataset.DatasetSIDD(csv_file=path_training,
-                                    transform=dataset.RandomProcessing(),
-                                    device=device)
-SIDD_validation = dataset.DatasetSIDDMAT(mat_noisy_file=path_validation_noisy,
-                                         mat_gt_file=path_validation_gt,
-                                         device=device)
+SIDD_training = dataset.DatasetNoise(csv_file=path_training,
+                                     transform=dataset.RandomProcessing(),
+                                     device=device)
+SIDD_validation = dataset.DatasetMAT(mat_noisy_file=path_validation_noisy,
+                                     mat_gt_file=path_validation_gt,
+                                     device=device)
 
-dataloader_sidd_training = DataLoader(dataset=SIDD_training,
-                                      batch_size=config['Training']['Train_Batch_Size'],
-                                      shuffle=True)
-dataloader_sidd_validation = DataLoader(dataset=SIDD_validation,
-                                        batch_size=config['Training']['Validation_Batch_Size'],
-                                        shuffle=False)
+dataloader_training = DataLoader(dataset=SIDD_training,
+                                 batch_size=config['Training']['Train_Batch_Size'],
+                                 shuffle=True)
+dataloader_validation = DataLoader(dataset=SIDD_validation,
+                                   batch_size=config['Training']['Validation_Batch_Size'],
+                                   shuffle=False)
 
 for epoch in range(args.epochs):
-    for i_batch, sample_batch in enumerate(dataloader_sidd_training):
+    for i_batch, sample_batch in enumerate(dataloader_training):
         x = sample_batch['NOISY']
         y0 = dhdn(x.to(device))
         t = sample_batch['GT']
@@ -177,8 +170,7 @@ for epoch in range(args.epochs):
     print("\nTotal Training Data for Epoch: ", epoch)
     print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
 
-    for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
-
+    for i_validation, validation_batch in enumerate(dataloader_validation):
         with torch.no_grad():
             x_v = validation_batch['NOISY']
             t_v = validation_batch['GT']
@@ -250,8 +242,9 @@ for epoch in range(args.epochs):
 
     # Save every validation instance
     if epoch > 0 and not epoch % args.save_every:
-        model_path_0 = dir_current + '/models/{date}_dhdn_SIDD_{name}_{epoch}.pth'.format(date=d1, epoch=epoch,
-                                                                                          name=args.name)
+        model_path_0 = dir_current + '/models/{date}_dhdn_{noise}_{name}_{epoch}.pth'.format(date=d1, epoch=epoch,
+                                                                                             name=args.name,
+                                                                                             noise=args.noise)
         torch.save(dhdn.state_dict(), model_path_0)
         # modify weights to avoid overfitting
         if args.clip_weights:
@@ -259,5 +252,5 @@ for epoch in range(args.epochs):
             dhdn.load_state_dict(state_dict_dhdn)
 
 # Save final model
-model_path_0 = dir_current + '/models/{date}_dhdn_SIDD_{name}.pth'.format(date=d1, name=args.name)
+model_path_0 = dir_current + '/models/{date}_dhdn_{noise}_{name}.pth'.format(date=d1, name=args.name, noise=args.noise)
 torch.save(dhdn.state_dict(), model_path_0)
