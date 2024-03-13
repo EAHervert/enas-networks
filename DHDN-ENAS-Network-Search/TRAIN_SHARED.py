@@ -15,7 +15,7 @@ import visdom
 import argparse
 
 from utilities.utils import CSVLogger, Logger
-from utilities.functions import display_time
+from utilities.functions import display_time, list_of_ints
 
 # To supress warnings:
 if not sys.warnoptions:
@@ -36,7 +36,7 @@ parser.add_argument('--data_parallel', default=True, type=lambda x: (str(x).lowe
 # To do outer sums for models
 parser.add_argument('--cutout_images', default=False, type=lambda x: (str(x).lower() == 'true'))
 parser.add_argument('--outer_sum', default=False, type=lambda x: (str(x).lower() == 'true'))
-parser.add_argument('--fixed_arc', action='store_true', default=False)
+parser.add_argument('--fixed_arc', default=[], type=list_of_ints)  # Overrides the controller sample
 parser.add_argument('--kernel_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
 parser.add_argument('--down_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
 parser.add_argument('--up_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
@@ -155,55 +155,56 @@ def main():
                                           batch_size=config['Training']['Train_Batch_Size'],
                                           shuffle=True)
     if not args.fixed_arc:
-        for epoch in range(args.epochs):
-            training_results = TRAINING_NETWORKS.Train_Shared(epoch=epoch,
-                                                              passes=1,
-                                                              controller=Controller,
-                                                              shared=Shared_Autoencoder,
-                                                              shared_optimizer=Shared_Autoencoder_Optimizer,
-                                                              config=config,
-                                                              dataloader_sidd_training=dataloader_sidd_training,
-                                                              arc_bools=[args.kernel_bool, args.up_bool,
-                                                                         args.down_bool],
-                                                              sa_logger=SA_Logger,
-                                                              device=device_0,
-                                                              )
-            Legend = ['Shared_Train', 'Orig_Train']
+        fixed_arc = None
+    else:
+        fixed_arc = args.fixed_arc
 
-            vis_window[list(vis_window)[0]] = vis.line(
-                X=np.column_stack([epoch] * 2),
-                Y=np.column_stack([training_results['Loss'], training_results['Loss_Original']]),
-                win=vis_window[list(vis_window)[0]],
-                opts=dict(title=list(vis_window)[0], xlabel='Epoch', ylabel='Loss', legend=Legend),
-                update='append' if epoch > 0 else None)
+    for epoch in range(args.epochs):
+        training_results = TRAINING_NETWORKS.Train_Shared(epoch=epoch,
+                                                          passes=1,
+                                                          controller=Controller,
+                                                          shared=Shared_Autoencoder,
+                                                          shared_optimizer=Shared_Autoencoder_Optimizer,
+                                                          config=config,
+                                                          dataloader_sidd_training=dataloader_sidd_training,
+                                                          arc_bools=[args.kernel_bool, args.up_bool,
+                                                                     args.down_bool],
+                                                          sa_logger=SA_Logger,
+                                                          device=device_0,
+                                                          fixed_arc=fixed_arc
+                                                          )
+        Legend = ['Shared_Train', 'Orig_Train']
 
-            vis_window[list(vis_window)[1]] = vis.line(
-                X=np.column_stack([epoch] * 2),
-                Y=np.column_stack([training_results['SSIM'], training_results['SSIM_Original']]),
-                win=vis_window[list(vis_window)[1]],
-                opts=dict(title=list(vis_window)[1], xlabel='Epoch', ylabel='SSIM', legend=Legend),
-                update='append' if epoch > 0 else None)
+        vis_window[list(vis_window)[0]] = vis.line(
+            X=np.column_stack([epoch] * 2),
+            Y=np.column_stack([training_results['Loss'], training_results['Loss_Original']]),
+            win=vis_window[list(vis_window)[0]],
+            opts=dict(title=list(vis_window)[0], xlabel='Epoch', ylabel='Loss', legend=Legend),
+            update='append' if epoch > 0 else None)
 
-            vis_window[list(vis_window)[2]] = vis.line(
-                X=np.column_stack([epoch] * 2),
-                Y=np.column_stack([training_results['PSNR'], training_results['PSNR_Original']]),
-                win=vis_window[list(vis_window)[2]],
-                opts=dict(title=list(vis_window)[2], xlabel='Epoch', ylabel='PSNR', legend=Legend),
-                update='append' if epoch > 0 else None)
+        vis_window[list(vis_window)[1]] = vis.line(
+            X=np.column_stack([epoch] * 2),
+            Y=np.column_stack([training_results['SSIM'], training_results['SSIM_Original']]),
+            win=vis_window[list(vis_window)[1]],
+            opts=dict(title=list(vis_window)[1], xlabel='Epoch', ylabel='SSIM', legend=Legend),
+            update='append' if epoch > 0 else None)
 
-            CSV_Logger.writerow({'Loss_Batch': training_results['Loss'],
-                                 'Loss_Original_Train': training_results['Loss_Original'],
-                                 'SSIM_Batch': training_results['SSIM'],
-                                 'SSIM_Original_Train': training_results['SSIM_Original'],
-                                 'PSNR_Batch': training_results['PSNR'],
-                                 'PSNR_Original_Train': training_results['PSNR_Original']
-                                 })
+        vis_window[list(vis_window)[2]] = vis.line(
+            X=np.column_stack([epoch] * 2),
+            Y=np.column_stack([training_results['PSNR'], training_results['PSNR_Original']]),
+            win=vis_window[list(vis_window)[2]],
+            opts=dict(title=list(vis_window)[2], xlabel='Epoch', ylabel='PSNR', legend=Legend),
+            update='append' if epoch > 0 else None)
 
-            Shared_Autoencoder_Scheduler.step()
+        CSV_Logger.writerow({'Loss_Batch': training_results['Loss'],
+                             'Loss_Original_Train': training_results['Loss_Original'],
+                             'SSIM_Batch': training_results['SSIM'],
+                             'SSIM_Original_Train': training_results['SSIM_Original'],
+                             'PSNR_Batch': training_results['PSNR'],
+                             'PSNR_Original_Train': training_results['PSNR_Original']
+                             })
 
-    else:  # Todo: add the fixed_arc training optionality
-        print("Exiting:")
-        exit()
+        Shared_Autoencoder_Scheduler.step()
 
     SA_Logger.close()
     CSV_Logger.close()

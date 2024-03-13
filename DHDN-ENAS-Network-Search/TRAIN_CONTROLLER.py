@@ -27,18 +27,18 @@ if not sys.warnoptions:
 parser = argparse.ArgumentParser(description='ENAS_SEARCH_DHDN')
 
 parser.add_argument('--output_file', default='Controller_DHDN', type=str)
-parser.add_argument('--number', type=int, default=1000)
-parser.add_argument('--epochs', type=int, default=30)
+parser.add_argument('--number', type=int, default=1000)  # Used to generate sampling distribution for Controller
+parser.add_argument('--epochs', type=int, default=25)
 parser.add_argument('--seed', type=int, default=0)
-parser.add_argument('--sample_size', type=int, default=-1)  # How many samples from validation to evaluate
-parser.add_argument('--validation_samples', type=int, default=5)  # How many samples from validation to evaluate
-parser.add_argument('--controller_num_aggregate', type=int, default=8)  # Steps in same samples
-parser.add_argument('--controller_train_steps', type=int, default=35)  # Total different sample sets
+parser.add_argument('--sample_size', type=int, default=-1)  # How many validation samples to evaluate val models
+parser.add_argument('--validation_samples', type=int, default=8)  # How many samples from validation to train controller
+parser.add_argument('--controller_num_aggregate', type=int, default=10)  # Steps in same samples
+parser.add_argument('--controller_train_steps', type=int, default=30)  # Total different sample sets
 parser.add_argument('--controller_lr', type=float, default=5e-4)  # Total different sample sets
-parser.add_argument('--controller_lstm_size', type=int, default=64)  # Total different sample sets
-parser.add_argument('--controller_lstm_num_layers', type=int, default=1)  # Total different sample sets
+parser.add_argument('--controller_lstm_size', type=int, default=64)  # Size of LSTM (Controller)
+parser.add_argument('--controller_lstm_num_layers', type=int, default=1)  # Number of Layers in LSTM (Controller)
 parser.add_argument('--load_shared', default=False, type=lambda x: (str(x).lower() == 'true'))  # Load shared model(s)
-parser.add_argument('--model_shared_path', default='2023_12_15__16_25_17/shared_network_parameters.pth', type=str)
+parser.add_argument('--model_shared_path', default='shared_network_sidd_0032.pth', type=str)
 parser.add_argument('--load_controller', default=False, type=lambda x: (str(x).lower() == 'true'))  # Load controller
 parser.add_argument('--model_controller_path', default='2023_12_15__16_25_17/controller_parameters.pth', type=str)
 parser.add_argument('--device', default='cuda:0', type=str)  # GPU to use
