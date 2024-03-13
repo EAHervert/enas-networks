@@ -42,7 +42,7 @@ if not os.path.exists(dir_current + '/models/'):
     os.makedirs(dir_current + '/models/')
 
 # Noise Dataset
-if args.noise not in config['Locations'].values():
+if args.noise not in config['Locations'].keys():
     print('Incorrect Noise Selection!')
     exit()
 
@@ -116,17 +116,17 @@ loss_batch_val, loss_original_batch_val, ssim_batch_val, ssim_original_batch_val
 psnr_batch_val, psnr_original_batch_val = loggers0[1][4:]
 
 # Load the Training and Validation Data:
-SIDD_training = dataset.DatasetNoise(csv_file=path_training,
-                                     transform=dataset.RandomProcessing(),
-                                     device=device)
-SIDD_validation = dataset.DatasetMAT(mat_noisy_file=path_validation_noisy,
-                                     mat_gt_file=path_validation_gt,
-                                     device=device)
+dataset_training = dataset.DatasetNoise(csv_file=path_training,
+                                        transform=dataset.RandomProcessing(),
+                                        device=device)
+dataset_validation = dataset.DatasetMAT(mat_noisy_file=path_validation_noisy,
+                                        mat_gt_file=path_validation_gt,
+                                        device=device)
 
-dataloader_training = DataLoader(dataset=SIDD_training,
+dataloader_training = DataLoader(dataset=dataset_training,
                                  batch_size=config['Training']['Train_Batch_Size'],
                                  shuffle=True)
-dataloader_validation = DataLoader(dataset=SIDD_validation,
+dataloader_validation = DataLoader(dataset=dataset_validation,
                                    batch_size=config['Training']['Validation_Batch_Size'],
                                    shuffle=False)
 

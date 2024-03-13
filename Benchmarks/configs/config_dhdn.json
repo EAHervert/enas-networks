@@ -9,8 +9,8 @@
     },
     "DIV2K_GSN_01": {
       "Validation_Noisy": "/data/gsn_01/ValidationNoisyBlocks.mat",
-      "Validation_GT": "/data/gsn_01/ValidationGtBlocksSrgb.mat",
-      "Benchmark": "/data/gsn_01/TestingNoisyBlocksSrgb.mat",
+      "Validation_GT": "/data/gsn_01/ValidationGtBlocks.mat",
+      "Benchmark": "/data/gsn_01/TestingNoisyBlocks.mat",
       "Output_File": "DHDN_DIV2K_GSN_01_Vanilla"
     },
     "DIV2K_GSN_05": {
