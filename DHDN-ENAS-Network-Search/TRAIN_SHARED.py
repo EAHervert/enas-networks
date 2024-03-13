@@ -113,9 +113,6 @@ def main():
     print(config)
     print()
 
-    print('-' * 120 + '\nUsing randomly generated architectures.' + '\n' + '-' * 120)
-    Controller = None
-
     Shared_Autoencoder = SHARED_DHDN.SharedDHDN(
         k_value=config['Shared']['K_Value'],
         channels=config['Shared']['Channels'],
@@ -156,8 +153,12 @@ def main():
                                           shuffle=True)
     if not args.fixed_arc:
         fixed_arc = None
+        print('-' * 120 + '\nUsing randomly generated architectures.' + '\n' + '-' * 120)
     else:
         fixed_arc = args.fixed_arc
+        print('-' * 120 + '\nUsing Fixed architecture: ', fixed_arc, + '\n' + '-' * 120)
+
+    Controller = None
 
     for epoch in range(args.epochs):
         training_results = TRAINING_NETWORKS.Train_Shared(epoch=epoch,
@@ -216,7 +217,7 @@ def main():
     if not args.fixed_arc:
         Shared_Path = Model_Path + '/random_pre_trained_shared_network_parameters.pth'
     else:  # Todo: fix with above
-        Shared_Path = Model_Path + '/{arc}__parameters.pth'.format(arc=args.fixed_arc)
+        Shared_Path = Model_Path + '/fixed_arc_parameters.pth'
 
     if args.data_parallel:
         torch.save(Shared_Autoencoder.module.state_dict(), Shared_Path)

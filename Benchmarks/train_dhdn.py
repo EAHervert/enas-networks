@@ -87,7 +87,7 @@ if args.load_model:
 # Create the Visdom window:
 # This window will show the SSIM and PSNR of the different networks.
 vis = visdom.Visdom(
-    server='eng-ml-03.utdallas.edu',
+    server='eng-ml-01.utdallas.edu',
     port=8097,
     use_incoming_socket=False
 )
