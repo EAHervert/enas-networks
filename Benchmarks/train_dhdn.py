@@ -24,6 +24,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument('--name', default='Default', type=str)  # Name to save Models
 parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to train on
+parser.add_argument('--size', type=int, default=3)
 parser.add_argument('--epochs', type=int, default=10)
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--device', default='cuda:0', type=str)  # GPU to use
@@ -71,10 +72,12 @@ Logger = CSVLogger(fieldnames=Field_Names, filename=File_Name)
 device = torch.device(args.device)
 
 # Load the models:
-encoder, bottleneck, decoder = [0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0]  # vanilla DHDN
+encoder = [i * 0 for i in range(3 * args.size)]
+decoder = [i * 0 for i in range(3 * args.size)]
+bottleneck = [0, 0]
 dhdn_architecture = encoder + bottleneck + decoder
 
-dhdn = DHDN.SharedDHDN(architecture=dhdn_architecture)
+dhdn = DHDN.SharedDHDN(k_value=args.size, architecture=dhdn_architecture)
 dhdn.to(device)
 
 if args.load_model:

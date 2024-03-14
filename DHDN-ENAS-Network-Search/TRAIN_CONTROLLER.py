@@ -71,7 +71,6 @@ def main():
         os.mkdir(Model_Path)
 
     device_0 = torch.device(args.device)  # Define the devices
-    samples = None if args.sample_size == -1 else args.sample_size
     # Create the CSV Logger:
     Result_Path = 'results/' + args.output_file + '/' + d1
     if not os.path.isdir(Result_Path):
@@ -263,7 +262,7 @@ def main():
                                             dataloader_sidd_validation=dataloader_sidd_validation,
                                             config=config,
                                             arc_bools=[args.kernel_bool, args.down_bool, args.up_bool],
-                                            sample_size=samples,
+                                            sample_size=args.sample_size,
                                             device=device_0)
 
         CSV_Logger.writerow({'Loss': validation_results['Validation_Loss'],
