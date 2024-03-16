@@ -41,6 +41,8 @@ parser.add_argument('--kernel_bool', default=True, type=lambda x: (str(x).lower(
 parser.add_argument('--down_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
 parser.add_argument('--up_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
 parser.add_argument('--training_csv', default='sidd_np_instances_064_0128.csv', type=str)  # training samples to use
+parser.add_argument('--load_shared', default=False, type=lambda x: (str(x).lower() == 'true'))  # Load shared model(s)
+parser.add_argument('--model_shared_path', default='shared_network_sidd_0032.pth', type=str)
 
 args = parser.parse_args()
 
@@ -56,6 +58,8 @@ def main():
     dir_current = os.getcwd()
     config_path = dir_current + '/configs/config_shared.json'
     config = json.load(open(config_path))
+    model_shared_path = '/models/' + args.model_shared_path
+
     if not os.path.exists(dir_current + '/models/'):
         os.makedirs(dir_current + '/models/')
 
@@ -118,6 +122,10 @@ def main():
         channels=config['Shared']['Channels'],
         outer_sum=args.outer_sum
     )
+
+    if args.load_shared:
+        state_dict_shared = torch.load(dir_current + model_shared_path, map_location='cpu')
+        Shared_Autoencoder.load_state_dict(state_dict_shared)
 
     if args.data_parallel:
         Shared_Autoencoder = nn.DataParallel(Shared_Autoencoder, device_ids=[0, 1]).cuda()

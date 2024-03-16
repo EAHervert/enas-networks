@@ -23,7 +23,7 @@
       "Validation_Noisy": "/data/gsn_10/ValidationNoisyBlocks.mat",
       "Validation_GT": "/data/gsn_10/ValidationGtBlocks.mat",
       "Benchmark": "/data/gsn_01/TestingNoisyBlocks.mat",
-      "Output_File": "DHDN_DIV2K_GSN_01_Vanilla"
+      "Output_File": "DHDN_DIV2K_GSN_10_Vanilla"
     },
     "DIV2K_SNP_01": {
       "Validation_Noisy": "/data/snp_01/ValidationNoisyBlocks.mat",
