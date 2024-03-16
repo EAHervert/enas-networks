@@ -48,6 +48,7 @@
     "Learning_Rate": 1e-4,
     "Train_Batch_Size": 16,
     "Validation_Batch_Size": 16,
+    "Validation_Batch_Size_DIV2K": 6,
     "Child_Grad_Bound": 0.5
   },
   "CUDA": {
