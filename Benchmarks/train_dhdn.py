@@ -135,9 +135,14 @@ def main():
     dataloader_training = DataLoader(dataset=dataset_training,
                                      batch_size=config['Training']['Train_Batch_Size'],
                                      shuffle=True)
-    dataloader_validation = DataLoader(dataset=dataset_validation,
-                                       batch_size=config['Training']['Validation_Batch_Size'],
-                                       shuffle=False)
+    if args.noise == 'SIDD':
+        dataloader_validation = DataLoader(dataset=dataset_validation,
+                                           batch_size=config['Training']['Validation_Batch_Size'],
+                                           shuffle=False)
+    else:
+        dataloader_validation = DataLoader(dataset=dataset_validation,
+                                           batch_size=config['Training']['Validation_Batch_Size_DIV2K'],
+                                           shuffle=False)
 
     for epoch in range(args.epochs):
         for i_batch, sample_batch in enumerate(dataloader_training):
@@ -158,6 +163,7 @@ def main():
 
             # Backpropagate to train model
             optimizer.zero_grad()
+            nn.utils.clip_grad_norm_(dhdn.parameters(), config['Training']['Child_Grad_Bound'])
             loss_value.backward()
             optimizer.step()
 
