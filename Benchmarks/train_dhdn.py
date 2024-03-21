@@ -29,6 +29,7 @@ parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to tra
 parser.add_argument('--size', type=int, default=3)
 parser.add_argument('--epochs', type=int, default=10)
 parser.add_argument('--learning_rate', type=float, default=1e-4)
+parser.add_argument('--weight_decay', type=float, default=0.0)
 parser.add_argument('--step_size', type=int, default=3)
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--device', default='cuda:0', type=str)  # GPU to use
@@ -109,7 +110,7 @@ def main():
 
     t_init = time.time()
     # Training Optimization and Scheduling:
-    optimizer = torch.optim.Adam(dhdn.parameters(), args.learning_rate)
+    optimizer = torch.optim.Adam(dhdn.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.step_size, 0.5, -1)
 
     # Define the Loss and evaluation metrics:
