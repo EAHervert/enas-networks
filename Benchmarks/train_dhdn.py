@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader
 import visdom
 import argparse
 import time
+import plotly.graph_objects as go  # Save HTML files for curve analysis
 
 from utilities.utils import CSVLogger
 from utilities.utils import Logger as logger_util
@@ -147,6 +148,15 @@ def main():
                                            batch_size=config['Training']['Validation_Batch_Size_DIV2K'],
                                            shuffle=False)
 
+    ssim_batch_array = []
+    ssim_original_batch_array = []
+    psnr_batch_array = []
+    psnr_original_batch_array = []
+    ssim_batch_val_array = []
+    ssim_original_batch_val_array = []
+    psnr_batch_val_array = []
+    psnr_original_batch_val_array = []
+
     for epoch in range(args.epochs):
         for i_batch, sample_batch in enumerate(dataloader_training):
             x = sample_batch['NOISY']
@@ -185,6 +195,11 @@ def main():
         Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch.avg + "\tSSIM_Original: %.6f" % ssim_original_batch.avg
         Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch.avg + "\tPSNR_Original: %.6f" % psnr_original_batch.avg
 
+        ssim_batch_array.append(ssim_batch.avg)
+        ssim_original_batch_array.append(ssim_original_batch.avg)
+        psnr_batch_array.append(psnr_batch.avg)
+        psnr_original_batch_array.append(psnr_original_batch.avg)
+
         print("\nTotal Training Data for Epoch: ", epoch)
         print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
 
@@ -207,6 +222,11 @@ def main():
         Display_Loss = "Loss_DHDN: %.6f" % loss_batch_val.avg + "\tLoss_Original: %.6f" % loss_original_batch_val.avg
         Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch_val.avg + "\tSSIM_Original: %.6f" % ssim_original_batch_val.avg
         Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch_val.avg + "\tPSNR_Original: %.6f" % psnr_original_batch_val.avg
+
+        ssim_batch_val_array.append(ssim_batch_val.avg)
+        ssim_original_batch_val_array.append(ssim_original_batch_val.avg)
+        psnr_batch_val_array.append(psnr_batch_val.avg)
+        psnr_original_batch_val_array.append(psnr_original_batch_val.avg)
 
         print("Validation Data for Epoch: ", epoch)
         print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
@@ -282,6 +302,18 @@ def main():
                                                                                  noise=args.noise)
     torch.save(dhdn.state_dict(), model_path_0)
 
+    # Saving plots:
+    ssim_fig = go.Figure(data=go.Scatter(y=ssim_batch_array, name='SSIM_Train'))
+    ssim_fig.add_trace(go.Scatter(y=ssim_original_batch_array, name='SSIM_Orig_Train'))
+    ssim_fig.add_trace(go.Scatter(y=ssim_batch_val_array, name='SSIM_Val'))
+    ssim_fig.add_trace(go.Scatter(y=ssim_original_batch_val_array, name='SSIM_Orig_Val'))
+    ssim_fig.write_html(Log_Path + "/ssim_plot.html")
+
+    psnr_fig = go.Figure(data=go.Scatter(y=psnr_batch_array, name='PSNR_Train'))
+    psnr_fig.add_trace(go.Scatter(y=psnr_original_batch_array, name='PSNR_Orig_Train'))
+    psnr_fig.add_trace(go.Scatter(y=psnr_batch_val_array, name='PSNR_Val'))
+    psnr_fig.add_trace(go.Scatter(y=psnr_original_batch_val_array, name='PSNR_Orig_Val'))
+    psnr_fig.write_html(Log_Path + "/psnr_plot.html")
 
 if __name__ == "__main__":
     main()
