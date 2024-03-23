@@ -307,13 +307,22 @@ def main():
     ssim_fig.add_trace(go.Scatter(y=ssim_original_batch_array, name='SSIM_Orig_Train'))
     ssim_fig.add_trace(go.Scatter(y=ssim_batch_val_array, name='SSIM_Val'))
     ssim_fig.add_trace(go.Scatter(y=ssim_original_batch_val_array, name='SSIM_Orig_Val'))
+
+    ssim_fig.update_layout(title='SSIM_' + args.name,
+                           yaxis_title="SSIM",
+                           xaxis_title="Epochs")
     ssim_fig.write_html(Log_Path + "/ssim_plot.html")
 
     psnr_fig = go.Figure(data=go.Scatter(y=psnr_batch_array, name='PSNR_Train'))
     psnr_fig.add_trace(go.Scatter(y=psnr_original_batch_array, name='PSNR_Orig_Train'))
     psnr_fig.add_trace(go.Scatter(y=psnr_batch_val_array, name='PSNR_Val'))
     psnr_fig.add_trace(go.Scatter(y=psnr_original_batch_val_array, name='PSNR_Orig_Val'))
+
+    psnr_fig.update_layout(title='PSNR_' + args.name,
+                           yaxis_title="PSNR",
+                           xaxis_title="Epochs")
     psnr_fig.write_html(Log_Path + "/psnr_plot.html")
+
 
 if __name__ == "__main__":
     main()
