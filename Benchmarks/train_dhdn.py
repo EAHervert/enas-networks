@@ -107,7 +107,9 @@ def main():
 
     # Display the data to the window:
     vis.env = Output_Path
-    vis_window = {'SSIM_{date}'.format(date=d1): None, 'PSNR_{date}'.format(date=d1): None}
+    vis_window = {'Loss_{date}'.format(date=d1): None,
+                  'SSIM_{date}'.format(date=d1): None,
+                  'PSNR_{date}'.format(date=d1): None}
 
     t_init = time.time()
     # Training Optimization and Scheduling:
@@ -148,10 +150,17 @@ def main():
                                            batch_size=config['Training']['Validation_Batch_Size_DIV2K'],
                                            shuffle=False)
 
+    # Training
+    loss_batch_array = []
+    loss_original_batch_array = []
     ssim_batch_array = []
     ssim_original_batch_array = []
     psnr_batch_array = []
     psnr_original_batch_array = []
+
+    # Validation
+    loss_batch_val_array = []
+    loss_original_batch_val_array = []
     ssim_batch_val_array = []
     ssim_original_batch_val_array = []
     psnr_batch_val_array = []
@@ -195,6 +204,8 @@ def main():
         Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch.avg + "\tSSIM_Original: %.6f" % ssim_original_batch.avg
         Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch.avg + "\tPSNR_Original: %.6f" % psnr_original_batch.avg
 
+        loss_batch_array.append(loss_batch.avg)
+        loss_original_batch_array.append(loss_original_batch.avg)
         ssim_batch_array.append(ssim_batch.avg)
         ssim_original_batch_array.append(ssim_original_batch.avg)
         psnr_batch_array.append(psnr_batch.avg)
@@ -223,6 +234,8 @@ def main():
         Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch_val.avg + "\tSSIM_Original: %.6f" % ssim_original_batch_val.avg
         Display_PSNR = "PSNR_DHDN: %.6f" % psnr_batch_val.avg + "\tPSNR_Original: %.6f" % psnr_original_batch_val.avg
 
+        loss_batch_val_array.append(loss_batch_val.avg)
+        loss_original_batch_val_array.append(loss_original_batch_val.avg)
         ssim_batch_val_array.append(ssim_batch_val.avg)
         ssim_original_batch_val_array.append(ssim_original_batch_val.avg)
         psnr_batch_val_array.append(psnr_batch_val.avg)
@@ -248,6 +261,14 @@ def main():
         })
 
         Legend = ['DHDN_Train', 'Orig_Train', 'DHDN_Val', 'Orig_Val']
+
+        vis_window['Loss_{date}'.format(date=d1)] = vis.line(
+            X=np.column_stack([epoch] * 4),
+            Y=np.column_stack(
+                [loss_batch.avg, loss_original_batch.avg, loss_batch_val.avg, loss_original_batch_val.avg]),
+            win=vis_window['Loss_{date}'.format(date=d1)],
+            opts=dict(title='Loss_{date}'.format(date=d1), xlabel='Epoch', ylabel='Loss', legend=Legend),
+            update='append' if epoch > 0 else None)
 
         vis_window['SSIM_{date}'.format(date=d1)] = vis.line(
             X=np.column_stack([epoch] * 4),
@@ -303,6 +324,16 @@ def main():
     torch.save(dhdn.state_dict(), model_path_0)
 
     # Saving plots:
+    loss_fig = go.Figure(data=go.Scatter(y=loss_batch_array, name='Loss_Train'))
+    loss_fig.add_trace(go.Scatter(y=loss_original_batch_array, name='Loss_Orig_Train'))
+    loss_fig.add_trace(go.Scatter(y=loss_batch_val_array, name='Loss_Val'))
+    loss_fig.add_trace(go.Scatter(y=loss_original_batch_val_array, name='Loss_Orig_Val'))
+
+    loss_fig.update_layout(title='Loss_' + args.name,
+                           yaxis_title="Loss",
+                           xaxis_title="Epochs")
+    loss_fig.write_html(Log_Path + "/loss_plot.html")
+
     ssim_fig = go.Figure(data=go.Scatter(y=ssim_batch_array, name='SSIM_Train'))
     ssim_fig.add_trace(go.Scatter(y=ssim_original_batch_array, name='SSIM_Orig_Train'))
     ssim_fig.add_trace(go.Scatter(y=ssim_batch_val_array, name='SSIM_Val'))
