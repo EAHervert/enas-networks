@@ -1,11 +1,11 @@
 import unittest
-import os
+from utilities import dataset
 import json
-
 import torch
+from torch.utils.data import DataLoader
+
 from DNAS_DHDN.TRAINING_FUNCTIONS import train_loop
 from DNAS_DHDN.DIFFERENTIABLE_DHDN import DifferentiableDHDN
-
 
 DRC_BLOCK_1 = [[0.50, 0.50], [0.40, 0.60], [0.70, 0.30]]
 DRC_BLOCK_2 = [[0.45, 0.55], [0.70, 0.30], [0.55, 0.45]]
@@ -31,15 +31,13 @@ class TestTrainLoop(unittest.TestCase):
 
         # Noise Dataset
         path_training = 'data/' + TRAINING_CSV
-        path_validation_noisy = test_config['Locations']['Validation_Noisy']
-        path_validation_gt = test_config['Locations']['Validation_GT']
 
         dataset_training = dataset.DatasetNoise(csv_file=path_training,
-                                             transform=dataset.RandomProcessing(),
-                                             device=DEVICE)
+                                                transform=dataset.RandomProcessing(),
+                                                device=DEVICE)
 
         dataloader_training = DataLoader(dataset=dataset_training,
-                                         batch_size=config['Training']['Train_Batch_Size'],
+                                         batch_size=test_config['Training']['Train_Batch_Size'],
                                          shuffle=True)
 
         out = train_loop(epoch=0,
