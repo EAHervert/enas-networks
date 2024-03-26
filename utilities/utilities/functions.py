@@ -353,3 +353,61 @@ def random_architecture_generation(k_value=3, kernel_bool=True, down_bool=True, 
 
 def list_of_ints(arg):
     return list(map(int, arg.split(',')))
+
+
+def softmax(x):
+    """Compute softmax values for each sets of scores in x."""
+    return np.exp(x) / np.sum(np.exp(x), axis=0)
+
+
+def generate_alphas(k_val=3, blocks=3, randomize=False):
+    alphas = []
+    encoder = []
+    encoder_level = []
+    bottleneck = []
+    bottleneck_level = []
+    decoder = []
+    decoder_level = []
+    block = [0.5, 0.5]
+    block_reshape = [0.33, 0.33, 0.33]
+    for k in range(k_val):
+        # Add sampling up to the decoder
+        if randomize:
+            block_reshape = softmax(np.random.rand(3)).tolist()
+        decoder_level.append(block_reshape)
+
+        # Add DRC blocks to both encoder and decoder
+        for i in range(2):
+            for j in range(blocks):
+                if randomize:
+                    block = softmax(np.random.rand(2)).tolist()
+                encoder_level.append(block)
+                if randomize:
+                    block = softmax(np.random.rand(2)).tolist()
+                decoder_level.append(block)
+
+        # Add sampling up to the encoder
+        if randomize:
+            block_reshape = softmax(np.random.rand(3)).tolist()
+        encoder_level.append(block_reshape)
+
+        encoder.append(encoder_level)
+        decoder.append(decoder_level)
+
+    for i in range(2):
+        for j in range(3):
+            if randomize:
+                block = softmax(np.random.rand(2)).tolist()
+            bottleneck_level.append(block)
+        bottleneck.append(bottleneck_level)
+
+    for val in encoder:
+        alphas.append(val)
+
+    for val in bottleneck:
+        alphas.append(val)
+
+    for val in decoder:
+        alphas.append(val)
+
+    return alphas

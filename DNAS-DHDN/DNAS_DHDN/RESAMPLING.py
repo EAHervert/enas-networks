@@ -167,7 +167,7 @@ class _up_DNAS(nn.Module):
                 stride=1,
                 padding=0
             ),
-            nn.Upsample(scale_factor=2, mode='bilinear')
+            nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
         )
         self.upsamples = nn.ModuleList([self.PS, self.convT, self.BL])
 
@@ -215,7 +215,7 @@ class _up_Fixed(nn.Module):
                     stride=1,
                     padding=0
                 ),
-                nn.Upsample(scale_factor=2, mode='bilinear')
+                nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
             )
 
     def forward(self, x):
@@ -288,7 +288,7 @@ class _up_BL(nn.Module):
                 stride=1,
                 padding=0
             ),
-            nn.Upsample(scale_factor=2, mode='bilinear')
+            nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
         )
 
     def forward(self, x):

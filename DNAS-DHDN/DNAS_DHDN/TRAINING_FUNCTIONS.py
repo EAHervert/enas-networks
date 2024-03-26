@@ -144,6 +144,7 @@ def evaluate_model(
 
     return final_dict
 
+
 def get_eval_accuracy(
         shared,
         alphas,
@@ -156,7 +157,6 @@ def get_eval_accuracy(
         shared: Network that contains all possible architectures, with shared weights.
         alphas: List of weights at each level of the Differentiable Architecture.
         dataloader_sidd_validation: Validation dataset.
-        samples: Samples to use from dataloader, or None to use all samples.
         device: The GPU that we will use.
 
     Returns:
@@ -183,23 +183,20 @@ def get_eval_accuracy(
     # samples = list(range(80))
 
     for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
-        if i_validation in samples:
-            x_v = validation_batch['NOISY']
-            t_v = validation_batch['GT']
+        x_v = validation_batch['NOISY']
+        t_v = validation_batch['GT']
 
-            with torch.no_grad():
-                y_v = shared(x_v, alphas)
-                Loss_Meter.update(loss(y_v, t_v).item())
-                Loss_Meter_Original.update(loss(x_v, t_v).item())
-                SSIM_Meter.update(SSIM(y_v, t_v).item())
-                SSIM_Meter_Original.update(SSIM(x_v, t_v).item())
-                PSNR_Meter.update(PSNR(mse(y_v, t_v)).item())
-                PSNR_Meter_Original.update(PSNR(mse(x_v, t_v)).item())
+        with torch.no_grad():
+            y_v = shared(x_v, alphas)
+            Loss_Meter.update(loss(y_v, t_v).item())
+            Loss_Meter_Original.update(loss(x_v, t_v).item())
+            SSIM_Meter.update(SSIM(y_v, t_v).item())
+            SSIM_Meter_Original.update(SSIM(x_v, t_v).item())
+            PSNR_Meter.update(PSNR(mse(y_v, t_v)).item())
+            PSNR_Meter_Original.update(PSNR(mse(x_v, t_v)).item())
 
     dict_metrics = {'Loss': Loss_Meter.avg, 'Loss_Original': Loss_Meter_Original.avg, 'SSIM': SSIM_Meter.avg,
                     'SSIM_Original': SSIM_Meter_Original.avg, 'PSNR': PSNR_Meter.avg,
                     'PSNR_Original': PSNR_Meter_Original.avg}
 
     return dict_metrics
-
-

@@ -17,10 +17,8 @@ def Train_Shared(epoch,
                  shared_optimizer,
                  config,
                  dataloader_sidd_training,
-                 arc_bools,
-                 sa_logger,
-                 device=None,
-                 fixed_arc=None):
+                 da_logger,
+                 device=None):
     """Train Shared_Autoencoder by sampling architectures from the Controller.
 
     Args:
@@ -31,10 +29,8 @@ def Train_Shared(epoch,
         shared_optimizer: Optimizer for the Shared Network.
         config: config for the hyperparameters.
         dataloader_sidd_training: Training dataset.
-        arc_bools: Booleans for architecture selection
-        sa_logger: Logs the Shared network Loss and SSIM
+        da_logger: Logs the Shared network Loss and SSIM
         device: The GPU that we will use.
-        fixed_arc: Architecture to train, overrides the controller sample.
         ...
 
     Returns: Nothing.
@@ -43,12 +39,11 @@ def Train_Shared(epoch,
     t1 = time.time()
 
     results_train = train_loop(epoch=epoch,
+                               alphas=alphas,
                                shared=shared,
                                shared_optimizer=shared_optimizer,
                                config=config,
                                dataloader_sidd_training=dataloader_sidd_training,
-                               fixed_arc=fixed_arc,
-                               arc_bools=arc_bools,
                                passes=passes,
                                device=device)
 
@@ -66,13 +61,14 @@ def Train_Shared(epoch,
     print("Epoch {epoch} Training Time: ".format(epoch=epoch), t2 - t1)
     print('-' * 120 + '\n')
 
-    sa_logger.writerow({'Shared_Loss': results_train['Loss'], 'Shared_Accuracy': results_train['SSIM']})
+    da_logger.writerow({'Differential_Loss': results_train['Loss'], 'Differential_Accuracy': results_train['SSIM']})
 
     dict_meters = {'Loss': results_train['Loss'], 'Loss_Original': results_train['Loss_Original'],
                    'SSIM': results_train['SSIM'], 'SSIM_Original': results_train['SSIM_Original'],
                    'PSNR': results_train['PSNR'], 'PSNR_Original': results_train['PSNR_Original']}
 
     return dict_meters
+
 
 def Train_DNAS(
         start_epoch,
