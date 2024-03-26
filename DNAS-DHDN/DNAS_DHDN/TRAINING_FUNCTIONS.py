@@ -12,7 +12,6 @@ def train_loop(epoch: int,
                shared_optimizer,
                config,
                dataloader_sidd_training,
-               fixed_arc=None,
                passes=1,
                device=None,
                pre_train=False):
@@ -25,7 +24,6 @@ def train_loop(epoch: int,
         shared_optimizer: Optimizer for the Shared Network.
         dataloader_sidd_training: Training dataset.
         config: config for the hyperparameters.
-        fixed_arc: Architecture to train, overrides the controller sample.
         passes: Number of passes through the training data.
         device: The GPU that we will use.
         pre_train: If we are pre-training or doing standard training.
@@ -72,7 +70,7 @@ def train_loop(epoch: int,
             # Backpropagate to train model
             shared_optimizer.zero_grad()
             loss_value.backward()
-            nn.utils.clip_grad_norm_(shared.parameters(), config['Shared']['Child_Grad_Bound'])
+            nn.utils.clip_grad_norm_(shared.parameters(), config['Training']['Child_Grad_Bound'])
             shared_optimizer.step()
 
             if i_batch % 100 == 0:

@@ -16,18 +16,23 @@ ALPHAS_1 = [[DRC_BLOCK_1, DRC_BLOCK_2, DOWN_BLOCK_1],
             [DRC_BLOCK_1, DRC_BLOCK_2],
             [UP_BLOCK_1, DRC_BLOCK_1, DRC_BLOCK_2]]
 
-TRAINING_CSV = 'sidd_np_instances_064_0016'
+TRAINING_CSV = 'sidd_np_instances_064_0016.csv'
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 K_VALUE = 1
+Learning_Rate = 0.001
+WEIGHT_DECAY = 0.00
 
 
 class TestTrainLoop(unittest.TestCase):
 
     def test_train_loop(self):
         config_path = 'data/config.json'
-        test_config = json.load(open(config_path))
+        with open(config_path, 'r') as f:
+            test_config = json.load(f)
 
         Differential_Network = DifferentiableDHDN(k_value=K_VALUE)
+        Differential_Network.to(device=DEVICE)
+        optimizer = torch.optim.Adam(Differential_Network.parameters(), lr=Learning_Rate, weight_decay=WEIGHT_DECAY)
 
         # Noise Dataset
         path_training = 'data/' + TRAINING_CSV
@@ -43,6 +48,7 @@ class TestTrainLoop(unittest.TestCase):
         out = train_loop(epoch=0,
                          alphas=ALPHAS_1,
                          shared=Differential_Network,
+                         shared_optimizer=optimizer,
                          config=test_config,
                          dataloader_sidd_training=dataloader_training,
                          device=DEVICE)
