@@ -15,7 +15,7 @@ def train_loop(epoch: int,
                passes=1,
                device=None,
                pre_train=False,
-               verbose=False):
+               verbose=True):
     """Trains the shared network based on outputs of controller (if passed).
 
     Args:

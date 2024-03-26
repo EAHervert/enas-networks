@@ -286,6 +286,10 @@ def main():
             opts=dict(title='PSNR_{date}'.format(date=d1), xlabel='Epoch', ylabel='PSNR', legend=Legend),
             update='append' if epoch > 0 else None)
 
+        # Terminate if there is convergence
+        if ssim_batch_val.avg > 0.99:
+            break
+
         loss_batch.reset()
         loss_original_batch.reset()
         ssim_batch.reset()
@@ -301,9 +305,6 @@ def main():
 
         scheduler.step()
 
-        # Terminate if there is convergence
-        if ssim_batch_val.avg > 0.99:
-            break
         # Save every validation instance
         if epoch > 0 and not epoch % args.save_every:
             model_path_0 = dir_current + '/models/{date}_dhdn_{noise}_{name}_{epoch}.pth'.format(date=d1, epoch=epoch,
