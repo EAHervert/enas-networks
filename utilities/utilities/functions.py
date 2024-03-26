@@ -361,53 +361,41 @@ def softmax(x):
 
 
 def generate_alphas(k_val=3, blocks=3, randomize=False):
-    alphas = []
     encoder = []
-    encoder_level = []
     bottleneck = []
-    bottleneck_level = []
     decoder = []
-    decoder_level = []
     block = [0.5, 0.5]
     block_reshape = [0.33, 0.33, 0.33]
     for k in range(k_val):
-        # Add sampling up to the decoder
+        encoder_temp, decoder_temp = [], []
         if randomize:
             block_reshape = softmax(np.random.rand(3)).tolist()
-        decoder_level.append(block_reshape)
+        decoder_temp.append(block_reshape)
+        for _ in range(2):
+            # DRC Blocks
+            DRC_temp = [[], [], []]
+            for _ in range(blocks):
+                for i in range(3):
+                    if randomize:
+                        block = softmax(np.random.rand(2)).tolist()
+                    DRC_temp[i].append(block)
 
-        # Add DRC blocks to both encoder and decoder
-        for i in range(2):
-            for j in range(blocks):
-                if randomize:
-                    block = softmax(np.random.rand(2)).tolist()
-                encoder_level.append(block)
-                if randomize:
-                    block = softmax(np.random.rand(2)).tolist()
-                decoder_level.append(block)
+            encoder_temp.append(DRC_temp[0])
+            decoder_temp.append(DRC_temp[1])
 
-        # Add sampling up to the encoder
         if randomize:
             block_reshape = softmax(np.random.rand(3)).tolist()
-        encoder_level.append(block_reshape)
+        encoder_temp.append(block_reshape)
 
-        encoder.append(encoder_level)
-        decoder.append(decoder_level)
+        encoder.append(encoder_temp)
+        decoder.append(decoder_temp)
 
-    for i in range(2):
-        for j in range(3):
+    for _ in range(2):
+        bottleneck_temp = []
+        for _ in range(blocks):
             if randomize:
                 block = softmax(np.random.rand(2)).tolist()
-            bottleneck_level.append(block)
-        bottleneck.append(bottleneck_level)
+            bottleneck_temp.append(block)
+        bottleneck.append(bottleneck_temp)
 
-    for val in encoder:
-        alphas.append(val)
-
-    for val in bottleneck:
-        alphas.append(val)
-
-    for val in decoder:
-        alphas.append(val)
-
-    return alphas
+    return encoder + [bottleneck] + decoder

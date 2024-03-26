@@ -122,7 +122,7 @@ def main():
 
     alphas = generate_alphas()
 
-    if args.load_shared:
+    if args.load_differential:
         state_dict_diff = torch.load(dir_current + model_diff_path, map_location='cpu')
         Diff_Autoencoder.load_state_dict(state_dict_diff)
 
@@ -216,7 +216,7 @@ def main():
 
     display_time(t_final - t_init)
 
-    Shared_Path = Model_Path + '/balanced_pre_trained_shared_network_parameters.pth'
+    Shared_Path = Model_Path + '/balanced_pre_trained_differential_network_parameters.pth'
 
     if args.data_parallel:
         torch.save(Diff_Autoencoder.module.state_dict(), Shared_Path)
