@@ -16,7 +16,7 @@ ALPHAS_1 = [[DRC_BLOCK_1, DRC_BLOCK_2, DOWN_BLOCK_1],
             [DRC_BLOCK_1, DRC_BLOCK_2],
             [UP_BLOCK_1, DRC_BLOCK_1, DRC_BLOCK_2]]
 
-TRAINING_CSV = 'sidd_np_instances_064_0016.csv'
+TRAINING_CSV = 'sidd_np_instances_064_0001.csv'
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 K_VALUE = 1
 Learning_Rate = 0.001
@@ -45,12 +45,16 @@ class TestTrainLoop(unittest.TestCase):
                                          batch_size=test_config['Training']['Train_Batch_Size'],
                                          shuffle=True)
 
-        out = train_loop(epoch=0,
-                         alphas=ALPHAS_1,
-                         shared=Differential_Network,
-                         shared_optimizer=optimizer,
-                         config=test_config,
-                         dataloader_sidd_training=dataloader_training,
-                         device=DEVICE)
+        _ = train_loop(epoch=0,
+                       alphas=ALPHAS_1,
+                       shared=Differential_Network,
+                       shared_optimizer=optimizer,
+                       config=test_config,
+                       dataloader_sidd_training=dataloader_training,
+                       device=DEVICE,
+                       verbose=False)
 
-        print(out)
+        x = torch.randn(1, 3, 64, 64, requires_grad=True, device=DEVICE)
+        y = Differential_Network(x, alphas=ALPHAS_1)
+
+        assert list(x.shape) == list(y.shape)

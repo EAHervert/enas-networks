@@ -14,7 +14,8 @@ def train_loop(epoch: int,
                dataloader_sidd_training,
                passes=1,
                device=None,
-               pre_train=False):
+               pre_train=False,
+               verbose=False):
     """Trains the shared network based on outputs of controller (if passed).
 
     Args:
@@ -27,6 +28,7 @@ def train_loop(epoch: int,
         passes: Number of passes through the training data.
         device: The GPU that we will use.
         pre_train: If we are pre-training or doing standard training.
+        verbose: If we print training information.
         ...
 
     Returns: Nothing.
@@ -73,16 +75,17 @@ def train_loop(epoch: int,
             nn.utils.clip_grad_norm_(shared.parameters(), config['Training']['Child_Grad_Bound'])
             shared_optimizer.step()
 
-            if i_batch % 100 == 0:
-                Display_Loss = "Loss_Shared: %.6f" % loss_batch.val + "\tLoss_Original: %.6f" % loss_original_batch.val
-                Display_SSIM = "SSIM_Shared: %.6f" % ssim_batch.val + "\tSSIM_Original: %.6f" % ssim_original_batch.val
-                Display_PSNR = "PSNR_Shared: %.6f" % psnr_batch.val + "\tPSNR_Original: %.6f" % psnr_original_batch.val
+            if verbose:
+                if i_batch % 100 == 0:
+                    Display_Loss = "Loss_Shared: %.6f" % loss_batch.val + "\tLoss_Original: %.6f" % loss_original_batch.val
+                    Display_SSIM = "SSIM_Shared: %.6f" % ssim_batch.val + "\tSSIM_Original: %.6f" % ssim_original_batch.val
+                    Display_PSNR = "PSNR_Shared: %.6f" % psnr_batch.val + "\tPSNR_Original: %.6f" % psnr_original_batch.val
 
-                if pre_train:
-                    print("Pre-Training Data for Epoch: ", epoch, "Pass:", pass_, "Image Batch: ", i_batch)
-                else:
-                    print("Training Data for Epoch: ", epoch, "Pass:", pass_, "Image Batch: ", i_batch)
-                print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
+                    if pre_train:
+                        print("Pre-Training Data for Epoch: ", epoch, "Pass:", pass_, "Image Batch: ", i_batch)
+                    else:
+                        print("Training Data for Epoch: ", epoch, "Pass:", pass_, "Image Batch: ", i_batch)
+                    print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
 
             # Free up space in GPU
             del x, y, t
@@ -107,7 +110,6 @@ def evaluate_model(
 
     Args:
         epoch: Current epoch.
-        controller: Controller module that generates architectures to be trained.
         shared: Network that contains all possible architectures, with shared weights.
         dataloader_sidd_validation: Validation dataset.
         config: config for the hyperparameters.
