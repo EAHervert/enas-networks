@@ -72,7 +72,7 @@ def train_loop(epoch: int,
             # Backpropagate to train model
             shared_optimizer.zero_grad()
             loss_value.backward()
-            nn.utils.clip_grad_norm_(shared.parameters(), config['Training']['Child_Grad_Bound'])
+            nn.utils.clip_grad_norm_(shared.parameters(), config['Differential']['Child_Grad_Bound'])
             shared_optimizer.step()
 
             if verbose:

@@ -45,11 +45,17 @@
     }
   },
   "Training": {
-    "Learning_Rate": 1e-4,
     "Train_Batch_Size": 16,
     "Validation_Batch_Size": 16,
-    "Validation_Batch_Size_DIV2K": 6,
-    "Child_Grad_Bound": 0.5
+    "Validation_Batch_Size_DIV2K": 6
+  },
+  "Differential": {
+    "Channels": 128,
+    "K_Value": 3,
+    "Child_Grad_Bound": 0.25,
+    "Child_lr": 1e-4,
+    "Child_gamma": 0.5,
+    "Step_Size": 3
   },
   "CUDA": {
     "DataParallel": 0
