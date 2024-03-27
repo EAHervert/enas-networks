@@ -286,8 +286,12 @@ def main():
             opts=dict(title='PSNR_{date}'.format(date=d1), xlabel='Epoch', ylabel='PSNR', legend=Legend),
             update='append' if epoch > 0 else None)
 
-        # Terminate if there is convergence
-        if ssim_batch_val.avg > 0.99:
+        # Terminate if there is sufficient convergence
+        if ssim_batch_val.avg > 0.99 and psnr_batch_val.avg > 50.0:
+            break
+
+        # Terminate if learning fails
+        if epoch > 5 and ssim_batch_val.avg < 0.10:
             break
 
         loss_batch.reset()

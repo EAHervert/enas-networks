@@ -58,3 +58,7 @@ class TestTrainLoop(unittest.TestCase):
         y = Differential_Network(x, alphas=ALPHAS_1)
 
         assert list(x.shape) == list(y.shape)
+
+
+if __name__ == '__main__':
+    unittest.main()

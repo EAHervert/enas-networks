@@ -166,6 +166,7 @@ def main():
         print('-' * 120 + '\nUsing Fixed architecture: ', fixed_arc, + '\n' + '-' * 120)
 
     for epoch in range(args.epochs):
+        # Train the weights of the shared network
         training_results = TRAINING_NETWORKS.Train_Shared(epoch=epoch,
                                                           passes=1,
                                                           alphas=alphas,
@@ -176,6 +177,8 @@ def main():
                                                           da_logger=DA_Logger,
                                                           device=device_0,
                                                           )
+
+        # Train the operation weights on validation data
         Legend = ['Shared_Train', 'Orig_Train']
 
         vis_window[list(vis_window)[0]] = vis.line(

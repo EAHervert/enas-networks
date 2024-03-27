@@ -3,15 +3,21 @@ import torch
 
 from DNAS_DHDN import DIFFERENTIABLE_DHDN
 
-DRC_BLOCK_1 = [[0.50, 0.50], [0.40, 0.60], [0.70, 0.30]]
-DRC_BLOCK_2 = [[0.45, 0.55], [0.70, 0.30], [0.55, 0.45]]
-DRC_BLOCK_3 = [[1.00, 0.00], [0.00, 0.10], [0.50, 0.50]]
+DRC_BLOCK_1 = [torch.tensor([0.50, 0.50]),
+               torch.tensor([0.40, 0.60]),
+               torch.tensor([0.70, 0.30])]
+DRC_BLOCK_2 = [torch.tensor([0.45, 0.55]),
+               torch.tensor([0.70, 0.30]),
+               torch.tensor([0.55, 0.45])]
+DRC_BLOCK_3 = [torch.tensor([1.00, 0.00]),
+               torch.tensor([0.00, 1.00]),
+               torch.tensor([0.50, 0.50])]
 
-UP_BLOCK_1 = [0.30, 0.30, 0.40]
-UP_BLOCK_2 = [0.00, 1.00, 0.00]
+UP_BLOCK_1 = torch.tensor([0.30, 0.30, 0.40])
+UP_BLOCK_2 = torch.tensor([0.00, 1.00, 0.00])
 
-DOWN_BLOCK_1 = [0.40, 0.40, 0.20]
-DOWN_BLOCK_2 = [0.50, 0.00, 0.50]
+DOWN_BLOCK_1 = torch.tensor([0.40, 0.40, 0.20])
+DOWN_BLOCK_2 = torch.tensor([0.50, 0.00, 0.50])
 
 ALPHAS_1 = [[DRC_BLOCK_1, DRC_BLOCK_2, DOWN_BLOCK_1],
             [DRC_BLOCK_1, DRC_BLOCK_2],
@@ -21,13 +27,6 @@ ALPHAS_2 = [[DRC_BLOCK_1, DRC_BLOCK_2, DOWN_BLOCK_1],
             [DRC_BLOCK_1, DRC_BLOCK_2],
             [UP_BLOCK_1, DRC_BLOCK_1, DRC_BLOCK_2],
             [UP_BLOCK_2, DRC_BLOCK_2, DRC_BLOCK_3]]
-ALPHAS_3 = [[DRC_BLOCK_1, DRC_BLOCK_2, DOWN_BLOCK_1],
-            [DRC_BLOCK_2, DRC_BLOCK_3, DOWN_BLOCK_2],
-            [DRC_BLOCK_1, DRC_BLOCK_3, DOWN_BLOCK_1],
-            [DRC_BLOCK_1, DRC_BLOCK_2],
-            [UP_BLOCK_1, DRC_BLOCK_1, DRC_BLOCK_2],
-            [UP_BLOCK_2, DRC_BLOCK_2, DRC_BLOCK_3],
-            [UP_BLOCK_1, DRC_BLOCK_1, DRC_BLOCK_3]]
 
 
 def test_alphas(alphas, k_value):
