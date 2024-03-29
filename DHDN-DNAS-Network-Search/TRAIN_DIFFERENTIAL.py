@@ -160,7 +160,7 @@ def main():
                                           batch_size=config['Training']['Train_Batch_Size'],
                                           shuffle=True)
 
-    print('-' * 120 + '\nUsing weights: \n', [round(i, 4) for i in weights.tolist()], + '\n' + '-' * 120)
+    print('-' * 120 + '\nUsing weights: \n', [round(i, 4) for i in weights.tolist()], '\n' + '-' * 120)
 
     # Training
     loss_batch_array = []
