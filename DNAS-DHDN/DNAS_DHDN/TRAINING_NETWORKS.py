@@ -12,6 +12,7 @@ from DNAS_DHDN.TRAINING_FUNCTIONS import evaluate_model, train_loop
 # Here we train the Shared Network which is sampled from the Controller
 def Train_Shared(epoch,
                  passes,
+                 weights,
                  shared,
                  shared_optimizer,
                  config,
@@ -23,6 +24,7 @@ def Train_Shared(epoch,
     Args:
         epoch: Current epoch.
         passes: Number of passes though the training data.
+        weights: weights to generate alphas.
         shared: Network that contains all possible architectures, with shared weights.
         shared_optimizer: Optimizer for the Shared Network.
         config: config for the hyperparameters.
@@ -37,6 +39,7 @@ def Train_Shared(epoch,
     t1 = time.time()
 
     results_train = train_loop(epoch=epoch,
+                               weights=weights,
                                shared=shared,
                                shared_optimizer=shared_optimizer,
                                config=config,

@@ -8,10 +8,8 @@ import torch.nn as nn
 # This will be the full branch.
 class _down_DNAS(nn.Module):
     def __init__(self,
-                 alphas_down,
                  channel_in):
         super(_down_DNAS, self).__init__()
-        self.alphas_down = alphas_down
         self.maxpool = nn.Sequential(nn.MaxPool2d(2),
                                      nn.Conv2d(
                                          in_channels=channel_in,
@@ -37,9 +35,9 @@ class _down_DNAS(nn.Module):
         self.downsamples = nn.ModuleList([self.maxpool, self.avgpool, self.downconv])
         self.relu = nn.PReLU()
 
-    def forward(self, x):
+    def forward(self, x, alphas_down):
         out = 0
-        for index, alpha in enumerate(self.alphas_down):
+        for index, alpha in enumerate(alphas_down):
             out += alpha * self.downsamples[index](x)
 
         return self.relu(out)
@@ -143,10 +141,10 @@ class _down_Conv(nn.Module):
 
 # This will be the full branch.
 class _up_DNAS(nn.Module):
-    def __init__(self, alphas_up, channel_in):
+    def __init__(self,
+                 channel_in):
         super(_up_DNAS, self).__init__()
 
-        self.alphas_up = alphas_up
         self.preprocess = nn.Sequential(nn.Conv2d(
             in_channels=channel_in,
             out_channels=channel_in,
@@ -176,10 +174,10 @@ class _up_DNAS(nn.Module):
         )
         self.upsamples = nn.ModuleList([self.PS, self.convT, self.BL])
 
-    def forward(self, x):
+    def forward(self, x, alphas_up):
         out = self.preprocess(x)
         out_final = 0
-        for index, alpha in enumerate(self.alphas_up):
+        for index, alpha in enumerate(alphas_up):
             out_final += alpha * self.upsamples[index](out)
 
         return out_final

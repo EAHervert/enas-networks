@@ -18,12 +18,10 @@ import torch.nn as nn
 #   Different number of convolutions parameterized by "size"
 class _DRC_block_DNAS(nn.Module):
     def __init__(self,
-                 alphas_block,
                  channel_in,
                  size=3):
         super(_DRC_block_DNAS, self).__init__()
 
-        self.alphas_block = alphas_block
         self.graph = nn.ModuleList([])
 
         for i in range(size):
@@ -63,11 +61,11 @@ class _DRC_block_DNAS(nn.Module):
             node_relu = nn.PReLU()
             self.graph.append(node_relu)
 
-    def forward(self, x):
+    def forward(self, x, alphas_block):
         residual = x
         in_val = x
         out_val = 0
-        for index, alphas in enumerate(self.alphas_block[:-1]):
+        for index, alphas in enumerate(alphas_block[:-1]):
             # a_{n + 1} = sum_i [alpha_{n, i}f_{n, i} (x_n)]
             for index_v, alpha in enumerate(alphas):
                 out_val += alpha * self.graph[2 * index][index_v](in_val)
@@ -76,7 +74,7 @@ class _DRC_block_DNAS(nn.Module):
             in_val = torch.cat([in_val, out_val], dim=1)  # Concatenation (Dense Learning)
 
         out_val_final = 0
-        for alphas in self.alphas_block[-1:]:
+        for alphas in alphas_block[-1:]:
             for index_v, alpha in enumerate(alphas):
                 out_val_final += alpha * self.graph[-2][index_v](in_val)
         out_val = self.graph[- 1](out_val_final)  # PReLU activation

@@ -13,9 +13,10 @@ from torch.optim.lr_scheduler import StepLR  # Changing the learning rate for th
 from torch.utils.data import DataLoader
 import visdom
 import argparse
+import plotly.graph_objects as go  # Save HTML files for curve analysis
 
 from utilities.utils import CSVLogger, Logger
-from utilities.functions import display_time, list_of_ints, generate_w_alphas, w_alphas_to_alphas
+from utilities.functions import display_time, list_of_ints, generate_w_alphas
 
 # To supress warnings:
 if not sys.warnoptions:
@@ -118,7 +119,6 @@ def main():
     weights.requires_grad_(False)  # Training the weights of the network not the architecture weights
 
     Diff_Autoencoder = DIFFERENTIABLE_DHDN.DifferentiableDHDN(
-        weights=weights,
         k_value=config['Differential']['K_Value'],
         channels=config['Differential']['Channels'],
         outer_sum=args.outer_sum
@@ -160,12 +160,20 @@ def main():
                                           batch_size=config['Training']['Train_Batch_Size'],
                                           shuffle=True)
 
-    alphas = w_alphas_to_alphas(weights)
-    print('-' * 120 + '\nUsing Fixed Alpha: \n', alphas, + '\n' + '-' * 120)
+    print('-' * 120 + '\nUsing weights: \n', [round(i, 4) for i in weights.tolist()], + '\n' + '-' * 120)
+
+    # Training
+    loss_batch_array = []
+    loss_original_batch_array = []
+    ssim_batch_array = []
+    ssim_original_batch_array = []
+    psnr_batch_array = []
+    psnr_original_batch_array = []
 
     for epoch in range(args.epochs):
         # Train the weights of the shared network
         training_results = TRAINING_NETWORKS.Train_Shared(epoch=epoch,
+                                                          weights=weights,
                                                           passes=1,
                                                           shared=Diff_Autoencoder,
                                                           shared_optimizer=Diff_Autoencoder_Optimizer,
@@ -207,6 +215,13 @@ def main():
                              'PSNR_Original_Train': training_results['PSNR_Original']
                              })
 
+        loss_batch_array.append(training_results['Loss'])
+        loss_original_batch_array.append(training_results['Loss_Original'])
+        ssim_batch_array.append(training_results['SSIM'])
+        ssim_original_batch_array.append(training_results['SSIM_Original'])
+        psnr_batch_array.append(training_results['PSNR'])
+        psnr_original_batch_array.append(training_results['PSNR_Original'])
+
         Diff_Autoencoder_Scheduler.step()
 
     DA_Logger.close()
@@ -224,7 +239,32 @@ def main():
     else:
         torch.save(Diff_Autoencoder.state_dict(), Shared_Path)
 
-        torch.save(Diff_Autoencoder.weights, weights_Path)
+    torch.save(Diff_Autoencoder.weights, weights_Path)
+
+    # Saving plots:
+    loss_fig = go.Figure(data=go.Scatter(y=loss_batch_array, name='Loss_Train'))
+    loss_fig.add_trace(go.Scatter(y=loss_original_batch_array, name='Loss_Orig_Train'))
+
+    loss_fig.update_layout(title='Loss_' + args.name,
+                           yaxis_title="Loss",
+                           xaxis_title="Epochs")
+    loss_fig.write_html(Result_Path + "/loss_plot.html")
+
+    ssim_fig = go.Figure(data=go.Scatter(y=ssim_batch_array, name='SSIM_Train'))
+    ssim_fig.add_trace(go.Scatter(y=ssim_original_batch_array, name='SSIM_Orig_Train'))
+
+    ssim_fig.update_layout(title='SSIM_' + args.name,
+                           yaxis_title="SSIM",
+                           xaxis_title="Epochs")
+    ssim_fig.write_html(Result_Path + "/ssim_plot.html")
+
+    psnr_fig = go.Figure(data=go.Scatter(y=psnr_batch_array, name='PSNR_Train'))
+    psnr_fig.add_trace(go.Scatter(y=psnr_original_batch_array, name='PSNR_Orig_Train'))
+
+    psnr_fig.update_layout(title='PSNR_' + args.name,
+                           yaxis_title="PSNR",
+                           xaxis_title="Epochs")
+    psnr_fig.write_html(Result_Path + "/psnr_plot.html")
 
 
 if __name__ == "__main__":

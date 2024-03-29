@@ -10,9 +10,9 @@ ALPHAS = torch.tensor([0.1, 0.7, 0.2])
 def test_downsampling_dnas(size, alphas):
     x = torch.randn(1, CHANNELS, size[0], size[1])
     target = [1, CHANNELS * 2, size[0] // 2, size[1] // 2]
-    dnas_down = RESAMPLING._down_DNAS(alphas_down=alphas, channel_in=CHANNELS)
+    dnas_down = RESAMPLING._down_DNAS(channel_in=CHANNELS)
 
-    return list(dnas_down(x).shape) == target
+    return list(dnas_down(x, alphas_down=alphas).shape) == target
 
 
 def test_downsampling_fixed(size):
@@ -45,9 +45,9 @@ def test_downsampling(size):
 def test_upsampling_dnas(size, alphas):
     x = torch.randn(1, CHANNELS, size[0], size[1])
     target = [1, CHANNELS // 4, size[0] * 2, size[1] * 2]
-    dnas_up = RESAMPLING._up_DNAS(alphas_up=alphas, channel_in=CHANNELS)
+    dnas_up = RESAMPLING._up_DNAS(channel_in=CHANNELS)
 
-    return list(dnas_up(x).shape) == target
+    return list(dnas_up(x, alphas_up=alphas).shape) == target
 
 
 def test_upsampling_fixed(size):

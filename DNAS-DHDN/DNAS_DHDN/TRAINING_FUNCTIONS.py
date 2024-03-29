@@ -7,6 +7,7 @@ from utilities.functions import SSIM, PSNR, random_architecture_generation
 
 
 def train_loop(epoch: int,
+               weights,
                shared,
                shared_optimizer,
                config,
@@ -19,6 +20,7 @@ def train_loop(epoch: int,
 
     Args:
         epoch: Current epoch.
+        weights: weights to generate alphas.
         shared: Network that contains all possible architectures, with shared weights.
         shared_optimizer: Optimizer for the Shared Network.
         dataloader_sidd_training: Training dataset.
@@ -51,7 +53,7 @@ def train_loop(epoch: int,
     for pass_ in range(passes):
         for i_batch, sample_batch in enumerate(dataloader_sidd_training):
             x = sample_batch['NOISY']
-            y = shared(x)  # Net is the output of the network
+            y = shared(x, weights)  # Net is the output of the network
             t = sample_batch['GT']
 
             loss_value = loss(y, t)
