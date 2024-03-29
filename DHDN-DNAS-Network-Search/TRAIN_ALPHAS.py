@@ -1,8 +1,8 @@
 import os
 import sys
 from utilities import dataset
-from ENAS_DHDN import TRAINING_NETWORKS
-from ENAS_DHDN import SHARED_DHDN
+from DNAS_DHDN import TRAINING_NETWORKS
+from DNAS_DHDN import DIFFERENTIABLE_DHDN
 import datetime
 import json
 import time
@@ -13,10 +13,9 @@ from torch.optim.lr_scheduler import StepLR  # Changing the learning rate for th
 from torch.utils.data import DataLoader
 import visdom
 import argparse
-import plotly.graph_objects as go  # Save HTML files for curve analysis
 
 from utilities.utils import CSVLogger, Logger
-from utilities.functions import display_time, list_of_ints
+from utilities.functions import display_time, list_of_ints, generate_w_alphas
 
 # To supress warnings:
 if not sys.warnoptions:
@@ -24,7 +23,7 @@ if not sys.warnoptions:
 
     warnings.simplefilter("ignore")
 
-parser = argparse.ArgumentParser(description='ENAS_SEARCH_DHDN')
+parser = argparse.ArgumentParser(description='DNAS_SEARCH_DHDN')
 
 parser.add_argument('--output_file', default='Pre_Train_DHDN', type=str)
 
@@ -38,12 +37,9 @@ parser.add_argument('--data_parallel', default=True, type=lambda x: (str(x).lowe
 parser.add_argument('--cutout_images', default=False, type=lambda x: (str(x).lower() == 'true'))
 parser.add_argument('--outer_sum', default=False, type=lambda x: (str(x).lower() == 'true'))
 parser.add_argument('--fixed_arc', default=[], type=list_of_ints)  # Overrides the controller sample
-parser.add_argument('--kernel_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
-parser.add_argument('--down_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
-parser.add_argument('--up_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
-parser.add_argument('--training_csv', default='sidd_np_instances_064_0128.csv', type=str)  # training samples to use
-parser.add_argument('--load_shared', default=False, type=lambda x: (str(x).lower() == 'true'))  # Load shared model(s)
-parser.add_argument('--model_shared_path', default='shared_network_sidd_0032.pth', type=str)
+parser.add_argument('--training_csv', default='sidd_np_instances_064_0032.csv', type=str)  # training samples to use
+parser.add_argument('--load_differential', default=False, type=lambda x: (str(x).lower() == 'true'))  # Load diff model
+parser.add_argument('--model_differential_path', default='differential_network_sidd_0032.pth', type=str)
 
 args = parser.parse_args()
 
@@ -57,9 +53,9 @@ def main():
 
     # Hyperparameters
     dir_current = os.getcwd()
-    config_path = dir_current + '/configs/config_shared.json'
+    config_path = dir_current + '/configs/config_alphas.json'
     config = json.load(open(config_path))
-    model_shared_path = '/models/' + args.model_shared_path
+    model_diff_path = '/models/' + args.model_differential_path
 
     if not os.path.exists(dir_current + '/models/'):
         os.makedirs(dir_current + '/models/')
@@ -83,9 +79,9 @@ def main():
         os.mkdir(Model_Path)
 
     # Let us create the loggers to keep track of the Losses, Accuracies, and Rewards.
-    File_Name_SA = Result_Path + '/shared_autoencoder.log'
-    Field_Names_SA = ['Shared_Loss', 'Shared_Accuracy']
-    SA_Logger = CSVLogger(fieldnames=Field_Names_SA, filename=File_Name_SA)
+    File_Name_DA = Result_Path + '/differential_autoencoder.log'
+    Field_Names_DA = ['Differential_Loss', 'Differential_Accuracy']
+    DA_Logger = CSVLogger(fieldnames=Field_Names_DA, filename=File_Name_DA)
 
     # Create the CSV Logger:
     File_Name = Result_Path + '/data.csv'
@@ -102,7 +98,7 @@ def main():
 
     vis.env = args.output_file
     vis_window = {
-        'SN_Loss_{d1}'.format(d1=d1): None, 'SN_SSIM_{d1}'.format(d1=d1): None, 'SN_PSNR_{d1}'.format(d1=d1): None
+        'DN_Loss_{d1}'.format(d1=d1): None, 'DN_SSIM_{d1}'.format(d1=d1): None, 'DN_PSNR_{d1}'.format(d1=d1): None
     }
 
     t_init = time.time()
@@ -118,20 +114,24 @@ def main():
     print(config)
     print()
 
-    Shared_Autoencoder = SHARED_DHDN.SharedDHDN(
-        k_value=config['Shared']['K_Value'],
-        channels=config['Shared']['Channels'],
-        outer_sum=args.outer_sum
+    weights = generate_w_alphas(k_val=config['Differential']['K_Value'])
+    weights.requires_grad_(True)  # Training the architecture parameters
+
+    Diff_Autoencoder = DIFFERENTIABLE_DHDN.DifferentiableDHDN(
+        k_value=config['Differential']['K_Value'],
+        channels=config['Differential']['Channels'],
+        outer_sum=args.outer_sum,
+        weights=weights
     )
 
-    if args.load_shared:
-        state_dict_shared = torch.load(dir_current + model_shared_path, map_location='cpu')
-        Shared_Autoencoder.load_state_dict(state_dict_shared)
+    if args.load_differential:
+        state_dict_diff = torch.load(dir_current + model_diff_path, map_location='cpu')
+        Diff_Autoencoder.load_state_dict(state_dict_diff)
 
     if args.data_parallel:
-        Shared_Autoencoder = nn.DataParallel(Shared_Autoencoder, device_ids=[0, 1]).cuda()
+        Diff_Autoencoder = nn.DataParallel(Diff_Autoencoder, device_ids=[0, 1]).cuda()
     else:
-        Shared_Autoencoder = Shared_Autoencoder.to(device_0)
+        Diff_Autoencoder = Diff_Autoencoder.to(device_0)
 
     # We will use ADAM on the child network (Different from Original ENAS paper)
     # https://github.com/melodyguan/enas/blob/master/src/utils.py#L213
@@ -139,15 +139,15 @@ def main():
     #                                                 lr=config['Shared']['Child_lr'],
     #                                                 weight_decay=config['Shared']['Weight_Decay'])
 
-    Shared_Autoencoder_Optimizer = torch.optim.Adam(params=Shared_Autoencoder.parameters(),
-                                                    lr=config['Shared']['Child_lr'])
+    Diff_Autoencoder_Optimizer = torch.optim.Adam(params=Diff_Autoencoder.parameters(),
+                                                  lr=config['Differential']['Child_lr'])
 
     # https://github.com/melodyguan/enas/blob/master/src/utils.py#L154
     # Use step LR scheduler instead of Cosine Annealing
-    Shared_Autoencoder_Scheduler = StepLR(
-        optimizer=Shared_Autoencoder_Optimizer,
-        step_size=config['Shared']['Step_Size'],
-        gamma=config['Shared']['Child_gamma']
+    Diff_Autoencoder_Scheduler = StepLR(
+        optimizer=Diff_Autoencoder_Optimizer,
+        step_size=config['Differential']['Step_Size'],
+        gamma=config['Differential']['Child_gamma']
     )
 
     # Noise Dataset
@@ -167,30 +167,20 @@ def main():
         fixed_arc = args.fixed_arc
         print('-' * 120 + '\nUsing Fixed architecture: ', fixed_arc, + '\n' + '-' * 120)
 
-    Controller = None
-
-    # Training
-    loss_batch_array = []
-    loss_original_batch_array = []
-    ssim_batch_array = []
-    ssim_original_batch_array = []
-    psnr_batch_array = []
-    psnr_original_batch_array = []
-
     for epoch in range(args.epochs):
+        # Train the weights of the shared network
         training_results = TRAINING_NETWORKS.Train_Shared(epoch=epoch,
                                                           passes=1,
-                                                          controller=Controller,
-                                                          shared=Shared_Autoencoder,
-                                                          shared_optimizer=Shared_Autoencoder_Optimizer,
+                                                          alphas=alphas,
+                                                          shared=Diff_Autoencoder,
+                                                          shared_optimizer=Diff_Autoencoder_Optimizer,
                                                           config=config,
                                                           dataloader_sidd_training=dataloader_sidd_training,
-                                                          arc_bools=[args.kernel_bool, args.up_bool,
-                                                                     args.down_bool],
-                                                          sa_logger=SA_Logger,
+                                                          da_logger=DA_Logger,
                                                           device=device_0,
-                                                          fixed_arc=fixed_arc
                                                           )
+
+        # Train the operation weights on validation data
         Legend = ['Shared_Train', 'Orig_Train']
 
         vis_window[list(vis_window)[0]] = vis.line(
@@ -222,56 +212,21 @@ def main():
                              'PSNR_Original_Train': training_results['PSNR_Original']
                              })
 
-        loss_batch_array.append(training_results['Loss'])
-        loss_original_batch_array.append(training_results['Loss_Original'])
-        ssim_batch_array.append(training_results['SSIM'])
-        ssim_original_batch_array.append(training_results['SSIM_Original'])
-        psnr_batch_array.append(training_results['PSNR'])
-        psnr_original_batch_array.append(training_results['PSNR_Original'])
+        Diff_Autoencoder_Scheduler.step()
 
-        Shared_Autoencoder_Scheduler.step()
-
-    SA_Logger.close()
+    DA_Logger.close()
     CSV_Logger.close()
 
     t_final = time.time()
 
     display_time(t_final - t_init)
 
-    if not args.fixed_arc:
-        Shared_Path = Model_Path + '/random_pre_trained_shared_network_parameters.pth'
-    else:  # Todo: fix with above
-        Shared_Path = Model_Path + '/fixed_arc_parameters.pth'
+    Shared_Path = Model_Path + '/balanced_pre_trained_differential_network_parameters.pth'
 
     if args.data_parallel:
-        torch.save(Shared_Autoencoder.module.state_dict(), Shared_Path)
+        torch.save(Diff_Autoencoder.module.state_dict(), Shared_Path)
     else:
-        torch.save(Shared_Autoencoder.state_dict(), Shared_Path)
-
-    # Saving plots:
-    loss_fig = go.Figure(data=go.Scatter(y=loss_batch_array, name='Loss_Train'))
-    loss_fig.add_trace(go.Scatter(y=loss_original_batch_array, name='Loss_Orig_Train'))
-
-    loss_fig.update_layout(title='Loss_' + args.name,
-                           yaxis_title="Loss",
-                           xaxis_title="Epochs")
-    loss_fig.write_html(Result_Path + "/loss_plot.html")
-
-    ssim_fig = go.Figure(data=go.Scatter(y=ssim_batch_array, name='SSIM_Train'))
-    ssim_fig.add_trace(go.Scatter(y=ssim_original_batch_array, name='SSIM_Orig_Train'))
-
-    ssim_fig.update_layout(title='SSIM_' + args.name,
-                           yaxis_title="SSIM",
-                           xaxis_title="Epochs")
-    ssim_fig.write_html(Result_Path + "/ssim_plot.html")
-
-    psnr_fig = go.Figure(data=go.Scatter(y=psnr_batch_array, name='PSNR_Train'))
-    psnr_fig.add_trace(go.Scatter(y=psnr_original_batch_array, name='PSNR_Orig_Train'))
-
-    psnr_fig.update_layout(title='PSNR_' + args.name,
-                           yaxis_title="PSNR",
-                           xaxis_title="Epochs")
-    psnr_fig.write_html(Result_Path + "/psnr_plot.html")
+        torch.save(Diff_Autoencoder.state_dict(), Shared_Path)
 
 
 if __name__ == "__main__":

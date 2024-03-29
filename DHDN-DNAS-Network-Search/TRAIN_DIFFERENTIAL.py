@@ -15,7 +15,7 @@ import visdom
 import argparse
 
 from utilities.utils import CSVLogger, Logger
-from utilities.functions import display_time, list_of_ints, generate_alphas
+from utilities.functions import display_time, list_of_ints, generate_w_alphas, w_alphas_to_alphas
 
 # To supress warnings:
 if not sys.warnoptions:
@@ -23,9 +23,9 @@ if not sys.warnoptions:
 
     warnings.simplefilter("ignore")
 
-parser = argparse.ArgumentParser(description='ENAS_SEARCH_DHDN')
+parser = argparse.ArgumentParser(description='DNAS_SEARCH_DHDN')
 
-parser.add_argument('--output_file', default='Pre_Train_DHDN', type=str)
+parser.add_argument('--output_file', default='Pre_Train_DHDN_DNAS', type=str)
 
 # Training:
 parser.add_argument('--epochs', type=int, default=30)
@@ -114,13 +114,15 @@ def main():
     print(config)
     print()
 
+    weights = generate_w_alphas(k_val=config['Differential']['K_Value'])
+    weights.requires_grad_(False)  # Training the weights of the network not the architecture weights
+
     Diff_Autoencoder = DIFFERENTIABLE_DHDN.DifferentiableDHDN(
+        weights=weights,
         k_value=config['Differential']['K_Value'],
         channels=config['Differential']['Channels'],
         outer_sum=args.outer_sum
     )
-
-    alphas = generate_alphas()
 
     if args.load_differential:
         state_dict_diff = torch.load(dir_current + model_diff_path, map_location='cpu')
@@ -151,25 +153,20 @@ def main():
     # Noise Dataset
     path_training = dir_current + '/instances/' + args.training_csv
 
-    # Todo: Make function that returns these datasets.
     SIDD_training = dataset.DatasetNoise(csv_file=path_training,
                                          transform=dataset.RandomProcessing(cutout_images=args.cutout_images),
                                          device=device_0)
     dataloader_sidd_training = DataLoader(dataset=SIDD_training,
                                           batch_size=config['Training']['Train_Batch_Size'],
                                           shuffle=True)
-    if not args.fixed_arc:
-        fixed_arc = None
-        print('-' * 120 + '\nUsing randomly generated architectures.' + '\n' + '-' * 120)
-    else:
-        fixed_arc = args.fixed_arc
-        print('-' * 120 + '\nUsing Fixed architecture: ', fixed_arc, + '\n' + '-' * 120)
+
+    alphas = w_alphas_to_alphas(weights)
+    print('-' * 120 + '\nUsing Fixed Alpha: \n', alphas, + '\n' + '-' * 120)
 
     for epoch in range(args.epochs):
         # Train the weights of the shared network
         training_results = TRAINING_NETWORKS.Train_Shared(epoch=epoch,
                                                           passes=1,
-                                                          alphas=alphas,
                                                           shared=Diff_Autoencoder,
                                                           shared_optimizer=Diff_Autoencoder_Optimizer,
                                                           config=config,
@@ -219,12 +216,15 @@ def main():
 
     display_time(t_final - t_init)
 
-    Shared_Path = Model_Path + '/balanced_pre_trained_differential_network_parameters.pth'
+    Shared_Path = Model_Path + '/pre_trained_differential_network_parameters.pth'
+    weights_Path = Model_Path + '/w_alphas_differential_network.pth'
 
     if args.data_parallel:
         torch.save(Diff_Autoencoder.module.state_dict(), Shared_Path)
     else:
         torch.save(Diff_Autoencoder.state_dict(), Shared_Path)
+
+        torch.save(Diff_Autoencoder.weights, weights_Path)
 
 
 if __name__ == "__main__":

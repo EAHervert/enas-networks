@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 
 
@@ -6,8 +7,11 @@ import torch.nn as nn
 
 # This will be the full branch.
 class _down_DNAS(nn.Module):
-    def __init__(self, channel_in):
+    def __init__(self,
+                 alphas_down,
+                 channel_in):
         super(_down_DNAS, self).__init__()
+        self.alphas_down = alphas_down
         self.maxpool = nn.Sequential(nn.MaxPool2d(2),
                                      nn.Conv2d(
                                          in_channels=channel_in,
@@ -33,9 +37,9 @@ class _down_DNAS(nn.Module):
         self.downsamples = nn.ModuleList([self.maxpool, self.avgpool, self.downconv])
         self.relu = nn.PReLU()
 
-    def forward(self, x, alphas):
+    def forward(self, x):
         out = 0
-        for index, alpha in enumerate(alphas):
+        for index, alpha in enumerate(self.alphas_down):
             out += alpha * self.downsamples[index](x)
 
         return self.relu(out)
@@ -43,12 +47,12 @@ class _down_DNAS(nn.Module):
 
 # This will be the branch that is fixed depending on the architecture.
 class _down_Fixed(nn.Module):
-    def __init__(self, channel_in, architecture_k):
+    def __init__(self, alphas_down, channel_in):
         super(_down_Fixed, self).__init__()
 
-        self.architecture_k = architecture_k
+        self.down_op = torch.argmax(alphas_down).item()
 
-        if self.architecture_k == 2:
+        if self.down_op == 2:
             self.down = nn.Conv2d(
                 in_channels=channel_in,
                 out_channels=2 * channel_in,
@@ -64,15 +68,15 @@ class _down_Fixed(nn.Module):
                 stride=1,
                 padding=0
             )
-            if self.architecture_k == 0:
+            if self.down_op == 0:
                 self.down = nn.MaxPool2d(2)
-            elif self.architecture_k == 1:
+            elif self.down_op == 1:
                 self.down = nn.AvgPool2d(2)
 
         self.relu = nn.PReLU()
 
     def forward(self, x):
-        if self.architecture_k != 2:
+        if self.down_op != 2:
             return self.relu(self.conv(self.down(x)))
         else:
             return self.relu(self.down(x))
@@ -139,9 +143,10 @@ class _down_Conv(nn.Module):
 
 # This will be the full branch.
 class _up_DNAS(nn.Module):
-    def __init__(self, channel_in):
+    def __init__(self, alphas_up, channel_in):
         super(_up_DNAS, self).__init__()
 
+        self.alphas_up = alphas_up
         self.preprocess = nn.Sequential(nn.Conv2d(
             in_channels=channel_in,
             out_channels=channel_in,
@@ -171,10 +176,10 @@ class _up_DNAS(nn.Module):
         )
         self.upsamples = nn.ModuleList([self.PS, self.convT, self.BL])
 
-    def forward(self, x, alphas):
+    def forward(self, x):
         out = self.preprocess(x)
         out_final = 0
-        for index, alpha in enumerate(alphas):
+        for index, alpha in enumerate(self.alphas_up):
             out_final += alpha * self.upsamples[index](out)
 
         return out_final
@@ -182,7 +187,7 @@ class _up_DNAS(nn.Module):
 
 # This will be the branch that is fixed depending on the architecture.
 class _up_Fixed(nn.Module):
-    def __init__(self, channel_in, architecture_k):
+    def __init__(self, alphas_up, channel_in):
         super(_up_Fixed, self).__init__()
 
         self.conv = nn.Conv2d(
@@ -194,11 +199,11 @@ class _up_Fixed(nn.Module):
         )
         self.relu = nn.PReLU()
 
-        self.architecture_k = architecture_k
+        self.up_op = torch.argmax(alphas_up).item()
 
-        if self.architecture_k == 0:
+        if self.up_op == 0:
             self.up = nn.PixelShuffle(2)
-        elif self.architecture_k == 1:
+        elif self.up_op == 1:
             self.up = nn.ConvTranspose2d(
                 in_channels=channel_in,
                 out_channels=channel_in // 4,
@@ -206,7 +211,7 @@ class _up_Fixed(nn.Module):
                 stride=2,
                 padding=0
             )
-        elif self.architecture_k == 2:
+        elif self.up_op == 2:
             self.up = nn.Sequential(
                 nn.Conv2d(
                     in_channels=channel_in,

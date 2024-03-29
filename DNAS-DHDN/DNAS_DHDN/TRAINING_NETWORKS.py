@@ -12,7 +12,6 @@ from DNAS_DHDN.TRAINING_FUNCTIONS import evaluate_model, train_loop
 # Here we train the Shared Network which is sampled from the Controller
 def Train_Shared(epoch,
                  passes,
-                 alphas,
                  shared,
                  shared_optimizer,
                  config,
@@ -24,7 +23,6 @@ def Train_Shared(epoch,
     Args:
         epoch: Current epoch.
         passes: Number of passes though the training data.
-        alphas: List of weights at each level of the Differentiable Architecture.
         shared: Network that contains all possible architectures, with shared weights.
         shared_optimizer: Optimizer for the Shared Network.
         config: config for the hyperparameters.
@@ -39,7 +37,6 @@ def Train_Shared(epoch,
     t1 = time.time()
 
     results_train = train_loop(epoch=epoch,
-                               alphas=alphas,
                                shared=shared,
                                shared_optimizer=shared_optimizer,
                                config=config,
@@ -75,7 +72,6 @@ def Train_DNAS(
         pre_train_epochs,
         num_epochs,
         passes,
-        alphas,
         shared,
         shared_optimizer,
         shared_scheduler,
@@ -97,7 +93,6 @@ def Train_DNAS(
         pre_train_epochs: Number of epochs to pre-train the model randomly (Get better results).
         num_epochs: Number of epochs to loop through.
         passes: Number of passes though the training data.
-        alphas: List of weights at each level of the Differentiable Architecture.
         shared: Network that contains all possible architectures, with shared weights.
         shared_optimizer: Optimizer for the Shared_Autoencoder.
         shared_scheduler: Controls the learning rate for the Shared_Autoencoder.

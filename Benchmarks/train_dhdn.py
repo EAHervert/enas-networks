@@ -287,7 +287,7 @@ def main():
             update='append' if epoch > 0 else None)
 
         # Terminate if there is sufficient convergence
-        if ssim_batch_val.avg > 0.99 and psnr_batch_val.avg > 50.0:
+        if ssim_batch_val.avg > 0.99 and psnr_batch_val.avg > 55.0:
             break
 
         # Terminate if learning fails

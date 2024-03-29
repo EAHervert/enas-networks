@@ -36,9 +36,9 @@ class _DRC_block_ENAS(nn.Module):
                 temp_conv5 = nn.Conv2d(
                     in_channels=int((1 + i * .5) * channel_in),
                     out_channels=int(channel_in / 2.),
-                    kernel_size=3,
+                    kernel_size=5,
                     stride=1,
-                    padding=1
+                    padding=2
                 )
             else:
                 temp_conv3 = nn.Conv2d(
@@ -51,9 +51,9 @@ class _DRC_block_ENAS(nn.Module):
                 temp_conv5 = nn.Conv2d(
                     in_channels=int((1 + i * .5) * channel_in),
                     out_channels=channel_in,
-                    kernel_size=3,
+                    kernel_size=5,
                     stride=1,
-                    padding=1
+                    padding=2
                 )
             node_conv = nn.ModuleList([temp_conv3, temp_conv5])
             self.graph.append(node_conv)

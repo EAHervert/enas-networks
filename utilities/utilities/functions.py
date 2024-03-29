@@ -1,5 +1,6 @@
 import math
 import torch
+import torch.nn as nn
 import numpy as np
 import random
 from utilities.Pytorch_SSIM import ssim
@@ -355,18 +356,85 @@ def list_of_ints(arg):
     return list(map(int, arg.split(',')))
 
 
-def softmax(x):
+def np_softmax(x):
     """Compute softmax values for each sets of scores in x."""
     return np.exp(x) / np.sum(np.exp(x), axis=0)
 
 
 def generate_w_alphas(k_val=3, s_val=1e-3):
-    return s_val * torch.randn(2 * (k_val * (6 + 6 + 3)) + 6)
+    return s_val * torch.randn(2 * (k_val * (6 + 6 + 3) + 6))
 
 
-# TODO: Function for learning weights
+def weights_to_encoder_layer(weights, softmax):
+    index = 0
+    encoder_layer = []
+    for i in range(3):
+        if i != 2:
+            block = [softmax(weights[index: index + 2]),
+                     softmax(weights[index + 2: index + 4]),
+                     softmax(weights[index + 4: index + 6])]
+            encoder_layer.append(block)
+            index += 6
+        else:
+            sampling = softmax(weights[index: index + 3])
+            encoder_layer.append(sampling)
+
+    return encoder_layer, index
+
+
+def weights_to_bottleneck(weights, softmax):
+    index = 0
+    bottleneck = []
+    for i in range(2):
+        block = [softmax(weights[index: index + 2]),
+                 softmax(weights[index + 2: index + 4]),
+                 softmax(weights[index + 4: index + 6])]
+        bottleneck.append(block)
+        index += 6
+
+    return bottleneck, index
+
+
+def weights_to_decoder_layer(weights, softmax):
+    index = 0
+    decoder_layer = []
+    for i in range(3):
+        if i != 0:
+            block = [softmax(weights[index: index + 2]),
+                     softmax(weights[index + 2: index + 4]),
+                     softmax(weights[index + 4: index + 6])]
+            decoder_layer.append(block)
+            index += 6
+        else:
+            sampling = softmax(weights[index: index + 3])
+            decoder_layer.append(sampling)
+
+    return decoder_layer, index
+
+
 def w_alphas_to_alphas(w_alphas, k_val=3):
-    return 0
+    index = 0
+    softmax = torch.nn.Softmax(dim=0)
+
+    # Encoder
+    encoder = []
+    for i in range(k_val):
+        encoder_layer, index = weights_to_encoder_layer(w_alphas[index:index + 16], softmax)
+        encoder.append(encoder_layer)
+        index += 16
+
+    # Bottleneck
+    bottleneck, index = weights_to_bottleneck(w_alphas[index:index + 12], softmax)
+    index += 12
+
+    # Decoder
+    decoder = []
+    for i in range(k_val):
+        decoder_layer, index = weights_to_decoder_layer(w_alphas[index:index + 16], softmax)
+        decoder.append(decoder_layer)
+        index += 16
+
+    return encoder + [bottleneck] + decoder
 
 
 def generate_alphas(k_val=3, blocks=3, randomize=False):
@@ -378,7 +446,7 @@ def generate_alphas(k_val=3, blocks=3, randomize=False):
     for k in range(k_val):
         encoder_temp, decoder_temp = [], []
         if randomize:
-            block_reshape = softmax(np.random.rand(3)).tolist()
+            block_reshape = np_softmax(np.random.rand(3)).tolist()
         decoder_temp.append(block_reshape)
         for _ in range(2):
             # DRC Blocks
@@ -386,14 +454,14 @@ def generate_alphas(k_val=3, blocks=3, randomize=False):
             for _ in range(blocks):
                 for i in range(3):
                     if randomize:
-                        block = softmax(np.random.rand(2)).tolist()
+                        block = np_softmax(np.random.rand(2)).tolist()
                     DRC_temp[i].append(block)
 
             encoder_temp.append(DRC_temp[0])
             decoder_temp.append(DRC_temp[1])
 
         if randomize:
-            block_reshape = softmax(np.random.rand(3)).tolist()
+            block_reshape = np_softmax(np.random.rand(3)).tolist()
         encoder_temp.append(block_reshape)
 
         encoder.append(encoder_temp)
@@ -403,7 +471,7 @@ def generate_alphas(k_val=3, blocks=3, randomize=False):
         bottleneck_temp = []
         for _ in range(blocks):
             if randomize:
-                block = softmax(np.random.rand(2)).tolist()
+                block = np_softmax(np.random.rand(2)).tolist()
             bottleneck_temp.append(block)
         bottleneck.append(bottleneck_temp)
 

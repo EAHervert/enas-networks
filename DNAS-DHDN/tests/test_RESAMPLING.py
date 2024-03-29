@@ -4,15 +4,15 @@ import torch
 from DNAS_DHDN import RESAMPLING
 
 CHANNELS = 16
-ALPHAS = [0.1, 0.7, 0.2]
+ALPHAS = torch.tensor([0.1, 0.7, 0.2])
 
 
 def test_downsampling_dnas(size, alphas):
     x = torch.randn(1, CHANNELS, size[0], size[1])
     target = [1, CHANNELS * 2, size[0] // 2, size[1] // 2]
-    dnas_down = RESAMPLING._down_DNAS(channel_in=CHANNELS)
+    dnas_down = RESAMPLING._down_DNAS(alphas_down=alphas, channel_in=CHANNELS)
 
-    return list(dnas_down(x, alphas).shape) == target
+    return list(dnas_down(x).shape) == target
 
 
 def test_downsampling_fixed(size):
@@ -21,7 +21,8 @@ def test_downsampling_fixed(size):
 
     bool_vals = []
     for i in range(3):
-        fixed_down = RESAMPLING._down_Fixed(channel_in=CHANNELS, architecture_k=i)
+        alphas_i = torch.tensor([1 if j == i else 0 for j in range(3)])
+        fixed_down = RESAMPLING._down_Fixed(alphas_down=alphas_i, channel_in=CHANNELS)
         bool_vals.append(list(fixed_down(x).shape) == target)
 
     return bool_vals[0] and bool_vals[1] and bool_vals[2]
@@ -44,9 +45,9 @@ def test_downsampling(size):
 def test_upsampling_dnas(size, alphas):
     x = torch.randn(1, CHANNELS, size[0], size[1])
     target = [1, CHANNELS // 4, size[0] * 2, size[1] * 2]
-    dnas_up = RESAMPLING._up_DNAS(channel_in=CHANNELS)
+    dnas_up = RESAMPLING._up_DNAS(alphas_up=alphas, channel_in=CHANNELS)
 
-    return list(dnas_up(x, alphas).shape) == target
+    return list(dnas_up(x).shape) == target
 
 
 def test_upsampling_fixed(size):
@@ -55,7 +56,8 @@ def test_upsampling_fixed(size):
 
     bool_vals = []
     for i in range(3):
-        fixed_up = RESAMPLING._up_Fixed(channel_in=CHANNELS, architecture_k=i)
+        alphas_i = torch.tensor([1 if j == i else 0 for j in range(3)])
+        fixed_up = RESAMPLING._up_Fixed(alphas_up=alphas_i, channel_in=CHANNELS)
         bool_vals.append(list(fixed_up(x).shape) == target)
 
     return bool_vals[0] and bool_vals[1] and bool_vals[2]

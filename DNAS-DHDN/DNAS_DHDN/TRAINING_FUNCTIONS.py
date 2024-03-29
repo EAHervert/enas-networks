@@ -7,7 +7,6 @@ from utilities.functions import SSIM, PSNR, random_architecture_generation
 
 
 def train_loop(epoch: int,
-               alphas: list,
                shared,
                shared_optimizer,
                config,
@@ -20,7 +19,6 @@ def train_loop(epoch: int,
 
     Args:
         epoch: Current epoch.
-        alphas: List of weights at each level of the Differentiable Architecture.
         shared: Network that contains all possible architectures, with shared weights.
         shared_optimizer: Optimizer for the Shared Network.
         dataloader_sidd_training: Training dataset.
@@ -53,7 +51,7 @@ def train_loop(epoch: int,
     for pass_ in range(passes):
         for i_batch, sample_batch in enumerate(dataloader_sidd_training):
             x = sample_batch['NOISY']
-            y = shared(x, alphas)  # Net is the output of the network
+            y = shared(x)  # Net is the output of the network
             t = sample_batch['GT']
 
             loss_value = loss(y, t)
@@ -99,7 +97,6 @@ def train_loop(epoch: int,
 
 def evaluate_model(
         epoch,
-        alphas,
         shared,
         dataloader_sidd_validation,
         config,
@@ -123,7 +120,6 @@ def evaluate_model(
 
     print('\n' + '-' * 120)
     results = get_eval_accuracy(shared=shared,
-                                alphas=alphas,
                                 dataloader_sidd_validation=dataloader_sidd_validation,
                                 device=device)
 
@@ -147,7 +143,6 @@ def evaluate_model(
 
 def get_eval_accuracy(
         shared,
-        alphas,
         dataloader_sidd_validation,
         device=None
 ):
@@ -155,7 +150,6 @@ def get_eval_accuracy(
 
     Args:
         shared: Network that contains all possible architectures, with shared weights.
-        alphas: List of weights at each level of the Differentiable Architecture.
         dataloader_sidd_validation: Validation dataset.
         device: The GPU that we will use.
 
@@ -187,7 +181,7 @@ def get_eval_accuracy(
         t_v = validation_batch['GT']
 
         with torch.no_grad():
-            y_v = shared(x_v, alphas)
+            y_v = shared(x_v)
             Loss_Meter.update(loss(y_v, t_v).item())
             Loss_Meter_Original.update(loss(x_v, t_v).item())
             SSIM_Meter.update(SSIM(y_v, t_v).item())
