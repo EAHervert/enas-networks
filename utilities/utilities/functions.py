@@ -361,7 +361,7 @@ def np_softmax(x):
     return np.exp(x) / np.sum(np.exp(x), axis=0)
 
 
-def generate_w_alphas(k_val=3, s_val=1e-3):
+def generate_w_alphas(k_val=3, s_val=1):
     return s_val * torch.randn(2 * (k_val * (6 + 6 + 3) + 6))
 
 
