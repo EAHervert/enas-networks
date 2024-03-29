@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader
 import argparse
 import visdom
 import random
+import plotly.graph_objects as go  # Save HTML files for curve analysis
 
 from utilities.functions import SSIM, display_time
 from utilities.utils import CSVLogger, Logger
@@ -167,6 +168,15 @@ def main():
     Controller.zero_grad()
     choices = random.sample(range(80), k=args.validation_samples)
     baseline = None
+
+    # Validation
+    loss_batch_val_array = []
+    loss_original_batch_val_array = []
+    ssim_batch_val_array = []
+    ssim_original_batch_val_array = []
+    psnr_batch_val_array = []
+    psnr_original_batch_val_array = []
+
     for epoch in range(args.epochs):
         Controller.train()  # Train Controller
         for i in range(
@@ -265,6 +275,13 @@ def main():
                                             sample_size=args.sample_size,
                                             device=device_0)
 
+        loss_batch_val_array.append(validation_results['Validation_Loss'])
+        loss_original_batch_val_array.append(validation_results['Validation_Loss_Original'])
+        ssim_batch_val_array.append(validation_results['Validation_SSIM'])
+        ssim_original_batch_val_array.append(validation_results['Validation_SSIM_Original'])
+        psnr_batch_val_array.append(validation_results['Validation_PSNR'])
+        psnr_original_batch_val_array.append(validation_results['Validation_PSNR_Original'])
+
         CSV_Logger.writerow({'Loss': validation_results['Validation_Loss'],
                              'Loss_Original': validation_results['Validation_Loss_Original'],
                              'SSIM': validation_results['Validation_SSIM'],
@@ -303,6 +320,31 @@ def main():
 
     Controller_Path = Model_Path + '/pre_trained_controller_parameters.pth'
     torch.save(Controller.state_dict(), Controller_Path)
+
+    # Saving plots:
+    loss_fig = go.Figure(data=go.Scatter(y=loss_batch_val_array, name='Loss_Val'))
+    loss_fig.add_trace(go.Scatter(y=loss_original_batch_val_array, name='Loss_Orig_Val'))
+
+    loss_fig.update_layout(title='Loss_' + args.name,
+                           yaxis_title="Loss",
+                           xaxis_title="Epochs")
+    loss_fig.write_html(Result_Path + "/loss_plot.html")
+
+    ssim_fig = go.Figure(data=go.Scatter(y=ssim_batch_val_array, name='SSIM_Val'))
+    ssim_fig.add_trace(go.Scatter(y=ssim_original_batch_val_array, name='SSIM_Orig_Val'))
+
+    ssim_fig.update_layout(title='SSIM_' + args.name,
+                           yaxis_title="SSIM",
+                           xaxis_title="Epochs")
+    ssim_fig.write_html(Result_Path + "/ssim_plot.html")
+
+    psnr_fig = go.Figure(data=go.Scatter(y=psnr_batch_val_array, name='PSNR_Val'))
+    psnr_fig.add_trace(go.Scatter(y=psnr_original_batch_val_array, name='PSNR_Orig_Val'))
+
+    psnr_fig.update_layout(title='PSNR_' + args.name,
+                           yaxis_title="PSNR",
+                           xaxis_title="Epochs")
+    psnr_fig.write_html(Result_Path + "/psnr_plot.html")
 
 
 if __name__ == "__main__":
