@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import numpy as np
 
 from utilities.utils import AverageMeter  # Helps with keeping track of performance
 from utilities.functions import SSIM, PSNR, random_architecture_generation
@@ -95,6 +94,165 @@ def train_loop(epoch: int,
                   'PSNR_Original': psnr_original_batch.avg}
 
     return dict_train
+
+
+def train_alphas_loop(epoch: int,
+                      weights,
+                      shared,
+                      epsilon: float,
+                      lr_w_alpha: float,
+                      eta,
+                      config,
+                      dataloader_sidd_training,
+                      dataloader_sidd_validation,
+                      device=None,
+                      verbose=True):
+    """Trains the architecture weights of the DNAS-DHDN model.
+
+    Args:
+        epoch: Current epoch.
+        weights: weights to generate alphas.
+        shared: Network that contains all possible architectures, with shared weights.
+        epsilon: Parameter for approximating second order derivative.
+        lr_w_alpha: Parameter for updating weights.
+        eta: Parameter for modifying [w'].
+        dataloader_sidd_training: Training dataset.
+        dataloader_sidd_validation: Validation dataset.
+        config: config for the hyperparameters.
+        device: The GPU that we will use.
+        verbose: If we print training information.
+        ...
+
+    Returns: Nothing.
+    """
+
+    # Keep track of the accuracy and loss through the process.
+    loss_batch = AverageMeter()
+    loss_original_batch = AverageMeter()
+    ssim_batch = AverageMeter()  # Doubles as the accuracy.
+    ssim_original_batch = AverageMeter()
+    psnr_batch = AverageMeter()
+    psnr_original_batch = AverageMeter()
+
+    loss = nn.L1Loss()
+    mse = nn.MSELoss()
+
+    if device is not None:
+        loss = loss.to(device)
+        mse = mse.to(device)
+
+    # Start the timer for the epoch.
+    for i_batch, sample_batch in enumerate(dataloader_sidd_validation):
+        x = sample_batch['NOISY']
+        t = sample_batch['GT']
+        y = shared(x, weights)  # Net is the output of the network
+
+        if eta > 0:
+            second_order = calculate_second_order(weights=weights,
+                                                  shared=shared,
+                                                  epsilon=epsilon,
+                                                  dataloader_sidd_training=dataloader_sidd_training,
+                                                  device=device)
+        else:
+            second_order = None
+
+        loss_value_f = loss(y, t)
+        loss_batch.update(loss_value_f.item())
+
+        # Calculate values not needing to be backpropagated
+        with torch.no_grad():
+            loss_original_batch.update(loss(x, t).item())
+
+            ssim_batch.update(SSIM(y, t).item())
+            ssim_original_batch.update(SSIM(x, t).item())
+
+            psnr_batch.update(PSNR(mse(y, t)).item())
+            psnr_original_batch.update(PSNR(mse(x, t)).item())
+
+        # Backpropagate to train model
+        loss_value_f.backward()
+        nn.utils.clip_grad_norm_(weights, config['Differential']['Child_Grad_Bound'])
+        weights += lr_w_alpha * weights.grad
+
+        if verbose:
+            if i_batch % 100 == 0:
+                Display_Loss = "Loss_Shared: %.6f" % loss_batch.val + "\tLoss_Original: %.6f" % loss_original_batch.val
+                Display_SSIM = "SSIM_Shared: %.6f" % ssim_batch.val + "\tSSIM_Original: %.6f" % ssim_original_batch.val
+                Display_PSNR = "PSNR_Shared: %.6f" % psnr_batch.val + "\tPSNR_Original: %.6f" % psnr_original_batch.val
+
+                print("Training Data for Epoch: ", epoch, "Image Batch: ", i_batch)
+                print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
+
+        # Free up space in GPU
+        del x, y, t
+
+    dict_train = {'Loss': loss_batch.avg, 'Loss_Original': loss_original_batch.avg, 'SSIM': ssim_batch.avg,
+                  'SSIM_Original': ssim_original_batch.avg, 'PSNR': psnr_batch.avg,
+                  'PSNR_Original': psnr_original_batch.avg}
+
+    return dict_train
+
+
+def calculate_w_prime(weights,
+                      shared,
+                      eta,
+                      loss,
+                      dataloader_sidd_training):
+    weights_prime = weights.clone().detach().requires_grad_(True)
+    shared_prime = shared.clone().detach()
+    for i_batch, sample_batch in enumerate(dataloader_sidd_training):
+        x = sample_batch['NOISY']
+        t = sample_batch['GT']
+        y = shared_prime(x, weights.clone().detach())  # Net is the output of the network
+
+        loss_params = loss(y, t)
+        loss_params.backward()
+        grad_params = shared_prime.parameters().grad
+
+        return weights_prime - eta * grad_params
+
+
+def calculate_w_pm(weights,
+                   weights_prime,
+                   shared,
+                   eta,
+                   loss,
+                   dataloader_sidd_validation):
+    shared_prime = shared.clone().detach()
+    for i_batch, sample_batch in enumerate(dataloader_sidd_validation):
+        x = sample_batch['NOISY']
+        t = sample_batch['GT']
+        y = shared_prime(x, weights.clone().detach())  # Net is the output of the network
+
+        loss_params = loss(y, t)
+        loss_params.backward()
+        grad_params = shared_prime.parameters().grad
+
+        return weights_prime - eta * grad_params
+
+
+def calculate_second_order(weights,
+                           shared,
+                           epsilon,
+                           loss,
+                           dataloader_sidd_training,
+                           dataloader_sidd_validation,
+                           device=None):
+    shared.eval()
+    for i_batch, sample_batch in enumerate(dataloader_sidd_training):
+        x = sample_batch['NOISY']
+        t = sample_batch['GT']
+        y = shared(x, weights)  # Net is the output of the network
+
+        loss_params = loss(y, t)
+        loss_params.backward()
+    grad_params = shared.parameters().grad
+
+    w_plus, w_minus = shared.parameters() + epsilon * grad_params, shared.parameters() - epsilon * grad_params
+
+    weights_prime = weights.clone().detach().requires_grad_(True)
+
+    return 0
 
 
 def evaluate_model(

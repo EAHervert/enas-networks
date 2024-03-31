@@ -25,10 +25,11 @@ if not sys.warnoptions:
 
 parser = argparse.ArgumentParser(description='DNAS_SEARCH_DHDN')
 
-parser.add_argument('--output_file', default='Pre_Train_DHDN', type=str)
+parser.add_argument('--output_file', default='Pre_Train_DHDN_DNAS_ALPHAS', type=str)
 
 # Training:
 parser.add_argument('--epochs', type=int, default=30)
+parser.add_argument('--noise', type=str, default='SIDD')
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--device', default='cuda:0', type=str)  # GPU to use
 # Put shared network on two devices instead of one
@@ -121,7 +122,6 @@ def main():
         k_value=config['Differential']['K_Value'],
         channels=config['Differential']['Channels'],
         outer_sum=args.outer_sum,
-        weights=weights
     )
 
     if args.load_differential:
@@ -133,33 +133,24 @@ def main():
     else:
         Diff_Autoencoder = Diff_Autoencoder.to(device_0)
 
-    # We will use ADAM on the child network (Different from Original ENAS paper)
-    # https://github.com/melodyguan/enas/blob/master/src/utils.py#L213
-    # Shared_Autoencoder_Optimizer = torch.optim.Adam(params=Shared_Autoencoder.parameters(),
-    #                                                 lr=config['Shared']['Child_lr'],
-    #                                                 weight_decay=config['Shared']['Weight_Decay'])
-
-    Diff_Autoencoder_Optimizer = torch.optim.Adam(params=Diff_Autoencoder.parameters(),
-                                                  lr=config['Differential']['Child_lr'])
-
-    # https://github.com/melodyguan/enas/blob/master/src/utils.py#L154
-    # Use step LR scheduler instead of Cosine Annealing
-    Diff_Autoencoder_Scheduler = StepLR(
-        optimizer=Diff_Autoencoder_Optimizer,
-        step_size=config['Differential']['Step_Size'],
-        gamma=config['Differential']['Child_gamma']
-    )
-
     # Noise Dataset
     path_training = dir_current + '/instances/' + args.training_csv
+    path_validation_noisy = dir_current + config['Locations'][args.noise]['Validation_Noisy']
+    path_validation_gt = dir_current + config['Locations'][args.noise]['Validation_GT']
 
-    # Todo: Make function that returns these datasets.
+    SIDD_validation = dataset.DatasetMAT(mat_noisy_file=path_validation_noisy,
+                                         mat_gt_file=path_validation_gt,
+                                         device=device_0)
     SIDD_training = dataset.DatasetNoise(csv_file=path_training,
                                          transform=dataset.RandomProcessing(cutout_images=args.cutout_images),
                                          device=device_0)
+
     dataloader_sidd_training = DataLoader(dataset=SIDD_training,
                                           batch_size=config['Training']['Train_Batch_Size'],
                                           shuffle=True)
+    dataloader_sidd_validation = DataLoader(dataset=SIDD_validation,
+                                            batch_size=config['Training']['Validation_Batch_Size'],
+                                            shuffle=False)
     if not args.fixed_arc:
         fixed_arc = None
         print('-' * 120 + '\nUsing randomly generated architectures.' + '\n' + '-' * 120)
@@ -169,16 +160,18 @@ def main():
 
     for epoch in range(args.epochs):
         # Train the weights of the shared network
-        training_results = TRAINING_NETWORKS.Train_Shared(epoch=epoch,
-                                                          passes=1,
-                                                          alphas=alphas,
-                                                          shared=Diff_Autoencoder,
-                                                          shared_optimizer=Diff_Autoencoder_Optimizer,
-                                                          config=config,
-                                                          dataloader_sidd_training=dataloader_sidd_training,
-                                                          da_logger=DA_Logger,
-                                                          device=device_0,
-                                                          )
+        validation_results = TRAINING_NETWORKS.Train_Alphas(epoch=epoch,
+                                                            weights=weights,
+                                                            shared=Diff_Autoencoder,
+                                                            epsilon=0.001,
+                                                            lr_w_alpha=0.001,
+                                                            eta=0,
+                                                            config=config,
+                                                            dataloader_sidd_training=dataloader_sidd_training,
+                                                            dataloader_sidd_validation=dataloader_sidd_validation,
+                                                            da_logger=DA_Logger,
+                                                            device=device_0,
+                                                            )
 
         # Train the operation weights on validation data
         Legend = ['Shared_Train', 'Orig_Train']

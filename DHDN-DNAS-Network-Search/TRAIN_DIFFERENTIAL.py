@@ -231,15 +231,15 @@ def main():
 
     display_time(t_final - t_init)
 
-    Shared_Path = Model_Path + '/pre_trained_differential_network_parameters.pth'
-    weights_Path = Model_Path + '/w_alphas_differential_network.pth'
+    Shared_Path = Model_Path + '/pre_trained_differential_network_weights.pth'
+    weights_Path = Model_Path + '/alphas_weights_differential_network.pth'
 
     if args.data_parallel:
         torch.save(Diff_Autoencoder.module.state_dict(), Shared_Path)
     else:
         torch.save(Diff_Autoencoder.state_dict(), Shared_Path)
 
-    torch.save(Diff_Autoencoder.weights, weights_Path)
+    torch.save(weights, weights_Path)
 
     # Saving plots:
     loss_fig = go.Figure(data=go.Scatter(y=loss_batch_array, name='Loss_Train'))

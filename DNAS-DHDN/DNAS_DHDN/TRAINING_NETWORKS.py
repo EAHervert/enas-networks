@@ -1,9 +1,6 @@
 import os
 import numpy as np
-import torch
-import torch.nn as nn
 import time
-import random
 
 from utilities.functions import SSIM, AverageMeter
 from DNAS_DHDN.TRAINING_FUNCTIONS import evaluate_model, train_loop
@@ -68,6 +65,20 @@ def Train_Shared(epoch,
                    'PSNR': results_train['PSNR'], 'PSNR_Original': results_train['PSNR_Original']}
 
     return dict_meters
+
+
+def Train_Alphas(
+        epoch: int,
+        weights,
+        shared,
+        eta,
+        config,
+        dataloader_sidd_training,
+        dataloader_sidd_validation,
+        da_logger,
+        device):
+    # return dict_meters
+    return 0
 
 
 def Train_DNAS(
