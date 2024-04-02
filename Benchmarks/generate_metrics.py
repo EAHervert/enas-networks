@@ -6,6 +6,9 @@ from scipy.io import loadmat
 import torch
 import argparse
 
+import utilities.dataset as dataset
+from torch.utils.data import DataLoader
+
 from utilities.functions import SSIM, PSNR
 
 current_time = datetime.datetime.now()
@@ -57,19 +60,35 @@ else:
 
 device = torch.device(args.device)
 
+validation_dataset = dataset.DatasetMAT(mat_noisy_file=mat_noisy_file, mat_gt_file=mat_gt_file, device=device)
+denoised_dataset = dataset.DatasetMAT(mat_noisy_file=mat_denoise_file, mat_gt_file=None, device=device)
+if args.dataset == 'SIDD':
+    dataloader_validation = DataLoader(dataset=validation_dataset,
+                                       batch_size=config['Training']['Validation_Batch_Size'] * 2,
+                                       shuffle=False)
+    dataloader_denoised = DataLoader(dataset=denoised_dataset,
+                                     batch_size=config['Training']['Validation_Batch_Size'] * 2,
+                                     shuffle=False)
+
+else:
+    dataloader_denoised = DataLoader(dataset=denoised_dataset,
+                                     batch_size=config['Training']['Validation_Batch_Size_DIV2K'] * 2,
+                                     shuffle=False)
+    dataloader_validation = DataLoader(dataset=validation_dataset,
+                                       batch_size=config['Training']['Validation_Batch_Size_DIV2K'] * 2,
+                                       shuffle=False)
+
 dict_out = []
 ssim_base = 0
 psnr_base = 0
 ssim_denoise_val = 0
 psnr_denoise_val = 0
+count = 0
 with torch.no_grad():
-    for i in range(size[0]):
-        images_gt_pt = torch.tensor(images_gt[i, :, :, :, :] / 255.,
-                                    dtype=torch.float, device=device).permute(0, 3, 1, 2)
-        images_noisy_pt = torch.tensor(images_noisy[i, :, :, :, :] / 255.,
-                                       dtype=torch.float, device=device).permute(0, 3, 1, 2)
-        images_denoise_pt = torch.tensor(images_denoise[i, :, :, :, :] / 255.,
-                                         dtype=torch.float, device=device).permute(0, 3, 1, 2)
+    for i_batch, (sample_batch_val, sample_batch_den) in enumerate(zip(dataloader_validation, dataloader_denoised)):
+        images_gt_pt = sample_batch_val['GT']
+        images_noisy_pt = sample_batch_val['NOISY']
+        images_denoise_pt = sample_batch_den['NOISY']
 
         mse = torch.square(images_gt_pt - images_noisy_pt).mean()
         mse_denoise = torch.square(images_gt_pt - images_denoise_pt).mean()
@@ -77,7 +96,7 @@ with torch.no_grad():
         ssim_denoise = SSIM(images_gt_pt, images_denoise_pt)
         psnr = PSNR(mse)
         psnr_denoise = PSNR(mse_denoise)
-        dict_item = {'Image': i, 'Denoised_PSNR': round(ssim_denoise.item(), 6),
+        dict_item = {'Image': i_batch, 'Denoised_PSNR': round(ssim_denoise.item(), 6),
                      'Denoised_SSIM': round(psnr_denoise.item(), 6),
                      'Base_PSNR': round(ssim.item(), 6), 'Base_SSIM': round(psnr.item(), 6)}
         print(dict_item)
@@ -88,11 +107,12 @@ with torch.no_grad():
         psnr_denoise_val += psnr_denoise.item()
 
         del images_gt_pt, images_noisy_pt, images_denoise_pt
+        count += 1
 
-ssim_base /= size[0]
-psnr_base /= size[0]
-ssim_denoise_val /= size[0]
-psnr_denoise_val /= size[0]
+ssim_base /= count
+psnr_base /= count
+ssim_denoise_val /= count
+psnr_denoise_val /= count
 
 dict_item = {'Image': 'ALL', 'Denoised_PSNR': round(ssim_denoise_val, 6), 'Denoised_SSIM': round(psnr_denoise_val, 6),
              'Base_PSNR': round(ssim_base, 6), 'Base_SSIM': round(psnr_base, 6)}
