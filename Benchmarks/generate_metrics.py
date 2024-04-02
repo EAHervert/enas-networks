@@ -22,6 +22,7 @@ parser.add_argument('--name', default='tests', type=str)  # Name of the results
 parser.add_argument('--type', default='validation', type=str)  # Name of the folder to save
 parser.add_argument('--dataset', default='SIDD', type=str)  # Name of the folder to save
 parser.add_argument('--path', default='data/ValidationNoisyBlocksSrgb.mat', type=str)  # path to denoised .mat file
+parser.add_argument('--device', default='cuda:0', type=str)  # Which device to use to generate .mat file
 args = parser.parse_args()
 
 # Load data for processing
@@ -54,6 +55,8 @@ else:
         images_noisy = mat_noisy['test_ng']
         images_denoise = mat_denoise['test_ng']
 
+device = torch.device(args.device)
+
 dict_out = []
 ssim_base = 0
 psnr_base = 0
@@ -62,11 +65,11 @@ psnr_denoise_val = 0
 with torch.no_grad():
     for i in range(size[0]):
         images_gt_pt = torch.tensor(images_gt[i, :, :, :, :] / 255.,
-                                    dtype=torch.float).permute(0, 3, 1, 2)
+                                    dtype=torch.float, device=device).permute(0, 3, 1, 2)
         images_noisy_pt = torch.tensor(images_noisy[i, :, :, :, :] / 255.,
-                                       dtype=torch.float).permute(0, 3, 1, 2)
+                                       dtype=torch.float, device=device).permute(0, 3, 1, 2)
         images_denoise_pt = torch.tensor(images_denoise[i, :, :, :, :] / 255.,
-                                         dtype=torch.float).permute(0, 3, 1, 2)
+                                         dtype=torch.float, device=device).permute(0, 3, 1, 2)
 
         mse = torch.square(images_gt_pt - images_noisy_pt).mean()
         mse_denoise = torch.square(images_gt_pt - images_denoise_pt).mean()
@@ -83,6 +86,8 @@ with torch.no_grad():
         psnr_base += psnr.item()
         ssim_denoise_val += ssim_denoise.item()
         psnr_denoise_val += psnr_denoise.item()
+
+        del images_gt_pt, images_noisy_pt, images_denoise_pt
 
 ssim_base /= size[0]
 psnr_base /= size[0]
