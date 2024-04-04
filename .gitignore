@@ -182,3 +182,6 @@ dmypy.json
 /Benchmarks/visualize_validation.ipynb
 /DNAS-DHDN/Weight_Update_Example.ipynb
 /Benchmarks/csv_out/
+/Benchmarks/DIV2K_Gaussian_Crop_Distribution.ipynb
+/Benchmarks/DIV2K_SNP_Crop_Distribution.ipynb
+/Benchmarks/Learning_Curve_Analysis.ipynb

@@ -25,9 +25,9 @@ if not sys.warnoptions:
 
     warnings.simplefilter("ignore")
 
-parser = argparse.ArgumentParser(description='ENAS_SEARCH_DHDN')
+parser = argparse.ArgumentParser(description='ENAS_SEARCH_DHDN_REDUCED_CONTROLLER')
 
-parser.add_argument('--output_file', default='Controller_DHDN', type=str)
+parser.add_argument('--output_file', default='Reduced_Controller_DHDN', type=str)
 parser.add_argument('--number', type=int, default=1000)  # Used to generate sampling distribution for Controller
 parser.add_argument('--epochs', type=int, default=25)
 parser.add_argument('--seed', type=int, default=0)
@@ -47,9 +47,9 @@ parser.add_argument('--device', default='cuda:0', type=str)  # GPU to use
 parser.add_argument('--data_parallel', default=True, type=lambda x: (str(x).lower() == 'true'))
 # To do outer sums for models
 parser.add_argument('--outer_sum', default=False, type=lambda x: (str(x).lower() == 'true'))
-parser.add_argument('--kernel_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
-parser.add_argument('--down_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
-parser.add_argument('--up_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
+parser.add_argument('--encoder_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
+parser.add_argument('--bottleneck_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
+parser.add_argument('--decoder_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
 
 args = parser.parse_args()
 
@@ -123,11 +123,11 @@ def main():
     else:
         Shared_Autoencoder = Shared_Autoencoder.to(device_0)
 
-    Controller = CONTROLLER.Controller(
+    Controller = CONTROLLER.ReducedController(
         k_value=config['Shared']['K_Value'],
-        kernel_bool=args.kernel_bool,
-        down_bool=args.down_bool,
-        up_bool=args.up_bool,
+        encoder=args.encoder_bool,
+        bottleneck=args.bottleneck_bool,
+        decoder=args.decoder_bool,
         lstm_size=args.controller_lstm_size,
         lstm_num_layers=args.controller_lstm_num_layers
     )

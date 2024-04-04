@@ -15,7 +15,8 @@ import plotly.graph_objects as go  # Save HTML files for curve analysis
 
 from utilities.utils import CSVLogger
 from utilities.utils import Logger as logger_util
-from utilities.functions import SSIM, PSNR, generate_loggers, drop_weights, clip_weights, display_time
+from utilities.functions import SSIM, generate_loggers, drop_weights, clip_weights, display_time
+from utilities.functions import True_PSNR as PSNR
 
 current_time = datetime.datetime.now()
 d1 = current_time.strftime('%Y_%m_%d__%H_%M_%S')
@@ -33,6 +34,8 @@ parser.add_argument('--learning_rate', type=float, default=1e-4)
 parser.add_argument('--weight_decay', type=float, default=0.0)
 parser.add_argument('--step_size', type=int, default=3)
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
+parser.add_argument('--drop_tol', default='2.5e-2', type=float)  # Tolerance for early stopping I
+parser.add_argument('--slope_tol', default='5e-4', type=float)  # Tolerance for early stopping II
 parser.add_argument('--device', default='cuda:0', type=str)  # GPU to use
 parser.add_argument('--clip_weights', default=False, type=lambda s: (str(s).lower() == 'true'))  # Load previous models
 parser.add_argument('--load_model', default=False, type=lambda s: (str(s).lower() == 'true'))  # Load previous models
@@ -166,6 +169,11 @@ def main():
     psnr_batch_val_array = []
     psnr_original_batch_val_array = []
 
+    # Stopping Criteria Arrays
+    X = [0.0, 1.0, 2.0, 3.0, 4.0]
+    Y = [0.0, 0.0, 0.0, 0.0, 0.0]
+    count = 0
+
     for epoch in range(args.epochs):
         for i_batch, sample_batch in enumerate(dataloader_training):
             x = sample_batch['NOISY']
@@ -180,8 +188,8 @@ def main():
                 loss_original_batch.update(loss(x, t).item())
                 ssim_batch.update(SSIM(y0, t).item())
                 ssim_original_batch.update(SSIM(x, t).item())
-                psnr_batch.update(PSNR(MSE(y0, t)).item())
-                psnr_original_batch.update(PSNR(MSE(x, t)).item())
+                psnr_batch.update(PSNR(t, y0).item())
+                psnr_original_batch.update(PSNR(t, x).item())
 
             # Backpropagate to train model
             optimizer.zero_grad()
@@ -218,17 +226,17 @@ def main():
             with torch.no_grad():
                 x_v = validation_batch['NOISY']
                 t_v = validation_batch['GT']
-                y_v0 = dhdn(x_v)
+                y_v = dhdn(x_v)
 
-                loss_batch_val.update(loss(y_v0, t_v).item())
+                loss_batch_val.update(loss(y_v, t_v).item())
                 loss_original_batch_val.update(loss(x_v, t_v).item())
-                ssim_batch_val.update(SSIM(y_v0, t_v).item())
+                ssim_batch_val.update(SSIM(y_v, t_v).item())
                 ssim_original_batch_val.update(SSIM(x_v, t_v).item())
-                psnr_batch_val.update(PSNR(MSE(y_v0, t_v)).item())
-                psnr_original_batch_val.update(PSNR(MSE(x_v, t_v)).item())
+                psnr_batch_val.update(PSNR(t_v, y_v).item())
+                psnr_original_batch_val.update(PSNR(t_v, x_v).item())
 
             # Free up space in GPU
-            del x_v, y_v0, t_v
+            del x_v, y_v, t_v
 
         Display_Loss = "Loss_DHDN: %.6f" % loss_batch_val.avg + "\tLoss_Original: %.6f" % loss_original_batch_val.avg
         Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch_val.avg + "\tSSIM_Original: %.6f" % ssim_original_batch_val.avg
@@ -286,8 +294,24 @@ def main():
             opts=dict(title='PSNR_{date}'.format(date=d1), xlabel='Epoch', ylabel='PSNR', legend=Legend),
             update='append' if epoch > 0 else None)
 
-        # Terminate if there is convergence
-        if ssim_batch_val.avg > 0.99:
+        # Termination Criteria (Using validation dataset)
+        # Criteria I: Terminate if there is degradation in performance
+        if X[-1] - ssim_batch_val.avg > args.drop_tol:
+            break
+
+        # Criteria II: Terminate if learning has stalled
+        X = X[1:] + [ssim_batch_val.avg]
+        slope, _ = np.polyfit(X, Y, deg=1)
+        if epoch > 5:
+            if slope < args.slope_tol:
+                count += 1
+                if count == 2:  # Require two periods of stalling
+                    break
+            else:
+                count = 0
+
+        # Criteria III: Terminate if there is convergence
+        if ssim_batch_val.avg > 0.99 and psnr_batch_val.avg > 55:
             break
 
         loss_batch.reset()
