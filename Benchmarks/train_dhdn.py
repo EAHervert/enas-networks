@@ -296,11 +296,11 @@ def main():
 
         # Termination Criteria (Using validation dataset)
         # Criteria I: Terminate if there is degradation in performance
-        if X[-1] - ssim_batch_val.avg > args.drop_tol:
+        if Y[-1] - ssim_batch_val.avg > args.drop_tol:
             break
 
         # Criteria II: Terminate if learning has stalled
-        X = X[1:] + [ssim_batch_val.avg]
+        Y = Y[1:] + [ssim_batch_val.avg]
         slope, _ = np.polyfit(X, Y, deg=1)
         if epoch > 5:
             if slope < args.slope_tol:
