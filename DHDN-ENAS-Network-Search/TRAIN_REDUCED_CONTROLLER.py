@@ -271,7 +271,7 @@ def main():
                                             shared=Shared_Autoencoder,
                                             dataloader_sidd_validation=dataloader_sidd_validation,
                                             config=config,
-                                            arc_bools=[args.kernel_bool, args.down_bool, args.up_bool],
+                                            arc_bools=None,
                                             sample_size=args.sample_size,
                                             device=device_0)
 
