@@ -8,7 +8,7 @@
   "Training": {
     "Train_Batch_Size": 16,
     "Validation_Batch_Size": 16,
-    "Validation_Samples": 5
+    "Validation_Samples": 4
   },
   "CUDA": {
     "Device0": "cuda:0",
