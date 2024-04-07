@@ -55,6 +55,8 @@
     "Train_Batch_Size": 16,
     "Validation_Batch_Size": 16,
     "Validation_Batch_Size_DIV2K": 6,
+    "Testing_Batch_Size": 32,
+    "Testing_Batch_Size_DIV2K": 12,
     "Child_Grad_Bound": 0.5
   },
   "CUDA": {

@@ -30,6 +30,8 @@ parser.add_argument('--output_file', default='Pre_Train_DHDN', type=str)
 
 # Training:
 parser.add_argument('--epochs', type=int, default=30)
+parser.add_argument('--whole_passes', type=int, default=1)
+parser.add_argument('--train_passes', type=int, default=-1)
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--device', default='cuda:0', type=str)  # GPU to use
 # Put shared network on two devices instead of one
@@ -179,7 +181,8 @@ def main():
 
     for epoch in range(args.epochs):
         training_results = TRAINING_NETWORKS.Train_Shared(epoch=epoch,
-                                                          passes=1,
+                                                          whole_passes=args.whole_passes,
+                                                          train_passes=args.train_passes,
                                                           controller=Controller,
                                                           shared=Shared_Autoencoder,
                                                           shared_optimizer=Shared_Autoencoder_Optimizer,

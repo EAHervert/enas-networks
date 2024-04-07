@@ -14,9 +14,11 @@ def train_loop(epoch,
                dataloader_sidd_training,
                fixed_arc,
                arc_bools=None,
-               passes=1,
+               whole_passes=1,
+               train_passes=-1,
                device=None,
-               pre_train=False):
+               pre_train=False,
+               cell_copy=False):
     """Trains the shared network based on outputs of controller (if passed).
 
     Args:
@@ -28,9 +30,11 @@ def train_loop(epoch,
         config: config for the hyperparameters.
         fixed_arc: Architecture to train, overrides the controller sample.
         arc_bools: Booleans for architecture selection
-        passes: Number of passes through the training data.
+        whole_passes: Number of passes though the whole training data.
+        train_passes: Number of passes though one set of the training data.
         device: The GPU that we will use.
         pre_train: If we are pre-training or doing standard training.
+        cell_copy: If we are using cell search or whole architecture search.
         ...
 
     Returns: Nothing.
@@ -55,15 +59,23 @@ def train_loop(epoch,
         mse = mse.to(device)
 
     # Start the timer for the epoch.
-    for pass_ in range(passes):
+    for pass_ in range(whole_passes):
         for i_batch, sample_batch in enumerate(dataloader_sidd_training):
+            if train_passes == -1:  # Train on whole dataset
+                continue
+            else:
+                # Train on max train_passes of the training dataset
+                # Number of actual passes may be less than train_passes
+                if i_batch == train_passes:
+                    break
             # Pick an architecture to work with from the Graph Network (Shared)
             if fixed_arc is None:
                 if controller is None:
                     architecture = random_architecture_generation(k_value=config['Shared']['K_Value'],
                                                                   kernel_bool=arc_bools[0],
                                                                   down_bool=arc_bools[1],
-                                                                  up_bool=arc_bools[2])
+                                                                  up_bool=arc_bools[2],
+                                                                  cell_copy=cell_copy)
                 else:
                     with torch.no_grad():
                         controller()  # perform forward pass to generate a new architecture.
@@ -103,7 +115,7 @@ def train_loop(epoch,
                     print("Pre-Training Data for Epoch: ", epoch, "Pass:", pass_, "Image Batch: ", i_batch)
                 else:
                     print("Training Data for Epoch: ", epoch, "Pass:", pass_, "Image Batch: ", i_batch)
-                print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR)
+                print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
 
             # Free up space in GPU
             del x, y, t
@@ -354,5 +366,3 @@ def get_eval_accuracy(
                     'PSNR_Original': PSNR_Meter_Original.avg}
 
     return dict_metrics
-
-

@@ -11,7 +11,8 @@ from ENAS_DHDN.TRAINING_FUNCTIONS import evaluate_model, AverageMeter, train_loo
 
 # Here we train the Shared Network which is sampled from the Controller
 def Train_Shared(epoch,
-                 passes,
+                 whole_passes,
+                 train_passes,
                  controller,
                  shared,
                  shared_optimizer,
@@ -25,7 +26,8 @@ def Train_Shared(epoch,
 
     Args:
         epoch: Current epoch.
-        passes: Number of passes though the training data.
+        whole_passes: Number of passes though the whole training data.
+        train_passes: Number of passes though one set of the training data.
         controller: Controller module that generates architectures to be trained.
         shared: Network that contains all possible architectures, with shared weights.
         shared_optimizer: Optimizer for the Shared Network.
@@ -54,7 +56,8 @@ def Train_Shared(epoch,
                                dataloader_sidd_training=dataloader_sidd_training,
                                fixed_arc=fixed_arc,
                                arc_bools=arc_bools,
-                               passes=passes,
+                               whole_passes=whole_passes,
+                               train_passes=train_passes,
                                device=device)
 
     Display_Loss = ("Loss_Shared: %.6f" % results_train['Loss'] +
@@ -191,10 +194,12 @@ def Train_Controller(epoch,
         SSIM_Meter.reset()
         SSIM_Original_Meter.reset()
 
-    print()
+    print('\n' + '-' * 120)
     print("Controller Average Loss: ", loss_meter.avg)
     print("Controller Average Accuracy (Normalized SSIM): ", val_acc_meter.avg)
     print("Controller Average Reward: ", reward_meter.avg)
+    print("Controller Learning Rate:", controller_optimizer.param_groups[0]['lr'])
+    print('\n' + '-' * 120)
 
     t2 = time.time()
     print("Controller Training Time: ", t2 - t1)
@@ -213,7 +218,8 @@ def Train_ENAS(
         start_epoch,
         pre_train_epochs,
         num_epochs,
-        passes,
+        whole_passes,
+        train_passes,
         controller,
         shared,
         shared_optimizer,
@@ -228,7 +234,8 @@ def Train_ENAS(
         arc_bools=None,
         sample_size=-1,
         device=None,
-        pre_train_controller=False
+        pre_train_controller=False,
+        cell_copy=False
 ):
     """Perform architecture search by training a Controller and Shared_Autoencoder.
 
@@ -236,7 +243,8 @@ def Train_ENAS(
         start_epoch: Epoch to begin on.
         pre_train_epochs: Number of epochs to pre-train the model randomly (Get better results).
         num_epochs: Number of epochs to loop through.
-        passes: Number of passes though the training data.
+        whole_passes: Number of passes though the whole training data.
+        train_passes: Number of passes though one set of the training data.
         controller: Controller module that generates architectures to be trained.
         shared: Network that contains all possible architectures, with shared weights.
         shared_optimizer: Optimizer for the Shared_Autoencoder.
@@ -248,11 +256,13 @@ def Train_ENAS(
         sample_size: Number of the validation samples we will use for evaluation, -1 for all samples.
         device: The GPU that we will use.
         pre_train_controller: Pre-Training the controller when we have pre-trained shared network (optional).
+        cell_copy: If we are using cell search or whole architecture search.
         ...
 
     Returns: Nothing.
     """
 
+    global training_results
     if arc_bools is None:
         arc_bools = [True, True, True]
     dir_current = os.getcwd()
@@ -277,7 +287,10 @@ def Train_ENAS(
                        arc_bools=arc_bools,
                        fixed_arc=None,
                        device=device,
-                       pre_train=True)
+                       whole_passes=whole_passes,
+                       train_passes=train_passes,
+                       pre_train=True,
+                       cell_copy=cell_copy)
 
         print('\n' + '-' * 120)
         print("End Pre-training.")
@@ -297,10 +310,29 @@ def Train_ENAS(
         )
         baseline = None
 
+    # Main Training
+
+    # Training
+    loss_batch_array = []
+    loss_original_batch_array = []
+    ssim_batch_array = []
+    ssim_original_batch_array = []
+    psnr_batch_array = []
+    psnr_original_batch_array = []
+
+    # Validation
+    loss_batch_val_array = []
+    loss_original_batch_val_array = []
+    ssim_batch_val_array = []
+    ssim_original_batch_val_array = []
+    psnr_batch_val_array = []
+    psnr_original_batch_val_array = []
+
     for epoch in range(start_epoch, num_epochs):
         training_results = Train_Shared(
             epoch=epoch,
-            passes=passes,
+            whole_passes=whole_passes,
+            train_passes=train_passes,
             controller=controller,
             shared=shared,
             shared_optimizer=shared_optimizer,
@@ -333,6 +365,20 @@ def Train_ENAS(
                                             arc_bools=arc_bools,
                                             sample_size=sample_size,
                                             device=device)
+
+        loss_batch_array.append(training_results['Loss'])
+        loss_original_batch_array.append(training_results['Loss_Original'])
+        ssim_batch_array.append(training_results['SSIM'])
+        ssim_original_batch_array.append(training_results['SSIM_Original'])
+        psnr_batch_array.append(training_results['PSNR'])
+        psnr_original_batch_array.append(training_results['PSNR_Original'])
+
+        loss_batch_val_array.append(validation_results['Validation_Loss'])
+        loss_original_batch_val_array.append(validation_results['Validation_Loss_Original'])
+        ssim_batch_val_array.append(validation_results['Validation_SSIM'])
+        ssim_original_batch_val_array.append(validation_results['Validation_SSIM_Original'])
+        psnr_batch_val_array.append(validation_results['Validation_PSNR'])
+        psnr_original_batch_val_array.append(validation_results['Validation_PSNR_Original'])
 
         Legend = ['Shared_Train', 'Orig_Train', 'Shared_Val', 'Orig_Val']
 
@@ -398,3 +444,18 @@ def Train_ENAS(
         shared_scheduler.step()
 
         print()
+
+    results_array_dict = {'Loss_Batch': loss_batch_array,
+                          'Loss_Val': loss_batch_val_array,
+                          'Loss_Original_Train': loss_original_batch_array,
+                          'Loss_Original_Val': loss_original_batch_val_array,
+                          'SSIM_Batch': ssim_batch_array,
+                          'SSIM_Val': ssim_batch_val_array,
+                          'SSIM_Original_Train': ssim_original_batch_array,
+                          'SSIM_Original_Val': ssim_original_batch_val_array,
+                          'PSNR_Batch': psnr_batch_array,
+                          'PSNR_Val': psnr_batch_val_array,
+                          'PSNR_Original_Train': psnr_original_batch_array,
+                          'PSNR_Original_Val': psnr_original_batch_val_array}
+
+    return results_array_dict

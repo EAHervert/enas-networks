@@ -174,6 +174,8 @@ def main():
     Y = [0.0, 0.0, 0.0, 0.0, 0.0]
     count = 0
 
+    t_epoch_start = time.time()
+
     for epoch in range(args.epochs):
         for i_batch, sample_batch in enumerate(dataloader_training):
             x = sample_batch['NOISY']
@@ -293,6 +295,9 @@ def main():
             win=vis_window['PSNR_{date}'.format(date=d1)],
             opts=dict(title='PSNR_{date}'.format(date=d1), xlabel='Epoch', ylabel='PSNR', legend=Legend),
             update='append' if epoch > 0 else None)
+
+        display_time(time.time() - t_epoch_start)
+        t_epoch_start = time.time()
 
         # Termination Criteria (Using validation dataset)
         # Criteria I: Terminate if there is degradation in performance

@@ -361,20 +361,46 @@ def tensor_to_np_image(tensor, i_out=2160, j_out=3840, crop_size=256):
     return np_out
 
 
-def random_architecture_generation(k_value=3, kernel_bool=True, down_bool=True, up_bool=True):
-    encoder, bottleneck, decoder = [], [], []
-    for _ in range(k_value):
-        decoder.append(random.randint(0, 2) if down_bool else 0)
-        for _ in range(2):
-            encoder.append(random.randint(0, 7) if kernel_bool else 0)
-            decoder.append(random.randint(0, 7) if kernel_bool else 0)
+def random_encoder_generation(kernel_bool=True, up_bool=True):
+    encoder = []
+    for _ in range(2):
+        encoder.append(random.randint(0, 7) if kernel_bool else 0)
 
-        encoder.append(random.randint(0, 2) if up_bool else 0)
+    encoder.append(random.randint(0, 2) if up_bool else 0)
 
+    return encoder
+
+
+def random_decoder_generation(kernel_bool=True, down_bool=True):
+    decoder = [random.randint(0, 2) if down_bool else 0]
+    for _ in range(2):
+        decoder.append(random.randint(0, 7) if kernel_bool else 0)
+
+    return decoder
+
+
+def random_bottleneck_generation(kernel_bool=True):
+    bottleneck = []
     for _ in range(2):
         bottleneck.append(random.randint(0, 7) if kernel_bool else 0)
 
-    return encoder + bottleneck + decoder
+    return bottleneck
+
+
+def random_architecture_generation(k_value=3, kernel_bool=True, down_bool=True, up_bool=True, cell_copy=False):
+    encoder, decoder = [], []
+    if cell_copy:
+        for _ in range(k_value):
+            encoder += random_encoder_generation(kernel_bool=kernel_bool, up_bool=up_bool)
+            decoder += random_decoder_generation(kernel_bool=kernel_bool, down_bool=down_bool)
+    else:
+        encoder_temp = random_encoder_generation(kernel_bool=kernel_bool, up_bool=up_bool)
+        decoder_temp = random_decoder_generation(kernel_bool=kernel_bool, down_bool=down_bool)
+        for _ in range(k_value):
+            encoder += encoder_temp
+            decoder += decoder_temp
+
+    return encoder + random_bottleneck_generation(kernel_bool=kernel_bool) + decoder
 
 
 def list_of_ints(arg):
