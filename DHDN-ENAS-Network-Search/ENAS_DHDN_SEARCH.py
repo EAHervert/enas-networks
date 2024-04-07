@@ -36,6 +36,7 @@ parser.add_argument('--cell_copy', default=False, type=lambda x: (str(x).lower()
 parser.add_argument('--whole_passes', type=int, default=1)
 parser.add_argument('--train_passes', type=int, default=-1)
 parser.add_argument('--sample_size', type=int, default=-1)  # How many samples from validation to evaluate
+parser.add_argument('--cutout_images', default=False, type=lambda x: (str(x).lower() == 'true'))  # Image cutout in training
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--device', default='cuda:0', type=str)  # GPU to use
 # Put shared network on two devices instead of one
@@ -150,8 +151,8 @@ def main():
                 encoder=args.encoder_bool,
                 bottleneck=args.bottleneck_bool,
                 decoder=args.decoder_bool,
-                lstm_size=args.controller_lstm_size,
-                lstm_num_layers=args.controller_lstm_num_layers
+                lstm_size=config['Controller']['Controller_LSTM_Size'],
+                lstm_num_layers=config['Controller']['Controller_LSTM_Num_Layers']
             )
         else:
             Controller = CONTROLLER.Controller(

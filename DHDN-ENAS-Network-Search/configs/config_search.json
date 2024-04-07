@@ -17,11 +17,11 @@
   "Controller": {
     "Controller_LSTM_Size": 64,
     "Controller_LSTM_Num_Layers": 1,
-    "Controller_Entropy_Weight": 0.0001,
+    "Controller_Entropy_Weight": 0.0005,
     "Controller_Grad_Bound": 5.0,
     "Controller_lr": 5e-4,
-    "Controller_Num_Aggregate": 6,
-    "Controller_Train_Steps": 32,
+    "Controller_Num_Aggregate": 12,
+    "Controller_Train_Steps": 30,
     "Controller_Bl_Dec": 0.99
   },
   "Shared": {
