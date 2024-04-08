@@ -21,7 +21,7 @@
     "Controller_Grad_Bound": 5.0,
     "Controller_lr": 5e-4,
     "Controller_Num_Aggregate": 12,
-    "Controller_Train_Steps": 30,
+    "Controller_Train_Steps": 24,
     "Controller_Bl_Dec": 0.99
   },
   "Shared": {

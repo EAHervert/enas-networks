@@ -284,7 +284,7 @@ def main():
     loss_fig.add_trace(go.Scatter(y=results['Loss_Val'], name='Loss_Val'))
     loss_fig.add_trace(go.Scatter(y=results['Loss_Original_Val'], name='Loss_Orig_Val'))
 
-    loss_fig.update_layout(title='Loss_' + args.name,
+    loss_fig.update_layout(title='Loss_ENAS',
                            yaxis_title="Loss",
                            xaxis_title="Epochs")
     loss_fig.write_html(Result_Path + "/loss_plot.html")
@@ -294,7 +294,7 @@ def main():
     ssim_fig.add_trace(go.Scatter(y=results['SSIM_Val'], name='SSIM_Val'))
     ssim_fig.add_trace(go.Scatter(y=results['SSIM_Original_Val'], name='SSIM_Orig_Val'))
 
-    ssim_fig.update_layout(title='SSIM_' + args.name,
+    ssim_fig.update_layout(title='SSIM_ENAS',
                            yaxis_title="SSIM",
                            xaxis_title="Epochs")
     ssim_fig.write_html(Result_Path + "/ssim_plot.html")
@@ -304,7 +304,7 @@ def main():
     psnr_fig.add_trace(go.Scatter(y=results['PSNR_Val'], name='PSNR_Val'))
     psnr_fig.add_trace(go.Scatter(y=results['PSNR_Original_Val'], name='PSNR_Orig_Val'))
 
-    psnr_fig.update_layout(title='PSNR_' + args.name,
+    psnr_fig.update_layout(title='PSNR_ENAS',
                            yaxis_title="PSNR",
                            xaxis_title="Epochs")
     psnr_fig.write_html(Result_Path + "/psnr_plot.html")
