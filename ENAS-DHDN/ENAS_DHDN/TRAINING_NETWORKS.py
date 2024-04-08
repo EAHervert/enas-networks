@@ -5,7 +5,7 @@ import torch.nn as nn
 import time
 import random
 
-from utilities.functions import SSIM
+from utilities.functions import SSIM, generate_controller_distribution
 from ENAS_DHDN.TRAINING_FUNCTIONS import evaluate_model, AverageMeter, train_loop
 
 
@@ -212,31 +212,7 @@ def Train_Controller(epoch,
                        'Reward': reward_meter.avg}
 
     # Controller Architecture Distribution
-    architectures = []
-    number = 1000
-    for i in range(number):
-        with torch.no_grad():
-            Controller()
-        architectures.append(Controller.sample_arc)
-    architectures_array = np.array(architectures)
-    dict_arc = {}
-    for i in range(len(architectures_array[-1])):
-        dict_arc[i] = {}
-        if not (i + 1) % 3:
-            for j in range(3):
-                dict_arc[i][j] = np.count_nonzero(architectures_array[:, i] == j) / number
-        else:
-            for j in range(8):
-                dict_arc[i][j] = np.count_nonzero(architectures_array[:, i] == j) / number
-    argmax_arc = []
-    print('\n' + '-' * 120)
-    print('Controller Distribution:')
-    for key in dict_arc.keys():
-        print(key, dict_arc[key])
-        argmax_arc.append(np.argmax(list(dict_arc[key].values())))
-    print('Architecture argmax:', argmax_arc)
-    print('\n' + '-' * 120)
-
+    generate_controller_distribution(controller=controller)
     return controller_dict
 
 

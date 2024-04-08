@@ -527,3 +527,30 @@ def generate_alphas(k_val=3, blocks=3, randomize=False):
         bottleneck.append(bottleneck_temp)
 
     return encoder + [bottleneck] + decoder
+
+
+def generate_controller_distribution(controller, number=1000):
+    architectures = []
+    number = 1000
+    for i in range(number):
+        with torch.no_grad():
+            controller()
+        architectures.append(controller.sample_arc)
+    architectures_array = np.array(architectures)
+    dict_arc = {}
+    for i in range(len(architectures_array[-1])):
+        dict_arc[i] = {}
+        if not (i + 1) % 3:
+            for j in range(3):
+                dict_arc[i][j] = np.count_nonzero(architectures_array[:, i] == j) / number
+        else:
+            for j in range(8):
+                dict_arc[i][j] = np.count_nonzero(architectures_array[:, i] == j) / number
+    argmax_arc = []
+    print('\n' + '-' * 120)
+    print('Controller Distribution:')
+    for key in dict_arc.keys():
+        print(key, dict_arc[key])
+        argmax_arc.append(np.argmax(list(dict_arc[key].values())))
+    print('Architecture argmax:', argmax_arc)
+    print('\n' + '-' * 120)
