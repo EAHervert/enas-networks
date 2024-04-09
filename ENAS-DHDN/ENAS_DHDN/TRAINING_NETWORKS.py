@@ -303,7 +303,7 @@ def Train_ENAS(
                        arc_bools=arc_bools,
                        fixed_arc=None,
                        device=device,
-                       whole_passes=whole_passes,
+                       whole_passes=1,
                        train_passes=-1,  # Pass Through entire dataset for pretrain
                        pre_train=True,
                        cell_copy=cell_copy)

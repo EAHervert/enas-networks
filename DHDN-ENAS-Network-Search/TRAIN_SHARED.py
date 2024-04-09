@@ -33,6 +33,7 @@ parser.add_argument('--epochs', type=int, default=30)
 parser.add_argument('--cell_copy', default=False, type=lambda x: (str(x).lower() == 'true'))  # Full Or Reduced
 parser.add_argument('--whole_passes', type=int, default=1)
 parser.add_argument('--train_passes', type=int, default=-1)
+parser.add_argument('--shared_lr', type=float, default=1e-4)  # Shared learning rate
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--device', default='cuda:0', type=str)  # GPU to use
 # Put shared network on two devices instead of one
@@ -143,7 +144,7 @@ def main():
     #                                                 weight_decay=config['Shared']['Weight_Decay'])
 
     Shared_Autoencoder_Optimizer = torch.optim.Adam(params=Shared_Autoencoder.parameters(),
-                                                    lr=config['Shared']['Child_lr'])
+                                                    lr=args.shared_lr)
 
     # https://github.com/melodyguan/enas/blob/master/src/utils.py#L154
     # Use step LR scheduler instead of Cosine Annealing
@@ -193,7 +194,8 @@ def main():
                                                                      args.down_bool],
                                                           sa_logger=SA_Logger,
                                                           device=device_0,
-                                                          fixed_arc=fixed_arc
+                                                          fixed_arc=fixed_arc,
+                                                          cell_copy=args.cell_copy
                                                           )
         Legend = ['Shared_Train', 'Orig_Train']
 

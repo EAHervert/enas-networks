@@ -36,7 +36,7 @@ parser.add_argument('--sample_size', type=int, default=-1)  # How many validatio
 parser.add_argument('--validation_samples', type=int, default=8)  # How many samples from validation to train controller
 parser.add_argument('--controller_num_aggregate', type=int, default=10)  # Steps in same samples
 parser.add_argument('--controller_train_steps', type=int, default=30)  # Total different sample sets
-parser.add_argument('--controller_lr', type=float, default=5e-4)  # Controller learing rate
+parser.add_argument('--controller_lr', type=float, default=5e-4)  # Controller learning rate
 parser.add_argument('--controller_lstm_size', type=int, default=64)  # Size of LSTM (Controller)
 parser.add_argument('--controller_lstm_num_layers', type=int, default=1)  # Number of Layers in LSTM (Controller)
 parser.add_argument('--load_shared', default=False, type=lambda x: (str(x).lower() == 'true'))  # Load shared model(s)

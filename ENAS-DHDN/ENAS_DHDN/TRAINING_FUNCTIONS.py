@@ -67,6 +67,7 @@ def train_loop(epoch,
             if train_passes != -1:
                 if i_batch == train_passes:
                     break
+
             # Pick an architecture to work with from the Graph Network (Shared)
             if fixed_arc is None:
                 if controller is None:
