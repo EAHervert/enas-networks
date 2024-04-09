@@ -28,7 +28,7 @@
     "Channels": 128,
     "K_Value": 3,
     "Child_Grad_Bound": 0.25,
-    "Child_lr": 1e-5,
+    "Child_lr": 1e-4,
     "Child_gamma": 0.5,
     "Step_Size": 3
   }

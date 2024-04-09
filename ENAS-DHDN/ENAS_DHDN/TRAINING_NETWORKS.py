@@ -5,7 +5,7 @@ import torch.nn as nn
 import time
 import random
 
-from utilities.functions import SSIM, generate_controller_distribution
+from utilities.functions import SSIM, generate_controller_distribution, display_time
 from ENAS_DHDN.TRAINING_FUNCTIONS import evaluate_model, AverageMeter, train_loop
 
 
@@ -21,7 +21,8 @@ def Train_Shared(epoch,
                  arc_bools,
                  sa_logger,
                  device=None,
-                 fixed_arc=None):
+                 fixed_arc=None,
+                 cell_copy=False):
     """Train Shared_Autoencoder by sampling architectures from the Controller.
 
     Args:
@@ -37,9 +38,10 @@ def Train_Shared(epoch,
         sa_logger: Logs the Shared network Loss and SSIM
         device: The GPU that we will use.
         fixed_arc: Architecture to train, overrides the controller sample.
+        cell_copy: If we are using cell search or whole architecture search.
         ...
 
-    Returns: Nothing.
+    Returns: dict_shared: Dictionary of shared training results.
     """
     # Here we are using the Controller to give us the networks.
     # We don't modify the Controller, so we have it in evaluation mode rather than training mode.
@@ -58,7 +60,8 @@ def Train_Shared(epoch,
                                arc_bools=arc_bools,
                                whole_passes=whole_passes,
                                train_passes=train_passes,
-                               device=device)
+                               device=device,
+                               cell_copy=cell_copy)
 
     Display_Loss = ("Loss_Shared: %.6f" % results_train['Loss'] +
                     "\tLoss_Original: %.6f" % results_train['Loss_Original'])
@@ -76,11 +79,11 @@ def Train_Shared(epoch,
 
     sa_logger.writerow({'Shared_Loss': results_train['Loss'], 'Shared_Accuracy': results_train['SSIM']})
 
-    dict_meters = {'Loss': results_train['Loss'], 'Loss_Original': results_train['Loss_Original'],
+    dict_shared = {'Loss': results_train['Loss'], 'Loss_Original': results_train['Loss_Original'],
                    'SSIM': results_train['SSIM'], 'SSIM_Original': results_train['SSIM_Original'],
                    'PSNR': results_train['PSNR'], 'PSNR_Original': results_train['PSNR_Original']}
 
-    return dict_meters
+    return dict_shared
 
 
 # This is for training the controller network, which we do once we have gone through the exploration of the child
@@ -109,7 +112,7 @@ def Train_Controller(epoch,
         device: The GPU that we will use.
 
     Returns:
-        baseline: The baseline score (i.e. average val_acc) for the current epoch
+        controller_dict: Dictionary of controller training results.
 
     For more stable training we perform weight updates using the average of
     many gradient estimates. controller_num_aggregate indicates how many samples
@@ -136,6 +139,7 @@ def Train_Controller(epoch,
     t1 = time.time()
 
     controller.zero_grad()
+    choices = random.sample(range(80), k=config['Training']['Validation_Samples'])
     for i in range(config['Controller']['Controller_Train_Steps'] * config['Controller']['Controller_Num_Aggregate']):
         # Randomly selects "validation_samples" batches to run the validation for each controller_num_aggregate
         if i % config['Controller']['Controller_Num_Aggregate'] == 0:
@@ -156,7 +160,7 @@ def Train_Controller(epoch,
         # Use the Normalized SSIM improvement as the accuracy
         normalized_accuracy = (SSIM_Meter.avg - SSIM_Original_Meter.avg) / (1 - SSIM_Original_Meter.avg)
 
-        # make sure that gradients aren't backpropped through the reward or baseline
+        # make sure that gradients aren't backpropagated through the reward or baseline
         reward = normalized_accuracy
         reward += config['Controller']['Controller_Entropy_Weight'] * controller.sample_entropy.item()
         if baseline is None:
@@ -213,6 +217,7 @@ def Train_Controller(epoch,
 
     # Controller Architecture Distribution
     generate_controller_distribution(controller=controller)
+
     return controller_dict
 
 
@@ -237,7 +242,10 @@ def Train_ENAS(
         sample_size=-1,
         device=None,
         pre_train_controller=False,
-        cell_copy=False
+        cell_copy=False,
+        early_stopping=False,
+        early_stopping_patience=3,
+        early_stopping_tolerance=0.001,
 ):
     """Perform architecture search by training a Controller and Shared_Autoencoder.
 
@@ -254,17 +262,23 @@ def Train_ENAS(
         shared_scheduler: Controls the learning rate for the Shared_Autoencoder.
         dataloader_sidd_training: Training dataset.
         dataloader_sidd_validation: Validation dataset.
+        logger: Logger logging shared and controller training.
+        vis: visdom.
+        vis_window: visdom window to use with vis.
         config: config for the hyperparameters.
+        arc_bools: Booleans of the architectures.
         sample_size: Number of the validation samples we will use for evaluation, -1 for all samples.
         device: The GPU that we will use.
         pre_train_controller: Pre-Training the controller when we have pre-trained shared network (optional).
         cell_copy: If we are using cell search or whole architecture search.
+        early_stopping: Stop training when controller has reached saturation.
+        early_stopping_patience: Patience for early stopping.
+        early_stopping_tolerance: Tolerance for early stopping.
         ...
 
-    Returns: Nothing.
+    Returns: results_array_dict: Dictionary that contains all the results of the training process.
     """
 
-    global training_results
     if arc_bools is None:
         arc_bools = [True, True, True]
     dir_current = os.getcwd()
@@ -278,7 +292,7 @@ def Train_ENAS(
         print('\n' + '-' * 120)
         print("Begin Pre-training.")
         print('-' * 120 + '\n')
-
+        t_init = time.time()
         for i in range(pre_train_epochs):
             train_loop(epoch=i,
                        controller=None,
@@ -290,12 +304,15 @@ def Train_ENAS(
                        fixed_arc=None,
                        device=device,
                        whole_passes=whole_passes,
-                       train_passes=train_passes,
+                       train_passes=-1,  # Pass Through entire dataset for pretrain
                        pre_train=True,
                        cell_copy=cell_copy)
 
         print('\n' + '-' * 120)
         print("End Pre-training.")
+        t_final = time.time()
+        print("Pre-Training Time: ")
+        display_time(t_final - t_init)
         print('-' * 120 + '\n')
 
     if pre_train_controller and controller is not None:
@@ -311,8 +328,6 @@ def Train_ENAS(
             device=device
         )
         baseline = None
-
-    # Main Training
 
     # Training
     loss_batch_array = []
@@ -330,6 +345,7 @@ def Train_ENAS(
     psnr_batch_val_array = []
     psnr_original_batch_val_array = []
 
+    count = 0  # Early stopping
     for epoch in range(start_epoch, num_epochs):
         training_results = Train_Shared(
             epoch=epoch,
@@ -342,7 +358,8 @@ def Train_ENAS(
             dataloader_sidd_training=dataloader_sidd_training,
             arc_bools=arc_bools,
             sa_logger=logger[0],
-            device=device
+            device=device,
+            cell_copy=cell_copy
         )
         if controller is not None:
             controller_results = Train_Controller(
@@ -443,8 +460,16 @@ def Train_ENAS(
                                 'PSNR_Original_Train': training_results['PSNR_Original'],
                                 'PSNR_Original_Val': validation_results['Validation_PSNR_Original']})
 
-        shared_scheduler.step()
+        if early_stopping:
+            if controller_results['Loss'] < early_stopping_tolerance and epoch > 5:
+                count += 1
+            else:
+                count = 0
+            # If we have that the controller loss falls under tolerance for patience number of iterations: Terminate
+            if count >= early_stopping_patience:
+                break
 
+        shared_scheduler.step()
         print()
 
     results_array_dict = {'Loss_Batch': loss_batch_array,

@@ -30,6 +30,7 @@ parser.add_argument('--output_file', default='Pre_Train_DHDN', type=str)
 
 # Training:
 parser.add_argument('--epochs', type=int, default=30)
+parser.add_argument('--cell_copy', default=False, type=lambda x: (str(x).lower() == 'true'))  # Full Or Reduced
 parser.add_argument('--whole_passes', type=int, default=1)
 parser.add_argument('--train_passes', type=int, default=-1)
 parser.add_argument('--seed', type=int, default=0)

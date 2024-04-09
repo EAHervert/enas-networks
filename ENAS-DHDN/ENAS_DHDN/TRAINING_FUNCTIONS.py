@@ -37,7 +37,7 @@ def train_loop(epoch,
         cell_copy: If we are using cell search or whole architecture search.
         ...
 
-    Returns: Nothing.
+    Returns: dict_train: Dictionary of training results.
     """
 
     # Keep track of the accuracy and loss through the process.
@@ -151,7 +151,7 @@ def evaluate_model(
         device: The GPU that we will use.
         ...
 
-    Returns: Nothing.
+    Returns: final_dict: Dictionary of validation results.
     """
 
     if arc_bools is None:
@@ -224,8 +224,7 @@ def get_best_arc(
         device: The GPU that we will use.
 
     Returns:
-        best_arc: The best performing architecture.
-        best_val_acc: Accuracy achieved on the best performing architecture.
+        dict_metrics: Dictionary of results based on architecture selection.
 
     All architectures are evaluated on the same minibatch from the validation set.
     """
@@ -241,9 +240,15 @@ def get_best_arc(
     val_loss_orig = []
     val_ssim = []
     val_ssim_orig = []
-    val_accs = []
+    val_accuracies = []
     val_psnr = []
     val_psnr_orig = []
+
+    # Random samples should be same for all the evaluations
+    if sample_size > 0:
+        samples = np.random.choice(80, sample_size, replace=False)
+    else:
+        samples = None
 
     # We loop through the number of samples generating architectures.
     # From these architectures we find the best ones.
@@ -260,10 +265,6 @@ def get_best_arc(
             architecture = controller.sample_arc
         arcs.append(architecture)
 
-        if sample_size > 0:
-            samples = np.random.choice(80, sample_size, replace=False)
-        else:
-            samples = None
         results = get_eval_accuracy(shared=shared,
                                     sample_arc=architecture,
                                     dataloader_sidd_validation=dataloader_sidd_validation,
@@ -274,7 +275,7 @@ def get_best_arc(
         accuracy = (results['SSIM'] - results['SSIM_Original']) / (1 - results['SSIM_Original'])
         val_loss.append(results['Loss'])
         val_loss_orig.append(results['Loss_Original'])
-        val_accs.append(accuracy)
+        val_accuracies.append(accuracy)
         val_ssim.append(results['SSIM'])
         val_ssim_orig.append(results['SSIM_Original'])
         val_psnr.append(results['PSNR'])
@@ -290,9 +291,9 @@ def get_best_arc(
                       '\tPSNR_Original=%.6f' % results['PSNR_Original'] + '\n' + '-' * 120
             print(display)
 
-    best_iter = np.argmax(val_accs)
+    best_iter = np.argmax(val_accuracies)
     best_arc = arcs[best_iter]
-    best_val_acc = val_accs[best_iter]
+    best_val_accuracies = val_accuracies[best_iter]
     best_val_loss = val_loss[best_iter]
     best_val_loss_orig = val_loss_orig[best_iter]
     best_val_ssim = val_ssim[best_iter]
@@ -300,7 +301,7 @@ def get_best_arc(
     best_val_psnr = val_psnr[best_iter]
     best_val_psnr_orig = val_psnr_orig[best_iter]
 
-    dict_metrics = {'Best_Arc': best_arc, 'Best_Accuracy': best_val_acc, 'Loss': best_val_loss,
+    dict_metrics = {'Best_Arc': best_arc, 'Best_Accuracy': best_val_accuracies, 'Loss': best_val_loss,
                     'Loss_Original': best_val_loss_orig, 'SSIM': best_val_ssim, 'SSIM_Original': best_val_ssim_orig,
                     'PSNR': best_val_psnr, 'PSNR_Original': best_val_psnr_orig}
 
@@ -324,7 +325,7 @@ def get_eval_accuracy(
         device: The GPU that we will use.
 
     Returns:
-        acc: Average accuracy.
+        dict_metrics: Dictionary of evaluation metrics.
     """
 
     loss = nn.L1Loss()

@@ -12,12 +12,12 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 import argparse
 import visdom
-import random
 import plotly.graph_objects as go  # Save HTML files for curve analysis
 
-from utilities.functions import SSIM, display_time, generate_controller_distribution
+from utilities.functions import display_time
 from utilities.utils import CSVLogger, Logger
-from ENAS_DHDN.TRAINING_FUNCTIONS import evaluate_model, AverageMeter
+from ENAS_DHDN.TRAINING_NETWORKS import Train_Controller
+from ENAS_DHDN.TRAINING_FUNCTIONS import evaluate_model
 
 # To supress warnings:
 if not sys.warnoptions:
@@ -25,11 +25,12 @@ if not sys.warnoptions:
 
     warnings.simplefilter("ignore")
 
-parser = argparse.ArgumentParser(description='ENAS_SEARCH_DHDN')
+parser = argparse.ArgumentParser(description='ENAS_SEARCH_DHDN_CONTROLLER')
 
 parser.add_argument('--output_file', default='Controller_DHDN', type=str)
 parser.add_argument('--number', type=int, default=1000)  # Used to generate sampling distribution for Controller
 parser.add_argument('--epochs', type=int, default=25)
+parser.add_argument('--cell_copy', default=False, type=lambda x: (str(x).lower() == 'true'))  # Full Or Reduced
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--sample_size', type=int, default=-1)  # How many validation samples to evaluate val models
 parser.add_argument('--validation_samples', type=int, default=8)  # How many samples from validation to train controller
@@ -123,14 +124,24 @@ def main():
     else:
         Shared_Autoencoder = Shared_Autoencoder.to(device_0)
 
-    Controller = CONTROLLER.Controller(
-        k_value=config['Shared']['K_Value'],
-        kernel_bool=args.kernel_bool,
-        down_bool=args.down_bool,
-        up_bool=args.up_bool,
-        lstm_size=args.controller_lstm_size,
-        lstm_num_layers=args.controller_lstm_num_layers
-    )
+    if args.cell_copy:
+        Controller = CONTROLLER.ReducedController(
+            k_value=config['Shared']['K_Value'],
+            encoder=args.encoder_bool,
+            bottleneck=args.bottleneck_bool,
+            decoder=args.decoder_bool,
+            lstm_size=args.controller_lstm_size,
+            lstm_num_layers=args.controller_lstm_num_layers
+        )
+    else:
+        Controller = CONTROLLER.Controller(
+            k_value=config['Shared']['K_Value'],
+            kernel_bool=args.kernel_bool,
+            down_bool=args.down_bool,
+            up_bool=args.up_bool,
+            lstm_size=args.controller_lstm_size,
+            lstm_num_layers=args.controller_lstm_num_layers
+        )
     Controller = Controller.to(device_0)
 
     if args.load_controller:
@@ -157,17 +168,7 @@ def main():
                                             shuffle=False)
     Shared_Autoencoder.eval()
 
-    # Here we will have the following meters for the metrics
-    reward_meter = AverageMeter()  # Reward R
-    baseline_meter = AverageMeter()  # Baseline b, which controls variance
-    val_acc_meter = AverageMeter()  # Validation Accuracy
-    loss_meter = AverageMeter()  # Loss
-    SSIM_Meter = AverageMeter()
-    SSIM_Original_Meter = AverageMeter()
-
     Controller.zero_grad()
-    choices = random.sample(range(80), k=args.validation_samples)
-    baseline = None
 
     # Validation
     loss_batch_val_array = []
@@ -177,90 +178,40 @@ def main():
     psnr_batch_val_array = []
     psnr_original_batch_val_array = []
 
+    # Modify config to work with Train_Controller
+    config['Controller']['Controller_Train_Steps'] = args.controller_train_steps
+    config['Controller']['Controller_Num_Aggregate'] = args.controller_num_aggregate
+    config['Training']['Validation_Samples'] = args.validation_samples
+
     for epoch in range(args.epochs):
-        Controller.train()  # Train Controller
-        for i in range(
-                args.controller_train_steps * args.controller_num_aggregate):
-            # Randomly selects "validation_samples" batches to run the validation for each controller_num_aggregate
-            if i % args.controller_num_aggregate == 0:
-                choices = random.sample(range(80), k=args.validation_samples)
-            Controller()  # perform forward pass to generate a new architecture
-            architecture = Controller.sample_arc
-
-            for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
-                if i_validation in choices:
-                    x_v = validation_batch['NOISY']
-                    t_v = validation_batch['GT']
-
-                    with torch.no_grad():
-                        y_v = Shared_Autoencoder(x_v, architecture)
-                        SSIM_Meter.update(SSIM(y_v, t_v).item())
-                        SSIM_Original_Meter.update(SSIM(x_v, t_v).item())
-
-            # Use the Normalized SSIM improvement as the accuracy
-            normalized_accuracy = (SSIM_Meter.avg - SSIM_Original_Meter.avg) / (1 - SSIM_Original_Meter.avg)
-
-            # make sure that gradients aren't backpropped through the reward or baseline
-            reward = normalized_accuracy
-            reward += config['Controller']['Controller_Entropy_Weight'] * Controller.sample_entropy.item()
-            if baseline is None:
-                baseline = normalized_accuracy
-            else:
-                baseline -= (1 - config['Controller']['Controller_Bl_Dec']) * (baseline - reward)
-
-            loss = - Controller.sample_log_prob * (reward - baseline)
-
-            reward_meter.update(reward)
-            baseline_meter.update(baseline)
-            val_acc_meter.update(normalized_accuracy)
-            loss_meter.update(loss.item())
-
-            # Controller Update:
-            loss.backward(retain_graph=True)
-            nn.utils.clip_grad_norm_(Controller.parameters(), config['Controller']['Controller_Grad_Bound'])
-            Controller_Optimizer.step()
-            Controller.zero_grad()
-
-            # Aggregate gradients for controller_num_aggregate iteration, then update weights
-            if (i + 1) % args.controller_num_aggregate == 0:
-                display = 'Epoch_Number=' + str(epoch) + '-' + \
-                          str(i // args.controller_num_aggregate) + \
-                          '\tController_log_probs=%+.6f' % Controller.sample_log_prob.item() + \
-                          '\tController_loss=%+.6f' % loss_meter.val + \
-                          '\tEntropy=%.6f' % Controller.sample_entropy.item() + \
-                          '\tAccuracy (Normalized SSIM)=%.6f' % val_acc_meter.val + \
-                          '\tReward=%.6f' % reward_meter.val + \
-                          '\tBaseline=%.6f' % baseline_meter.val
-                print(display)
-                baseline = None
-
-        print('\n' + '-' * 120)
-        print("Controller Average Loss: ", loss_meter.avg)
-        print("Controller Average Accuracy (Normalized SSIM): ", val_acc_meter.avg)
-        print("Controller Average Reward: ", reward_meter.avg)
-        print("Controller Learning Rate:", Controller_Optimizer.param_groups[0]['lr'])
-        print('\n' + '-' * 120)
-
-        Ctrl_Logger.writerow({'Controller_Reward': reward_meter.avg, 'Controller_Accuracy': val_acc_meter.avg,
-                              'Controller_Loss': loss_meter.avg})
+        controller_dict = Train_Controller(epoch=epoch,
+                                           controller=Controller,
+                                           shared=Shared_Autoencoder,
+                                           controller_optimizer=Controller_Optimizer,
+                                           dataloader_sidd_validation=dataloader_sidd_validation,
+                                           c_logger=Ctrl_Logger,
+                                           config=config,
+                                           baseline=None,
+                                           device=device_0
+                                           )
 
         vis_window[list(vis_window)[0]] = vis.line(
             X=np.column_stack([epoch]),
-            Y=np.column_stack([loss_meter.avg]),
+            Y=np.column_stack([controller_dict['Loss']]),
             win=vis_window[list(vis_window)[0]],
             opts=dict(title=list(vis_window)[0], xlabel='Epoch', ylabel='Loss'),
             update='append' if epoch > 0 else None)
 
         vis_window[list(vis_window)[1]] = vis.line(
             X=np.column_stack([epoch]),
-            Y=np.column_stack([val_acc_meter.avg]),
+            Y=np.column_stack([controller_dict['Accuracy']]),
             win=vis_window[list(vis_window)[1]],
             opts=dict(title=list(vis_window)[1], xlabel='Epoch', ylabel='Accuracy'),
             update='append' if epoch > 0 else None)
 
         vis_window[list(vis_window)[2]] = vis.line(
             X=np.column_stack([epoch]),
-            Y=np.column_stack([reward_meter.avg]),
+            Y=np.column_stack([controller_dict['Reward']]),
             win=vis_window[list(vis_window)[2]],
             opts=dict(title=list(vis_window)[2], xlabel='Epoch', ylabel='Reward'),
             update='append' if epoch > 0 else None)
@@ -288,9 +239,6 @@ def main():
                              'SSIM_Original': validation_results['Validation_SSIM_Original'],
                              'PSNR': validation_results['Validation_PSNR'],
                              'PSNR_Original': validation_results['Validation_PSNR_Original']})
-
-    # Controller Architecture Distribution
-    generate_controller_distribution(controller=Controller)
 
     CSV_Logger.close()
     Ctrl_Logger.close()
