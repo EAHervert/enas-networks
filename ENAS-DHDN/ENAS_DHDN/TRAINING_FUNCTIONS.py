@@ -61,11 +61,10 @@ def train_loop(epoch,
     # Start the timer for the epoch.
     for pass_ in range(whole_passes):
         for i_batch, sample_batch in enumerate(dataloader_sidd_training):
-            if train_passes == -1:  # Train on whole dataset
-                continue
-            else:
-                # Train on max train_passes of the training dataset
-                # Number of actual passes may be less than train_passes
+            # Train on max train_passes of the training dataset
+            # Number of actual passes may be less than train_passes
+            # If train_passes == -1, then train on whole dataset
+            if train_passes != -1:
                 if i_batch == train_passes:
                     break
             # Pick an architecture to work with from the Graph Network (Shared)
