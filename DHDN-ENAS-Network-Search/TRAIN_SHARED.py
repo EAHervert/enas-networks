@@ -169,7 +169,7 @@ def main():
         print('-' * 120 + '\nUsing randomly generated architectures.' + '\n' + '-' * 120)
     else:
         fixed_arc = args.fixed_arc
-        print('-' * 120 + '\nUsing Fixed architecture: ', fixed_arc, + '\n' + '-' * 120)
+        print('-' * 120 + '\nUsing Fixed architecture: ' + fixed_arc + '\n' + '-' * 120)
 
     Controller = None
 

@@ -1,6 +1,5 @@
 import math
 import torch
-import torch.nn as nn
 import numpy as np
 import random
 from utilities.Pytorch_SSIM import ssim
@@ -389,7 +388,7 @@ def random_bottleneck_generation(kernel_bool=True):
 
 def random_architecture_generation(k_value=3, kernel_bool=True, down_bool=True, up_bool=True, cell_copy=False):
     encoder, decoder = [], []
-    if cell_copy:
+    if not cell_copy:
         for _ in range(k_value):
             encoder += random_encoder_generation(kernel_bool=kernel_bool, up_bool=up_bool)
             decoder += random_decoder_generation(kernel_bool=kernel_bool, down_bool=down_bool)

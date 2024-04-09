@@ -305,7 +305,6 @@ def Train_ENAS(
                        device=device,
                        whole_passes=1,
                        train_passes=-1,  # Pass Through entire dataset for pretrain
-                       pre_train=True,
                        cell_copy=cell_copy)
 
         print('\n' + '-' * 120)

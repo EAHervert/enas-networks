@@ -17,7 +17,6 @@ def train_loop(epoch,
                whole_passes=1,
                train_passes=-1,
                device=None,
-               pre_train=False,
                cell_copy=False):
     """Trains the shared network based on outputs of controller (if passed).
 
@@ -33,7 +32,6 @@ def train_loop(epoch,
         whole_passes: Number of passes though the whole training data.
         train_passes: Number of passes though one set of the training data.
         device: The GPU that we will use.
-        pre_train: If we are pre-training or doing standard training.
         cell_copy: If we are using cell search or whole architecture search.
         ...
 
@@ -111,10 +109,7 @@ def train_loop(epoch,
                 Display_SSIM = "SSIM_Shared: %.6f" % ssim_batch.val + "\tSSIM_Original: %.6f" % ssim_original_batch.val
                 Display_PSNR = "PSNR_Shared: %.6f" % psnr_batch.val + "\tPSNR_Original: %.6f" % psnr_original_batch.val
 
-                if pre_train:
-                    print("Pre-Training Data for Epoch: ", epoch, "Pass:", pass_, "Image Batch: ", i_batch)
-                else:
-                    print("Training Data for Epoch: ", epoch, "Pass:", pass_, "Image Batch: ", i_batch)
+                print("Training Data for Epoch: ", epoch, "Pass:", pass_, "Image Batch: ", i_batch)
                 print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
 
             # Free up space in GPU
