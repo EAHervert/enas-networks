@@ -294,18 +294,34 @@ def Train_ENAS(
         print('-' * 120 + '\n')
         t_init = time.time()
         for i in range(pre_train_epochs):
-            train_loop(epoch=i,
-                       controller=None,
-                       shared=shared,
-                       shared_optimizer=shared_optimizer,
-                       config=config,
-                       dataloader_sidd_training=dataloader_sidd_training,
-                       arc_bools=arc_bools,
-                       fixed_arc=None,
-                       device=device,
-                       whole_passes=1,
-                       train_passes=-1,  # Pass Through entire dataset for pretrain
-                       cell_copy=cell_copy)
+            t1 = time.time()
+            results_train = train_loop(epoch=i,
+                                       controller=None,
+                                       shared=shared,
+                                       shared_optimizer=shared_optimizer,
+                                       config=config,
+                                       dataloader_sidd_training=dataloader_sidd_training,
+                                       arc_bools=arc_bools,
+                                       fixed_arc=None,
+                                       device=device,
+                                       whole_passes=1,
+                                       train_passes=-1,  # Pass Through entire dataset for pretrain
+                                       cell_copy=cell_copy,
+                                       verbose=False)
+
+            Display_Loss = ("Loss_Shared: %.6f" % results_train['Loss'] +
+                            "\tLoss_Original: %.6f" % results_train['Loss_Original'])
+            Display_SSIM = ("SSIM_Shared: %.6f" % results_train['SSIM'] +
+                            "\tSSIM_Original: %.6f" % results_train['SSIM_Original'])
+            Display_PSNR = ("PSNR_Shared: %.6f" % results_train['PSNR'] +
+                            "\tPSNR_Original: %.6f" % results_train['PSNR_Original'])
+
+            t2 = time.time()
+            print('\n' + '-' * 120)
+            print("Training Data for Pre-Train Epoch: ", i)
+            print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
+            print("Pre-Train Epoch {epoch} Training Time: ".format(epoch=i), t2 - t1)
+            print('-' * 120 + '\n')
 
         print('\n' + '-' * 120)
         print("End Pre-training.")

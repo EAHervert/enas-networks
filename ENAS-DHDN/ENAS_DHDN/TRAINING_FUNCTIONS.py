@@ -17,7 +17,8 @@ def train_loop(epoch,
                whole_passes=1,
                train_passes=-1,
                device=None,
-               cell_copy=False):
+               cell_copy=False,
+               verbose=True):
     """Trains the shared network based on outputs of controller (if passed).
 
     Args:
@@ -33,6 +34,7 @@ def train_loop(epoch,
         train_passes: Number of passes though one set of the training data.
         device: The GPU that we will use.
         cell_copy: If we are using cell search or whole architecture search.
+        verbose: If we are using verbose mode.
         ...
 
     Returns: dict_train: Dictionary of training results.
@@ -104,13 +106,14 @@ def train_loop(epoch,
             nn.utils.clip_grad_norm_(shared.parameters(), config['Shared']['Child_Grad_Bound'])
             shared_optimizer.step()
 
-            if i_batch % 100 == 0:
-                Display_Loss = "Loss_Shared: %.6f" % loss_batch.val + "\tLoss_Original: %.6f" % loss_original_batch.val
-                Display_SSIM = "SSIM_Shared: %.6f" % ssim_batch.val + "\tSSIM_Original: %.6f" % ssim_original_batch.val
-                Display_PSNR = "PSNR_Shared: %.6f" % psnr_batch.val + "\tPSNR_Original: %.6f" % psnr_original_batch.val
+            if verbose:
+                if i_batch % 100 == 0:
+                    Display_Loss = "Loss_Shared: %.6f" % loss_batch.val + "\tLoss_Original: %.6f" % loss_original_batch.val
+                    Display_SSIM = "SSIM_Shared: %.6f" % ssim_batch.val + "\tSSIM_Original: %.6f" % ssim_original_batch.val
+                    Display_PSNR = "PSNR_Shared: %.6f" % psnr_batch.val + "\tPSNR_Original: %.6f" % psnr_original_batch.val
 
-                print("Training Data for Epoch: ", epoch, "Pass:", pass_, "Image Batch: ", i_batch)
-                print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
+                    print("Training Data for Epoch: ", epoch, "Pass:", pass_, "Image Batch: ", i_batch)
+                    print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
 
             # Free up space in GPU
             del x, y, t
