@@ -32,6 +32,7 @@ parser.add_argument('--output_file', default='ENAS_DHDN', type=str)
 # Training:
 parser.add_argument('--epochs', type=int, default=30)
 parser.add_argument('--pre_train_epochs', type=int, default=-1)  # Randomly pre-training model
+parser.add_argument('--shared_lr', type=float, default=1e-4)  # Learning rate override config TODO: Fix
 parser.add_argument('--cell_copy', default=False, type=lambda x: (str(x).lower() == 'true'))  # Full Or Reduced
 parser.add_argument('--whole_passes', type=int, default=1)
 parser.add_argument('--train_passes', type=int, default=-1)
@@ -76,6 +77,7 @@ def main():
     dir_current = os.getcwd()
     config_path = dir_current + '/configs/config_search.json'
     config = json.load(open(config_path))
+    config['Shared']['Child_lr'] = args.shared_lr  # Todo: fix
     if not os.path.exists(dir_current + '/models/'):
         os.makedirs(dir_current + '/models/')
 
