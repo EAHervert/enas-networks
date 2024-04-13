@@ -15,7 +15,7 @@ import plotly.graph_objects as go  # Save HTML files for curve analysis
 
 from utilities.utils import CSVLogger
 from utilities.utils import Logger as logger_util
-from utilities.functions import SSIM, generate_loggers, drop_weights, clip_weights, display_time
+from utilities.functions import SSIM, generate_loggers, drop_weights, clip_weights, display_time, list_of_ints
 from utilities.functions import True_PSNR as PSNR
 
 current_time = datetime.datetime.now()
@@ -29,7 +29,11 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--name', default='Default', type=str)  # Name to save Models
 parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to train on
 parser.add_argument('--size', type=int, default=3)
+parser.add_argument('--encoder', default=[0, 0, 0, 0, 0, 0, 0, 0, 0], type=list_of_ints)  # Encoder of the DHDN
+parser.add_argument('--bottleneck', default=[0, 0], type=list_of_ints)  # Bottleneck of the Encoder
+parser.add_argument('--decoder', default=[0, 0, 0, 0, 0, 0, 0, 0, 0], type=list_of_ints)  # Decoder of the DHDN
 parser.add_argument('--epochs', type=int, default=10)
+parser.add_argument('--train_passes_mod', type=int, default=-1)  # Number of passes through training data (mod 100)
 parser.add_argument('--learning_rate', type=float, default=1e-4)
 parser.add_argument('--weight_decay', type=float, default=0.0)
 parser.add_argument('--step_size', type=int, default=3)
@@ -85,10 +89,7 @@ def main():
     device = torch.device(args.device)
 
     # Load the models:
-    encoder = [i * 0 for i in range(3 * args.size)]
-    decoder = [i * 0 for i in range(3 * args.size)]
-    bottleneck = [0, 0]
-    dhdn_architecture = encoder + bottleneck + decoder
+    dhdn_architecture = args.encoder + args.bottleneck + args.decoder
 
     dhdn = DHDN.SharedDHDN(k_value=args.size, architecture=dhdn_architecture)
     dhdn.to(device)
@@ -121,7 +122,6 @@ def main():
 
     # Define the Loss and evaluation metrics:
     loss = nn.L1Loss().to(device)
-    MSE = nn.MSELoss().to(device)
 
     # Now, let us define our loggers:
     loggers0 = generate_loggers()
@@ -178,6 +178,12 @@ def main():
 
     for epoch in range(args.epochs):
         for i_batch, sample_batch in enumerate(dataloader_training):
+
+            # Reduced passes of Training data
+            if args.train_passes_mod > 0:
+                if i_batch // 100 == args.train_passes_mod:
+                    break
+
             x = sample_batch['NOISY']
             y0 = dhdn(x.to(device))
             t = sample_batch['GT']
