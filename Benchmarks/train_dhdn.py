@@ -40,6 +40,7 @@ parser.add_argument('--step_size', type=int, default=3)
 parser.add_argument('--drop', default='-1', type=float)  # Drop weights for model weight initialization
 parser.add_argument('--drop_tol', default='2.5e-2', type=float)  # Tolerance for early stopping I
 parser.add_argument('--slope_tol', default='5e-4', type=float)  # Tolerance for early stopping II
+parser.add_argument('--loss_tol', type=float, default=1e6)  # For case where the loss explodes
 parser.add_argument('--device', default='cuda:0', type=str)  # GPU to use
 parser.add_argument('--clip_weights', default=False, type=lambda s: (str(s).lower() == 'true'))  # Load previous models
 parser.add_argument('--load_model', default=False, type=lambda s: (str(s).lower() == 'true'))  # Load previous models
@@ -191,20 +192,24 @@ def main():
             loss_value = loss(y0, t)
             loss_batch.update(loss_value.item())
 
-            # Calculate values not needing to be backpropagated
-            with torch.no_grad():
-                loss_original_batch.update(loss(x, t).item())
-                ssim_batch.update(SSIM(y0, t).item())
-                ssim_original_batch.update(SSIM(x, t).item())
-                psnr_batch.update(PSNR(t, y0).item())
-                psnr_original_batch.update(PSNR(t, x).item())
+            if loss_value.item() < args.loss_tol:
 
-            # Backpropagate to train model
-            optimizer.zero_grad()
-            nn.utils.clip_grad_norm_(dhdn.parameters(), config['Training']['Child_Grad_Bound'])
-            loss_value.backward()
-            optimizer.step()
+                # Calculate values not needing to be backpropagated
+                with torch.no_grad():
+                    loss_original_batch.update(loss(x, t).item())
+                    ssim_batch.update(SSIM(y0, t).item())
+                    ssim_original_batch.update(SSIM(x, t).item())
+                    psnr_batch.update(PSNR(t, y0).item())
+                    psnr_original_batch.update(PSNR(t, x).item())
 
+                # Backpropagate to train model
+                optimizer.zero_grad()
+                nn.utils.clip_grad_norm_(dhdn.parameters(), config['Training']['Child_Grad_Bound'])
+                loss_value.backward()
+                optimizer.step()
+
+            else:  # Terminate if we have the loss explode
+                break
             if i_batch % 100 == 0:
                 Display_Loss = "Loss_DHDN: %.6f" % loss_batch.val + "\tLoss_Original: %.6f" % loss_original_batch.val
                 Display_SSIM = "SSIM_DHDN: %.6f" % ssim_batch.val + "\tSSIM_Original: %.6f" % ssim_original_batch.val
