@@ -179,6 +179,7 @@ def main():
 
     t_epoch_start = time.time()
 
+    flag = False
     for epoch in range(args.epochs):
         for i_batch, sample_batch in enumerate(dataloader_training):
 
@@ -196,6 +197,7 @@ def main():
 
             if loss_value.item() > args.loss_tol:
                 break
+                flag = True
 
             # Calculate values not needing to be backpropagated
             with torch.no_grad():
@@ -235,6 +237,10 @@ def main():
 
         print("\nTotal Training Data for Epoch: ", epoch)
         print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
+
+        # Terminate if loss explodes.
+        if flag:
+            break
 
         for i_validation, validation_batch in enumerate(dataloader_validation):
             with torch.no_grad():
