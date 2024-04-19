@@ -30,6 +30,7 @@ parser = argparse.ArgumentParser(description='ENAS_SEARCH_DHDN')
 parser.add_argument('--output_file', default='ENAS_DHDN', type=str)
 
 # Training:
+parser.add_argument('--noise', type=str, default='SIDD')
 parser.add_argument('--epochs', type=int, default=30)
 parser.add_argument('--pre_train_epochs', type=int, default=-1)  # Randomly pre-training model
 parser.add_argument('--shared_lr', type=float, default=1e-4)  # Learning rate override config TODO: Fix
@@ -220,8 +221,8 @@ def main():
 
     # Noise Dataset
     path_training = dir_current + '/instances/' + args.training_csv
-    path_validation_noisy = dir_current + config['Locations']['Validation_Noisy']
-    path_validation_gt = dir_current + config['Locations']['Validation_GT']
+    path_validation_noisy = dir_current + config['Locations'][args.noise]['Validation_Noisy']
+    path_validation_gt = dir_current + config['Locations'][args.noise]['Validation_GT']
 
     # Todo: Make function that returns these datasets.
     SIDD_training = dataset.DatasetNoise(csv_file=path_training,
