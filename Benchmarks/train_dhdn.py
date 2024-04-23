@@ -53,6 +53,11 @@ args = parser.parse_args()
 def main():
     global args
 
+    # Random Seed
+    timestamp_seed = int(datetime.datetime.now().timestamp())
+    torch.manual_seed(timestamp_seed)
+    np.random.seed(timestamp_seed)
+
     # Hyperparameters
     dir_current = os.getcwd()
     config_path = dir_current + '/configs/config_dhdn.json'
@@ -94,6 +99,15 @@ def main():
 
     dhdn = DHDN.SharedDHDN(k_value=args.size, architecture=dhdn_architecture)
     dhdn.to(device)
+
+    print('Parser Arguments:')
+    print(args)
+
+    print('\nConfig:')
+    print(config)
+
+    print('\nSEED: ', timestamp_seed)
+
     print('Model being trained:')
     print(dhdn)
 
