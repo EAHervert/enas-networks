@@ -553,3 +553,84 @@ def generate_controller_distribution(controller, number=1000):
         argmax_arc.append(np.argmax(list(dict_arc[key].values())))
     print('Architecture argmax:', argmax_arc)
     print('\n' + '-' * 120)
+
+
+def shared_weights_to_fixed_weights(shared_model, fixed_model, architecture):
+    dict_shared = shared_model.state_dict()
+    dict_out = fixed_model.state_dict()
+
+    dict_out['init_conv.0.weight'] = dict_shared['init_conv.0.weight']
+    dict_out['init_conv.0.bias'] = dict_shared['init_conv.0.bias']
+    dict_out['init_conv.1.weight'] = dict_shared['init_conv.1.weight']
+
+    for index, path in enumerate(architecture):
+        weight_path_old = 'layers.{index}'.format(index=index)
+        weight_path_new = 'layers.{index}'.format(index=index)
+
+        # Resampling
+        if index % 3 == 2:
+            if index < len(architecture) // 2:
+                if path != 2:
+                    for end in ['weight', 'bias']:
+                        # Get the weights and biases
+                        weight_path_old_k = weight_path_old + '.conv.' + end
+                        weight_path_new_k = weight_path_new + '.conv.' + end
+                        dict_out[weight_path_new_k] = dict_shared[weight_path_old_k]
+                else:
+                    for end in ['weight', 'bias']:
+                        # Get the weights and biases
+                        weight_path_old_k = weight_path_old + '.downconv.' + end
+                        weight_path_new_k = weight_path_new + '.down.' + end
+                        dict_out[weight_path_new_k] = dict_shared[weight_path_old_k]
+
+                # Get the ReLU activation weight
+                weight_path_old_relu = weight_path_old + '.relu.weight'
+                weight_path_new_relu = weight_path_new + '.relu.weight'
+                dict_out[weight_path_new_relu] = dict_shared[weight_path_old_relu]
+            else:
+                # Get the ReLU and Convolution weight
+                for end in ['weight', 'bias']:
+                    weight_path_old_relu = weight_path_old + '.conv.' + end
+                    weight_path_new_relu = weight_path_new + '.conv.' + end
+                    dict_out[weight_path_new_relu] = dict_shared[weight_path_old_relu]
+
+                weight_path_old_relu = weight_path_old + '.relu.weight'
+                weight_path_new_relu = weight_path_new + '.relu.weight'
+                dict_out[weight_path_new_relu] = dict_shared[weight_path_old_relu]
+
+                if path != 0:
+                    for end in ['weight', 'bias']:
+                        # Get the weights and biases
+                        if path == 2:
+                            str_val = '.BL.0.'
+                            str_out = '.up.0.'
+                        else:
+                            str_val = '.convT.'
+                            str_out = '.up.'
+
+                        weight_path_old_end = weight_path_old + str_val + end
+                        weight_path_new_end = weight_path_new + str_out + end
+                        dict_out[weight_path_new_end] = dict_shared[weight_path_old_end]
+
+        # Kernels
+        else:
+            kernel_array = val_to_kernel_array(path)
+            for index_k, k in enumerate(kernel_array):
+                weight_path_old_k = weight_path_old + '.graph.'
+                weight_path_new_k = weight_path_new + '.path.'
+                for end in ['weight', 'bias']:
+                    # Get the weights and biases
+                    weight_path_old_k_end = weight_path_old_k + str(2 * index_k) + '.' + str(k) + '.' + end
+                    weight_path_new_k_end = weight_path_new_k + str(index_k) + '.' + str(0) + '.' + end
+                    dict_out[weight_path_new_k_end] = dict_shared[weight_path_old_k_end]
+
+                # Get the ReLU activation weight
+                weight_path_old_relu = weight_path_old_k + str(2 * index_k + 1) + '.' + 'weight'
+                weight_path_new_relu = weight_path_new_k + str(index_k) + '.1.' + 'weight'
+                dict_out[weight_path_new_relu] = dict_shared[weight_path_old_relu]
+
+    dict_out['final_conv.0.weight'] = dict_shared['final_conv.0.weight']
+    dict_out['final_conv.0.bias'] = dict_shared['final_conv.0.bias']
+    dict_out['final_conv.1.weight'] = dict_shared['final_conv.1.weight']
+
+    return dict_out
