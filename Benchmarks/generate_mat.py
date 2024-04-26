@@ -52,10 +52,10 @@ def main():
     else:
         if args.dataset == 'SIDD':
             mat_gt_file = None
-            mat_noisy_file = dir_current + config['Locations'][args.dataset]['Validation_Noisy']
+            mat_noisy_file = dir_current + config['Locations'][args.dataset]['Benchmark']
         else:
             mat_gt_file = dir_current + config['Locations'][args.dataset]['Testing_GT']
-            mat_noisy_file = dir_current + config['Locations'][args.dataset]['Validation_Noisy']
+            mat_noisy_file = dir_current + config['Locations'][args.dataset]['Testing_Noisy']
 
     mat_noisy = loadmat(mat_noisy_file)
 
