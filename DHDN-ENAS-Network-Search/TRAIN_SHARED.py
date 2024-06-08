@@ -2,6 +2,7 @@ import os
 import sys
 from utilities import dataset
 from ENAS_DHDN import TRAINING_NETWORKS
+from ENAS_DHDN.TRAINING_FUNCTIONS import train_loop
 from ENAS_DHDN import SHARED_DHDN
 import datetime
 import json
@@ -30,10 +31,12 @@ parser.add_argument('--output_file', default='Pre_Train_DHDN', type=str)
 
 # Training:
 parser.add_argument('--epochs', type=int, default=30)
+parser.add_argument('--pre_train_epochs', type=int, default=-1)  # Pre-training for warm start
 parser.add_argument('--cell_copy', default=False, type=lambda x: (str(x).lower() == 'true'))  # Full Or Reduced
 parser.add_argument('--whole_passes', type=int, default=1)
 parser.add_argument('--train_passes', type=int, default=-1)
 parser.add_argument('--shared_lr', type=float, default=1e-4)  # Shared learning rate
+parser.add_argument('--shared_lr_warm_start', type=float, default=1e-6)  # Shared learning rate for warm start
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--device', default='cuda:0', type=str)  # GPU to use
 # Put shared network on two devices instead of one
@@ -137,12 +140,6 @@ def main():
     else:
         Shared_Autoencoder = Shared_Autoencoder.to(device_0)
 
-    # We will use ADAM on the child network (Different from Original ENAS paper)
-    # https://github.com/melodyguan/enas/blob/master/src/utils.py#L213
-    # Shared_Autoencoder_Optimizer = torch.optim.Adam(params=Shared_Autoencoder.parameters(),
-    #                                                 lr=config['Shared']['Child_lr'],
-    #                                                 weight_decay=config['Shared']['Weight_Decay'])
-
     Shared_Autoencoder_Optimizer = torch.optim.Adam(params=Shared_Autoencoder.parameters(),
                                                     lr=args.shared_lr)
 
@@ -172,6 +169,57 @@ def main():
         print('-' * 120 + '\nUsing Fixed architecture: ' + fixed_arc + '\n' + '-' * 120)
 
     Controller = None
+
+    # Pre-Training model randomly to get starting point for convergence.
+    if args.pre_train_epochs > 0:
+        # Optimizer with warm start learning rate
+        for group in Shared_Autoencoder_Optimizer.param_groups:
+            group['lr'] = args.shared_lr_warm_start
+
+        print('\n' + '-' * 120)
+        print("Begin Warm Start Pre-training.")
+        print('-' * 120 + '\n')
+        t_init = time.time()
+        for i in range(args.pre_train_epochs):
+            t1 = time.time()
+            results_train = train_loop(epoch=i,
+                                       controller=None,
+                                       shared=Shared_Autoencoder,
+                                       shared_optimizer=Shared_Autoencoder_Optimizer,
+                                       config=config,
+                                       dataloader_sidd_training=dataloader_sidd_training,
+                                       arc_bools=[args.kernel_bool, args.up_bool, args.down_bool],
+                                       fixed_arc=None,
+                                       device=device_0,
+                                       whole_passes=1,
+                                       train_passes=-1,  # Pass Through entire dataset for pretrain
+                                       cell_copy=args.cell_copy,
+                                       verbose=False)
+
+            Display_Loss = ("Loss_Shared: %.6f" % results_train['Loss'] +
+                            "\tLoss_Original: %.6f" % results_train['Loss_Original'])
+            Display_SSIM = ("SSIM_Shared: %.6f" % results_train['SSIM'] +
+                            "\tSSIM_Original: %.6f" % results_train['SSIM_Original'])
+            Display_PSNR = ("PSNR_Shared: %.6f" % results_train['PSNR'] +
+                            "\tPSNR_Original: %.6f" % results_train['PSNR_Original'])
+
+            t2 = time.time()
+            print('\n' + '-' * 120)
+            print("Training Data for Pre-Train Epoch: ", i)
+            print(Display_Loss + '\n' + Display_SSIM + '\n' + Display_PSNR + '\n')
+            print("Pre-Train Epoch {epoch} Training Time: ".format(epoch=i), t2 - t1)
+            print('-' * 120 + '\n')
+
+        print('\n' + '-' * 120)
+        print("End Warm Start Pre-training.")
+        t_final = time.time()
+        print("Warm Start Pre-Training Time: ")
+        display_time(t_final - t_init)
+        print('-' * 120 + '\n')
+
+        # Optimizer returns to original learning rate
+        for group in Shared_Autoencoder_Optimizer.param_groups:
+            group['lr'] = args.shared_lr
 
     # Training
     loss_batch_array = []

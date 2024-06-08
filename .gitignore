@@ -175,7 +175,7 @@ dmypy.json
 /Benchmarks/old_notebooks/gaussian_filters.ipynb
 /Benchmarks/old_notebooks/reward_validation_sidd.ipynb
 /utilities/tests/
-/Benchmarks/old_notebooks/sidd_statistics.ipynb
+/Benchmarks/sidd_statistics.ipynb
 /Benchmarks/old_notebooks/SIDD_Sampling_Statistics.ipynb
 /Benchmarks/visualize_testing.ipynb
 /Benchmarks/visualize_validation.ipynb
@@ -188,3 +188,4 @@ dmypy.json
 /Benchmarks/Block_Metrics.ipynb
 /Benchmarks/DIV2K_SIDD_Crop_Distribution.ipynb
 /Benchmarks/Shared_Network.ipynb
+/Benchmarks/Statistical_Significance.ipynb
