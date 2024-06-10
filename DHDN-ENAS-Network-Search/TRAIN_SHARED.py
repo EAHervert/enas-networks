@@ -37,6 +37,8 @@ parser.add_argument('--whole_passes', type=int, default=1)
 parser.add_argument('--train_passes', type=int, default=-1)
 parser.add_argument('--shared_lr', type=float, default=1e-4)  # Shared learning rate
 parser.add_argument('--shared_lr_warm_start', type=float, default=1e-6)  # Shared learning rate for warm start
+parser.add_argument('--step_size', type=int, default=3)  # Steps needed to do the lr scheduling
+parser.add_argument('--grad_bound', type=float, default=0.25)  # Grad bound on updates
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--device', default='cuda:0', type=str)  # GPU to use
 # Put shared network on two devices instead of one
@@ -67,6 +69,8 @@ def main():
     config_path = dir_current + '/configs/config_shared.json'
     config = json.load(open(config_path))
     model_shared_path = '/models/' + args.model_shared_path
+
+    config['Shared']['Child_Grad_Bound'] = args.grad_bound  # Update grad bound in the config
 
     if not os.path.exists(dir_current + '/models/'):
         os.makedirs(dir_current + '/models/')
