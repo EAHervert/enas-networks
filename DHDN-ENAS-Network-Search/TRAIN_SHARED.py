@@ -53,6 +53,7 @@ parser.add_argument('--up_bool', default=True, type=lambda x: (str(x).lower() ==
 parser.add_argument('--training_csv', default='sidd_np_instances_064_0128.csv', type=str)  # training samples to use
 parser.add_argument('--load_shared', default=False, type=lambda x: (str(x).lower() == 'true'))  # Load shared model(s)
 parser.add_argument('--model_shared_path', default='shared_network_sidd_0032.pth', type=str)
+parser.add_argument('--save_model', default=True, type=lambda x: (str(x).lower() == 'true'))  # Save the final model
 
 args = parser.parse_args()
 
@@ -296,15 +297,16 @@ def main():
 
     display_time(t_final - t_init)
 
-    if not args.fixed_arc:
-        Shared_Path = Model_Path + '/random_pre_trained_shared_network_parameters.pth'
-    else:  # Todo: fix with above
-        Shared_Path = Model_Path + '/fixed_arc_parameters.pth'
+    if args.save_model:
+        if not args.fixed_arc:
+            Shared_Path = Model_Path + '/random_pre_trained_shared_network_parameters.pth'
+        else:  # Todo: fix with above
+            Shared_Path = Model_Path + '/fixed_arc_parameters.pth'
 
-    if args.data_parallel:
-        torch.save(Shared_Autoencoder.module.state_dict(), Shared_Path)
-    else:
-        torch.save(Shared_Autoencoder.state_dict(), Shared_Path)
+        if args.data_parallel:
+            torch.save(Shared_Autoencoder.module.state_dict(), Shared_Path)
+        else:
+            torch.save(Shared_Autoencoder.state_dict(), Shared_Path)
 
     # Saving plots:
     loss_fig = go.Figure(data=go.Scatter(y=loss_batch_array, name='Loss_Train'))
