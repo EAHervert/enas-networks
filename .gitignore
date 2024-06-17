@@ -188,4 +188,5 @@ dmypy.json
 /Benchmarks/Block_Metrics.ipynb
 /Benchmarks/DIV2K_SIDD_Crop_Distribution.ipynb
 /Benchmarks/Shared_Network.ipynb
-/Benchmarks/Statistical_Significance.ipynb
+/Benchmarks/Statistical_Significance_DIV2K.ipynb
+/Benchmarks/Statistical_Significance_SIDD.ipynb

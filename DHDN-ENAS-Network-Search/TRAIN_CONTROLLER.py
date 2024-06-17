@@ -33,7 +33,8 @@ parser.add_argument('--epochs', type=int, default=25)
 parser.add_argument('--cell_copy', default=False, type=lambda x: (str(x).lower() == 'true'))  # Full Or Reduced
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--sample_size', type=int, default=-1)  # How many validation samples to evaluate val models
-parser.add_argument('--validation_samples', type=int, default=8)  # How many samples from validation to train controller
+# after a training epoch
+parser.add_argument('--validation_samples', type=int, default=8)  # How many samples from validation to train controller at each step of the training epoch
 parser.add_argument('--controller_num_aggregate', type=int, default=10)  # Steps in same samples
 parser.add_argument('--controller_train_steps', type=int, default=30)  # Total different sample sets
 parser.add_argument('--controller_lr', type=float, default=5e-4)  # Controller learning rate
@@ -51,6 +52,7 @@ parser.add_argument('--outer_sum', default=False, type=lambda x: (str(x).lower()
 parser.add_argument('--kernel_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
 parser.add_argument('--down_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
 parser.add_argument('--up_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
+parser.add_argument('--save_model', default=True, type=lambda x: (str(x).lower() == 'true'))  # Save the final model
 
 args = parser.parse_args()
 
@@ -246,8 +248,9 @@ def main():
     t_final = time.time()
     display_time(t_final - t_init)
 
-    Controller_Path = Model_Path + '/pre_trained_controller_parameters.pth'
-    torch.save(Controller.state_dict(), Controller_Path)
+    if args.save_model:
+        Controller_Path = Model_Path + '/pre_trained_controller_parameters.pth'
+        torch.save(Controller.state_dict(), Controller_Path)
 
     # Saving plots:
     loss_fig = go.Figure(data=go.Scatter(y=loss_batch_val_array, name='Loss_Val'))
