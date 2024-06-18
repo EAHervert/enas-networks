@@ -49,9 +49,14 @@ parser.add_argument('--device', default='cuda:0', type=str)  # GPU to use
 parser.add_argument('--data_parallel', default=True, type=lambda x: (str(x).lower() == 'true'))
 # To do outer sums for models
 parser.add_argument('--outer_sum', default=False, type=lambda x: (str(x).lower() == 'true'))
+# Full Architecture Search
 parser.add_argument('--kernel_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
 parser.add_argument('--down_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
 parser.add_argument('--up_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
+# Reduced Cell Search
+parser.add_argument('--encoder_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
+parser.add_argument('--bottleneck_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
+parser.add_argument('--decoder_bool', default=True, type=lambda x: (str(x).lower() == 'true'))
 parser.add_argument('--save_model', default=True, type=lambda x: (str(x).lower() == 'true'))  # Save the final model
 
 args = parser.parse_args()
