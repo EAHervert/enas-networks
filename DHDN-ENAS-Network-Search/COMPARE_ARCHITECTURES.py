@@ -93,9 +93,9 @@ def main():
     path_validation_gt = dir_current + config['Locations']['Validation_GT']
 
     # Todo: Make function that returns these datasets.
-    SIDD_validation = dataset.DatasetSIDDMAT(mat_noisy_file=path_validation_noisy,
-                                             mat_gt_file=path_validation_gt,
-                                             device=device_0)
+    SIDD_validation = dataset.DatasetMAT(mat_noisy_file=path_validation_noisy,
+                                         mat_gt_file=path_validation_gt,
+                                         device=device_0)
 
     dataloader_sidd_validation = DataLoader(dataset=SIDD_validation,
                                             batch_size=config['Training']['Validation_Batch_Size'],
