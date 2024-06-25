@@ -38,6 +38,8 @@ parser.add_argument('--validation_samples', type=int, default=8)  # How many sam
 parser.add_argument('--controller_num_aggregate', type=int, default=10)  # Steps in same samples
 parser.add_argument('--controller_train_steps', type=int, default=30)  # Total different sample sets per epoch
 parser.add_argument('--controller_lr', type=float, default=5e-4)  # Controller learning rate
+parser.add_argument('--controller_lr_step', type=int, default=1)  # Controller learning rate
+parser.add_argument('--controller_lr_step_gamma', type=float, default=0.95)  # Controller learning rate
 parser.add_argument('--controller_lstm_size', type=int, default=64)  # Size of LSTM (Controller)
 parser.add_argument('--controller_lstm_num_layers', type=int, default=1)  # Number of Layers in LSTM (Controller)
 parser.add_argument('--load_shared', default=False, type=lambda x: (str(x).lower() == 'true'))  # Load shared model(s)
@@ -161,6 +163,8 @@ def main():
                                             lr=args.controller_lr,
                                             betas=(0.9, 0.999))
 
+    Controller_Scheduler = torch.optim.lr_scheduler.StepLR(Controller_Optimizer, step_size=args.controller_lr_step,
+                                                           gamma=args.controller_lr_step_gamma)
     # Noise Dataset
     path_validation_noisy = dir_current + config['Locations']['Validation_Noisy']
     path_validation_gt = dir_current + config['Locations']['Validation_GT']
@@ -201,6 +205,7 @@ def main():
                                            baseline=None,
                                            device=device_0
                                            )
+        Controller_Scheduler.step()
 
         vis_window[list(vis_window)[0]] = vis.line(
             X=np.column_stack([epoch]),

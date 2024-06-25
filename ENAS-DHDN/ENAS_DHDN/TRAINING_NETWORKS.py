@@ -149,10 +149,9 @@ def Train_Controller(epoch,
 
         for i_validation, validation_batch in enumerate(dataloader_sidd_validation):
             if i_validation in choices:
-                x_v = validation_batch['NOISY']
-                t_v = validation_batch['GT']
-
                 with torch.no_grad():
+                    x_v = validation_batch['NOISY']
+                    t_v = validation_batch['GT']
                     y_v = shared(x_v.to(device), architecture)
                     SSIM_Meter.update(SSIM(y_v, t_v.to(device)).item())
                     SSIM_Original_Meter.update(SSIM(x_v, t_v).item())
