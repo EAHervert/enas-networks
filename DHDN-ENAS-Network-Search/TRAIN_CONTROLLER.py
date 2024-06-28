@@ -42,6 +42,7 @@ parser.add_argument('--controller_lr_step', type=int, default=1)  # Controller l
 parser.add_argument('--controller_lr_step_gamma', type=float, default=0.95)  # Controller learning rate
 parser.add_argument('--controller_lstm_size', type=int, default=64)  # Size of LSTM (Controller)
 parser.add_argument('--controller_lstm_num_layers', type=int, default=1)  # Number of Layers in LSTM (Controller)
+parser.add_argument('--controller_loss_min', type=float, default=-1)  # Number of Layers in LSTM (Controller)
 parser.add_argument('--load_shared', default=False, type=lambda x: (str(x).lower() == 'true'))  # Load shared model(s)
 parser.add_argument('--model_shared_path', default='shared_network_sidd_0032.pth', type=str)
 parser.add_argument('--load_controller', default=False, type=lambda x: (str(x).lower() == 'true'))  # Load controller
@@ -251,6 +252,9 @@ def main():
                              'SSIM_Original': validation_results['Validation_SSIM_Original'],
                              'PSNR': validation_results['Validation_PSNR'],
                              'PSNR_Original': validation_results['Validation_PSNR_Original']})
+
+        if controller_dict['Loss'] < args.controller_min_loss:
+            break
 
     CSV_Logger.close()
     Ctrl_Logger.close()
