@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader
 from utilities.functions import list_of_ints, get_out, SSIM
 from utilities.functions import True_PSNR as PSNR
 import argparse
+import base64
 
 current_time = datetime.datetime.now()
 d1 = current_time.strftime('%Y_%m_%d__%H_%M_%S')
@@ -33,9 +34,22 @@ parser.add_argument('--channels', default=128, type=int)  # Channel Number for D
 parser.add_argument('--k_value', default=3, type=int)  # Size of encoder and decoder
 parser.add_argument('--model_file', default='models/model.pth', type=str)  # Model path to weights
 parser.add_argument('--generate_metrics', default=False, type=lambda s: (str(s).lower() == 'true'))  # Generate Metrics
-parser.add_argument('--generate_mat', default=True, type=lambda s: (str(s).lower() == 'true'))  # Generate Metrics
-# To use self-ensembling
+parser.add_argument('--generate_mat', default=True, type=lambda s: (str(s).lower() == 'true'))  # Generate .mat file
+parser.add_argument('--generate_csv', default=True, type=lambda s: (str(s).lower() == 'true'))  # Generate .mat file
+
 args = parser.parse_args()
+
+
+def array_to_base64string(x):
+    array_bytes = x.tobytes()
+    base64_bytes = base64.b64encode(array_bytes)
+    base64_string = base64_bytes.decode('utf-8')
+    return base64_string
+
+
+def tensor_to_np(x):
+    x_np = x.permute(0, 2, 3, 1).cpu().numpy()[0, :, :, :]
+    return np.clip((x_np * 255).round(), 0, 255).astype(np.uint8)
 
 
 def main():
@@ -112,6 +126,7 @@ def main():
 
     y_dhdn_final = []
     dict_out = []
+    csv_array_out = []
     ssim_base = 0
     psnr_base = 0
     ssim_denoise_val = 0
@@ -124,7 +139,10 @@ def main():
             y_out_pt = dhdn(x_noisy_pt.to(device_0))
 
             print('Batch {i} processed.'.format(i=i_batch))
-            y_dhdn_final.append(get_out(y_out_pt))
+            if args.generate_mat:
+                y_dhdn_final.append(get_out(y_out_pt))
+            if args.generate_csv:
+                csv_array_out.append(array_to_base64string(tensor_to_np(y_out_pt)))
 
         if mat_gt_file is not None and args.generate_metrics:
             x_gt_pt = sample_batch['GT']
@@ -186,6 +204,18 @@ def main():
         else:
             mat_dhdn[benchmark_tag] = y_dhdn_final
         savemat(file_dhdn, mat_dhdn)
+
+    if args.generate_csv:
+        # Save outputs to .csv file.
+        output_file = 'results/{type}/{name}/SubmitSrgb.csv'.format(name=args.name, type=args.type)
+        print(f'Saving outputs to {output_file}')
+        output_df = pd.DataFrame()
+        n_blocks = len(csv_array_out)
+        print(f'Number of blocks = {n_blocks}')
+        output_df['ID'] = np.arange(n_blocks)
+        output_df['BLOCK'] = csv_array_out
+
+        output_df.to_csv(output_file, index=False)
 
 
 if __name__ == "__main__":
