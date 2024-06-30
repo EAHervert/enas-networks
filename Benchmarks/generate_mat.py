@@ -26,7 +26,7 @@ parser.add_argument('--name', default='tests', type=str)  # Name of the folder t
 parser.add_argument('--type', default='validation', type=str)  # Name of the folder to save
 parser.add_argument('--dataset', default='SIDD', type=str)  # Name of the folder to save
 parser.add_argument('--device', default='cuda:0', type=str)  # Which device to use to generate .mat file
-parser.add_argument('--architecture', default='DHDN', type=str)  # DHDN, EDHDN, or DHDN_Color
+parser.add_argument('--architecture', default='DHDN_Shared', type=str)  # DHDN, EDHDN, DHDN_Shared, or DHDN_Color
 parser.add_argument('--encoder', default=[0, 0, 0, 0, 0, 0, 0, 0, 0], type=list_of_ints)  # Encoder of the DHDN
 parser.add_argument('--bottleneck', default=[0, 0], type=list_of_ints)  # Bottleneck of the Encoder
 parser.add_argument('--decoder', default=[0, 0, 0, 0, 0, 0, 0, 0, 0], type=list_of_ints)  # Decoder of the DHDN
@@ -76,10 +76,9 @@ def main():
     # Get the model paths
     model_dhdn = dir_current + '/' + args.model_file
     device_0 = torch.device(args.device)
-
+    architecture = args.encoder + args.bottleneck + args.decoder
     # Model architectures and parameters
     if args.architecture == 'DHDN':
-        architecture = args.encoder + args.bottleneck + args.decoder
         dhdn = DHDN.SharedDHDN(architecture=architecture, channels=args.channels, k_value=args.k_value)
 
         # Cast to relevant device
@@ -87,8 +86,15 @@ def main():
         state_dict_dhdn = torch.load(model_dhdn, map_location=device_0)
 
     elif args.architecture == 'EDHDN':
-        architecture = [0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        architecture = [0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # Override
         dhdn = DHDN.SharedDHDN(architecture=architecture)
+
+        # Cast to relevant device
+        dhdn.to(device_0)
+        state_dict_dhdn = torch.load(model_dhdn, map_location=device_0)
+
+    elif args.architecture == 'DHDN_Shared':
+        dhdn = DHDN.SharedDHDN(architecture=None, channels=args.channels, k_value=args.k_value)
 
         # Cast to relevant device
         dhdn.to(device_0)
@@ -136,7 +142,10 @@ def main():
         x_noisy_pt = sample_batch['NOISY']
 
         with torch.no_grad():
-            y_out_pt = dhdn(x_noisy_pt.to(device_0))
+            if args.architecture == 'DHDN_Shared':
+                y_out_pt = dhdn(x_noisy_pt.to(device_0), architecture=architecture)
+            else:
+                y_out_pt = dhdn(x_noisy_pt.to(device_0))
 
             print('Batch {i} processed.'.format(i=i_batch))
             if args.generate_mat:
@@ -212,7 +221,6 @@ def main():
         print(f'Saving outputs to {output_file}')
         output_df = pd.DataFrame()
         n_blocks = len(csv_array_out)
-        print(f'Number of blocks = {n_blocks}')
         output_df['ID'] = np.arange(n_blocks)
         output_df['BLOCK'] = csv_array_out
 
