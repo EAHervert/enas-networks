@@ -48,7 +48,7 @@ def array_to_base64string(x):
 
 
 def tensor_to_np(x):
-    x_np = x.permute(0, 2, 3, 1).cpu().numpy()[0, :, :, :]
+    x_np = x.permute(1, 2, 0).cpu().numpy()
     return np.clip((x_np * 255).round(), 0, 255).astype(np.uint8)
 
 
@@ -142,7 +142,8 @@ def main():
             if args.generate_mat:
                 y_dhdn_final.append(get_out(y_out_pt))
             if args.generate_csv:
-                csv_array_out.append(array_to_base64string(tensor_to_np(y_out_pt)))
+                for i in range(y_out_pt.size()[0]):
+                    csv_array_out.append(array_to_base64string(tensor_to_np(y_out_pt[i, :, :, :])))
 
         if mat_gt_file is not None and args.generate_metrics:
             x_gt_pt = sample_batch['GT']
