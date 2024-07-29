@@ -120,7 +120,9 @@ def main():
 
     dhdn.load_state_dict(state_dict_dhdn)
 
-    SIDD_validation = dataset.DatasetMAT(mat_noisy_file=mat_noisy_file, mat_gt_file=mat_gt_file, device=device_0)
+    SIDD_validation = dataset.DatasetMAT(mat_noisy_file=mat_noisy_file,
+                                         mat_gt_file=mat_gt_file,
+                                         device=device_0)
     if args.dataset == 'SIDD':
         dataloader_sidd_validation = DataLoader(dataset=SIDD_validation,
                                                 batch_size=config['Training']['Testing_Batch_Size'],
@@ -184,9 +186,9 @@ def main():
         ssim_denoise_val /= count
         psnr_denoise_val /= count
 
-        dict_item = {'Image': 'ALL', 'Denoised_PSNR': round(ssim_denoise_val, 6),
-                     'Denoised_SSIM': round(psnr_denoise_val, 6),
-                     'Base_PSNR': round(ssim_base, 6), 'Base_SSIM': round(psnr_base, 6)}
+        dict_item = {'Image': 'ALL', 'Denoised_SSIM': round(ssim_denoise_val, 6),
+                     'Denoised_PSNR': round(psnr_denoise_val, 6),
+                     'Base_SSIM': round(ssim_base, 6), 'Base_PSNR': round(psnr_base, 6)}
 
         print(dict_item)
         dict_out.append(dict_item)
