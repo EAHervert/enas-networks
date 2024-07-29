@@ -165,9 +165,9 @@ def main():
             ssim = SSIM(x_gt_pt, x_noisy_pt)
             psnr = PSNR(x_gt_pt, x_noisy_pt)
 
-            dict_item = {'Image': i_batch, 'Denoised_PSNR': round(ssim_denoise.item(), 6),
-                         'Denoised_SSIM': round(psnr_denoise.item(), 6),
-                         'Base_PSNR': round(ssim.item(), 6), 'Base_SSIM': round(psnr.item(), 6)}
+            dict_item = {'Image': i_batch, 'Denoised_SSIM': round(ssim_denoise.item(), 6),
+                         'Denoised_PSNR': round(psnr_denoise.item(), 6),
+                         'Base_SSIM': round(ssim.item(), 6), 'Base_PSNR': round(psnr.item(), 6)}
             print(dict_item)
             dict_out.append(dict_item)
 
