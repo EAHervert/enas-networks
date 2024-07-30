@@ -27,6 +27,7 @@ if not sys.warnoptions:
 
 parser = argparse.ArgumentParser(description='ENAS_SEARCH_DHDN_CONTROLLER')
 
+parser.add_argument('--noise', type=str, default='SIDD')
 parser.add_argument('--output_file', default='Controller_DHDN', type=str)
 parser.add_argument('--number', type=int, default=1000)  # Used to generate sampling distribution for Controller
 parser.add_argument('--epochs', type=int, default=25)
@@ -167,8 +168,8 @@ def main():
     Controller_Scheduler = torch.optim.lr_scheduler.StepLR(Controller_Optimizer, step_size=args.controller_lr_step,
                                                            gamma=args.controller_lr_step_gamma)
     # Noise Dataset
-    path_validation_noisy = dir_current + config['Locations']['Validation_Noisy']
-    path_validation_gt = dir_current + config['Locations']['Validation_GT']
+    path_validation_noisy = dir_current + config['Locations'][args.noise]['Validation_Noisy']
+    path_validation_gt = dir_current + config['Locations'][args.noise]['Validation_GT']
 
     # Todo: Make function that returns these datasets.
     SIDD_validation = dataset.DatasetMAT(mat_noisy_file=path_validation_noisy,
