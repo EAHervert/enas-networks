@@ -206,7 +206,7 @@ def main():
 
             # Calculate values not needing to be backpropagated
             with torch.no_grad():
-                loss_batch.update(loss(x - eta, t))
+                loss_batch.update(loss(x - eta, t).item())
                 loss_original_batch.update(loss(x, t).item())
                 ssim_batch.update(SSIM(x - eta, t).item())
                 ssim_original_batch.update(SSIM(x, t).item())
