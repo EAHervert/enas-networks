@@ -31,6 +31,7 @@ parser.add_argument('--noise', default='SIDD', type=str)  # Which dataset to tra
 parser.add_argument('--layers', type=int, default=17)
 parser.add_argument('--features', type=int, default=64)
 parser.add_argument('--epochs', type=int, default=10)
+parser.add_argument('--initialize_kaiming', default=False, type=lambda s: (str(s).lower() == 'true'))
 parser.add_argument('--train_passes_mod', type=int, default=-1)  # Number of passes through training data (mod 100)
 parser.add_argument('--learning_rate', type=float, default=1e-4)
 parser.add_argument('--weight_decay', type=float, default=0.0)
@@ -95,6 +96,8 @@ def main():
     # Load the models:
     dncnn = DnCNN.DnCNN(features=args.features,
                         num_of_layers=args.layers)
+    if args.initialize_kaiming:
+        dncnn.initialize()
     dncnn.to(device)
 
     print('Parser Arguments:\n', args)

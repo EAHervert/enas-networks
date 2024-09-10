@@ -43,5 +43,13 @@ class DnCNN(nn.Module):
 
         self.dncnn = nn.Sequential(*layers)
 
+    def initialize(self):
+        self.dncnn.apply(self.initialize_weights)
+
+    @staticmethod
+    def initialize_weights(block):
+        if isinstance(block, nn.Conv2d):
+            nn.init.kaiming_normal_(block.weight, mode='fan_out', nonlinearity='relu')
+
     def forward(self, x):
         return self.dncnn(x)
