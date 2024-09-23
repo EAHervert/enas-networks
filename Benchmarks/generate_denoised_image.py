@@ -3,8 +3,12 @@ import datetime
 import json
 import numpy as np
 import torch
+import pandas as pd
+import time
 from ENAS_DHDN import SHARED_DHDN as DHDN
-from utilities.functions import image_np_to_tensor, tensor_to_np_image
+from utilities.functions import image_np_to_tensor, tensor_to_np_image, SSIM
+from utilities.functions import True_PSNR as PSNR
+
 import srgb_conc_unet
 import cv2
 import argparse
@@ -27,6 +31,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument('--name', default='tests', type=str)  # Name of the folder to save
 parser.add_argument('--image_path', default='sample_images/sample_1_ns.png', type=str)  # path to image
+parser.add_argument('--crop_size', default=256, type=int)  # path to image
 parser.add_argument('--device', default='cuda:0', type=str)  # Which device to use
 parser.add_argument('--architecture', default='DHDN', type=str)  # DHDN, EDHDN, or DHDN_Color
 parser.add_argument('--encoder', default=[0, 0, 0, 0, 0, 0, 0, 0, 0], type=list_of_ints)  # Encoder of the DHDN
@@ -50,14 +55,6 @@ if args.architecture == 'DHDN':
     dhdn.to(device_0)
     state_dict_dhdn = torch.load(model_dhdn, map_location=device_0)
 
-elif args.architecture == 'EDHDN':
-    architecture = [0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    dhdn = DHDN.SharedDHDN(architecture=architecture)
-
-    # Cast to relevant device
-    dhdn.to(device_0)
-    state_dict_dhdn = torch.load(model_dhdn, map_location=device_0)
-
 elif args.architecture == 'DHDN_Color':
     # Model architectures and parameters
     dhdn = srgb_conc_unet.Net2()
@@ -76,24 +73,65 @@ else:
     print('Invalid Architecture!')
     exit()
 
-dhdn.load_state_dict(state_dict_dhdn)
+dhdn.load_state_dict(state_dict_dhdn)  # Load weights to the model
+
+# Load the images as np array (make values float)
 noisy = np.array(cv2.imread(dir_current + '/' + args.image_path, cv2.IMREAD_COLOR), dtype=np.single)[:, :, ::-1]
 image_path_gt = args.image_path[:-6] + 'gt.png'
 gt = np.array(cv2.imread(dir_current + '/' + image_path_gt, cv2.IMREAD_COLOR), dtype=np.single)[:, :, ::-1]
 
+# Image Size
+np_size = noisy.shape
+height, width = noisy.shape[0:2]
+print('Image Numpy Size:', np_size)
+
 # Transformed to Tensor
-noisy_pt = image_np_to_tensor(noisy)
-gt_pt = image_np_to_tensor(gt)
-denoised_pt = torch.zeros_like(noisy_pt)
+noisy_pt = image_np_to_tensor(noisy, crop_size=args.crop_size).detach()
+gt_pt = image_np_to_tensor(gt, crop_size=args.crop_size).detach()
+denoised_pt = torch.zeros_like(noisy_pt).detach()
 
-for i in range(noisy_pt.size()[0]):
-    with torch.no_grad():
-        denoised_pt[i, :, :, :, :] = dhdn(noisy_pt[i, :, :, :, :].to(device_0)).clone()
+# Tensor Size
+tensor_size = noisy_pt.size()
+n, m = tensor_size[0:2]
+print('Image Tensor Size:', tensor_size)
 
-    print('Batch {i} processed.'.format(i=i))
+# Metrics dictionary that will hold the SSIM and PSNR values comparing against ground truth
+metrics = []
+t_final = 0
+for i in range(n):
+    t_init = time.time()
+    for j in range(m):
+        gt_i_j = gt_pt[i, j, :, :, :].unsqueeze(0)
+
+        # Process one image crop
+        t_before = time.time()
+        image_i_j = noisy_pt[i, j, :, :, :].to(device_0).detach().unsqueeze(0)
+        with torch.no_grad():
+            denoised_i_j = dhdn(image_i_j).clone()
+            t_after = time.time()
+
+            denoised_pt[i, j, :, :, :] = denoised_i_j  # Save the denoised sample in the output tensor
+
+        print('Batch {i} - Image {j} processed.'.format(i=i, j=j),
+              ' \tTime to process batch: {:.2f}s'.format(t_after - t_before))
+        t_final += t_after - t_before
+
+        row = {'index_i': i, 'index_j': j, 'time_to_process': t_after - t_init,
+               'ssim_denoised': SSIM(denoised_i_j, gt_i_j), 'ssim_original': SSIM(image_i_j, gt_i_j),
+               'psnr_denoised': PSNR(denoised_i_j, gt_i_j), 'psnr_original': PSNR(image_i_j, gt_i_j)}
+
+        metrics.append(row)
+
+print('Time to process Whole Image: {:.2f}s'.format(t_final))
 
 # transform back to np array
 denoised = tensor_to_np_image(denoised_pt)
 
+# Save the denoised image
 output_file = args.image_path[:-6] + 'dn_' + args.name + '.png'
 cv2.imwrite(dir_current + '/' + output_file, denoised[:, :, ::-1])
+
+# Save the csv file with the metrics
+csv_file = args.image_path[:-6] + args.name + '.csv'
+metrics = pd.DataFrame(metrics)
+metrics.to_csv(csv_file, index=False)

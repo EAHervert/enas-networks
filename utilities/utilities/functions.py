@@ -339,14 +339,14 @@ def image_np_to_tensor(np_array, i_range=9, j_range=15, crop_size=256):
 
 
 def tensor_to_np_image(tensor, i_out=2160, j_out=3840, crop_size=256):
-    np_out = np.zeros([i_out, j_out, 3])
+    np_out = np.zeros([i_out, j_out, 3], dtype=np.uint8)
     i_range = math.ceil(i_out / crop_size)
     j_range = math.ceil(j_out / crop_size)
 
     for i in range(i_range):
         for j in range(j_range):
             sample = tensor[i, j, :, :, :].permute(1, 2, 0) * 255
-            sample = np.round(sample.numpy())
+            sample = np.round(sample.numpy()).astype(np.uint8)
 
             if i_range % crop_size:
                 if i < 8:

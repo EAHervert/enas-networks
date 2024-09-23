@@ -35,7 +35,7 @@ parser.add_argument('--k_value', default=3, type=int)  # Size of encoder and dec
 parser.add_argument('--model_file', default='models/model.pth', type=str)  # Model path to weights
 parser.add_argument('--generate_metrics', default=False, type=lambda s: (str(s).lower() == 'true'))  # Generate Metrics
 parser.add_argument('--generate_mat', default=True, type=lambda s: (str(s).lower() == 'true'))  # Generate .mat file
-parser.add_argument('--generate_csv', default=True, type=lambda s: (str(s).lower() == 'true'))  # Generate .mat file
+parser.add_argument('--generate_csv', default=True, type=lambda s: (str(s).lower() == 'true'))  # Generate .csv file
 
 args = parser.parse_args()
 
