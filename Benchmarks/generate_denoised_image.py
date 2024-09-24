@@ -3,8 +3,9 @@ import datetime
 import json
 import numpy as np
 import torch
-import pandas as pd
+import csv
 import time
+import math
 from ENAS_DHDN import SHARED_DHDN as DHDN
 from utilities.functions import image_np_to_tensor, tensor_to_np_image, SSIM
 from utilities.functions import True_PSNR as PSNR
@@ -33,7 +34,7 @@ parser.add_argument('--name', default='tests', type=str)  # Name of the folder t
 parser.add_argument('--image_path', default='sample_images/sample_1_ns.png', type=str)  # path to image
 parser.add_argument('--crop_size', default=256, type=int)  # path to image
 parser.add_argument('--device', default='cuda:0', type=str)  # Which device to use
-parser.add_argument('--architecture', default='DHDN', type=str)  # DHDN, EDHDN, or DHDN_Color
+parser.add_argument('--architecture_type', default='DHDN', type=str)  # DHDN, EDHDN, or DHDN_Color
 parser.add_argument('--encoder', default=[0, 0, 0, 0, 0, 0, 0, 0, 0], type=list_of_ints)  # Encoder of the DHDN
 parser.add_argument('--bottleneck', default=[0, 0], type=list_of_ints)  # Bottleneck of the Encoder
 parser.add_argument('--decoder', default=[0, 0, 0, 0, 0, 0, 0, 0, 0], type=list_of_ints)  # Decoder of the DHDN
@@ -45,23 +46,23 @@ args = parser.parse_args()
 # Get the model paths
 model_dhdn = dir_current + '/' + args.model_file
 device_0 = torch.device(args.device)
+architecture = None
 
 # Model architectures and parameters
-if args.architecture == 'DHDN':
+if args.architecture_type == 'DHDN':
     architecture = args.encoder + args.bottleneck + args.decoder
-    dhdn = DHDN.SharedDHDN(architecture=architecture, channels=args.channels, k_value=args.k_value)
-
-    # Cast to relevant device
-    dhdn.to(device_0)
+    dhdn = DHDN.SharedDHDN(architecture=architecture, channels=args.channels, k_value=args.k_value).to(device_0) # Cast to relevant device
     state_dict_dhdn = torch.load(model_dhdn, map_location=device_0)
 
-elif args.architecture == 'DHDN_Color':
-    # Model architectures and parameters
-    dhdn = srgb_conc_unet.Net2()
-    state_dict_dhdn = dhdn.state_dict()  # state dict for dhdn in repo
+elif args.architecture_type == 'Shared_DHDN':
+    architecture = args.encoder + args.bottleneck + args.decoder
+    dhdn = DHDN.SharedDHDN(channels=args.channels, k_value=args.k_value).to(device_0)  # Cast to relevant device
+    state_dict_dhdn = torch.load(model_dhdn, map_location=device_0)
 
-    # Cast to relevant device
-    dhdn.to(device_0)
+elif args.architecture_type == 'DHDN_Color':
+    # Model architectures and parameters
+    dhdn = srgb_conc_unet.Net2().to(device_0)
+    state_dict_dhdn = dhdn.state_dict()  # state dict for dhdn in repo  # Cast to relevant device
     state_dict_dhdn_weights = torch.load(model_dhdn, map_location=device_0)['model'].state_dict()  # weights
 
     # Transfer weights correctly
@@ -83,11 +84,13 @@ gt = np.array(cv2.imread(dir_current + '/' + image_path_gt, cv2.IMREAD_COLOR), d
 # Image Size
 np_size = noisy.shape
 height, width = noisy.shape[0:2]
+i_range = math.ceil(height / args.crop_size)
+j_range = math.ceil(width / args.crop_size)
 print('Image Numpy Size:', np_size)
 
 # Transformed to Tensor
-noisy_pt = image_np_to_tensor(noisy, crop_size=args.crop_size).detach()
-gt_pt = image_np_to_tensor(gt, crop_size=args.crop_size).detach()
+noisy_pt = image_np_to_tensor(noisy, i_range=i_range, j_range=j_range, crop_size=args.crop_size).detach()
+gt_pt = image_np_to_tensor(gt, i_range=i_range, j_range=j_range, crop_size=args.crop_size).detach()
 denoised_pt = torch.zeros_like(noisy_pt).detach()
 
 # Tensor Size
@@ -101,19 +104,22 @@ t_final = 0
 for i in range(n):
     t_init = time.time()
     for j in range(m):
-        gt_i_j = gt_pt[i, j, :, :, :].unsqueeze(0)
+        gt_i_j = gt_pt[i, j, :, :, :].to(device_0).detach().unsqueeze(0)
 
         # Process one image crop
         t_before = time.time()
         image_i_j = noisy_pt[i, j, :, :, :].to(device_0).detach().unsqueeze(0)
         with torch.no_grad():
-            denoised_i_j = dhdn(image_i_j).clone()
+            if args.architecture_type == 'Shared_DHDN':
+                denoised_i_j = dhdn(image_i_j, architecture=architecture).clone()
+            else:
+                denoised_i_j = dhdn(image_i_j).clone()
             t_after = time.time()
 
             denoised_pt[i, j, :, :, :] = denoised_i_j  # Save the denoised sample in the output tensor
 
         print('Batch {i} - Image {j} processed.'.format(i=i, j=j),
-              ' \tTime to process batch: {:.2f}s'.format(t_after - t_before))
+              ' \tTime to process batch: {:.6f}s'.format(t_after - t_before))
         t_final += t_after - t_before
 
         row = {'index_i': i, 'index_j': j, 'time_to_process': t_after - t_init,
@@ -122,10 +128,10 @@ for i in range(n):
 
         metrics.append(row)
 
-print('Time to process Whole Image: {:.2f}s'.format(t_final))
+print('Time to process Whole Image: {:.6f}s'.format(t_final))
 
 # transform back to np array
-denoised = tensor_to_np_image(denoised_pt)
+denoised = tensor_to_np_image(denoised_pt, crop_size=args.crop_size)
 
 # Save the denoised image
 output_file = args.image_path[:-6] + 'dn_' + args.name + '.png'
@@ -133,5 +139,9 @@ cv2.imwrite(dir_current + '/' + output_file, denoised[:, :, ::-1])
 
 # Save the csv file with the metrics
 csv_file = args.image_path[:-6] + args.name + '.csv'
-metrics = pd.DataFrame(metrics)
-metrics.to_csv(csv_file, index=False)
+keys = metrics[0].keys()
+
+with open(csv_file, 'w', newline='') as output_file:
+    dict_writer = csv.DictWriter(output_file, keys)
+    dict_writer.writeheader()
+    dict_writer.writerows(metrics)
