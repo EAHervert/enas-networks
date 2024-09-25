@@ -87,7 +87,9 @@ gt = np.array(cv2.cvtColor(cv2.imread(dir_current + '/' + image_path_gt, cv2.IMR
 # Image Size
 np_size = noisy.shape
 height, width = noisy.shape[0:2]
+i_range_min = height // args.crop_size
 i_range = math.ceil(height / args.crop_size)
+j_range_min = width // args.crop_size
 j_range = math.ceil(width / args.crop_size)
 print('Image Numpy Size:', np_size)
 
@@ -98,19 +100,27 @@ denoised_pt = torch.zeros_like(noisy_pt).detach()
 
 # Tensor Size
 tensor_size = noisy_pt.size()
-n, m = tensor_size[0:2]
 print('Image Tensor Size:', tensor_size)
 
 # Metrics dictionary that will hold the SSIM and PSNR values comparing against ground truth
 metrics = []
 t_final = 0
-for i in range(n):
+for i in range(i_range):
     t_init = time.time()
-    for j in range(m):
+    for j in range(j_range):
         # Process one image crop
-        gt_i_j = gt_pt[i, j, :, :, :].to(device_0).detach().unsqueeze(0)
+        i_end = args.crop_size
+        j_end = args.crop_size
+        if i > i_range_min or j > j_range_min:
+            if height - i_range_min * args.crop_size != 0:
+                i_end = height - i_range_min * args.crop_size
+            if width - j_range_min * args.crop_size != 0:
+                j_end = width - j_range_min * args.crop_size
+
+        gt_i_j = gt_pt[i, j, :, :i_end, :j_end].to(device_0).detach().unsqueeze(0)
         t_before = time.time()
-        image_i_j = noisy_pt[i, j, :, :, :].to(device_0).detach().unsqueeze(0)
+        image_i_j = noisy_pt[i, j, :, :i_end, :j_end].to(device_0).detach().unsqueeze(0)
+
         with torch.no_grad():
             if args.architecture_type == 'Shared_DHDN':
                 denoised_i_j = dhdn(image_i_j, architecture=architecture)
@@ -118,9 +128,9 @@ for i in range(n):
                 denoised_i_j = dhdn(image_i_j)
             t_after = time.time()
 
-            denoised_pt[i, j, :, :, :] = denoised_i_j.squeeze(0)  # Save the denoised sample in the output tensor
+        denoised_pt[i, j, :, :i_end, :j_end] = denoised_i_j.squeeze(0)  # Save the denoised sample
 
-        print('Sample {i:02} - {j:02} processed.'.format(i=i, j=j),
+        print('Sample {i:02} - {j:02} processed.'.format(i=i, j=j), ' Size: ', list(denoised_i_j.squeeze(0).size()),
               ' Time to process batch: {:.6f}s'.format(t_after - t_before),
               '\nssim_denoised: {:.6f}'.format(SSIM(denoised_i_j, gt_i_j).item()),
               '\tssim_original: {:.6f}'.format(SSIM(image_i_j, gt_i_j).item()),
@@ -128,7 +138,8 @@ for i in range(n):
               '\tpsnr_original: {:.6f}'.format(PSNR(image_i_j, gt_i_j).item()))
         t_final += t_after - t_before
 
-        row = {'index_i': i, 'index_j': j, 'time_to_process': t_after - t_init,
+        row = {'index_i': i, 'index_j': j, 'size': list(denoised_i_j.squeeze(0).size()),
+               'time_to_process': t_after - t_before,
                'ssim_denoised': SSIM(denoised_i_j, gt_i_j).item(), 'ssim_original': SSIM(image_i_j, gt_i_j).item(),
                'psnr_denoised': PSNR(denoised_i_j, gt_i_j).item(), 'psnr_original': PSNR(image_i_j, gt_i_j).item()}
 
