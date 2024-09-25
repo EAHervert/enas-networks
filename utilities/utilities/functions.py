@@ -332,7 +332,7 @@ def image_np_to_tensor(np_array, i_range=9, j_range=15, crop_size=256):
     for i in range(i_range):
         for j in range(j_range):
             sample = torch.tensor(np_array[i * crop_size:(i + 1) * crop_size,
-                                  j * crop_size:(j + 1) * crop_size, :] / 255).permute(2, 0, 1)
+                                  j * crop_size:(j + 1) * crop_size, :]).permute(2, 0, 1) / 255.
             np_array_pt[i, j, :, :sample.size()[1], :sample.size()[2]] = sample
 
     return np_array_pt

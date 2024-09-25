@@ -191,3 +191,4 @@ dmypy.json
 /Benchmarks/Statistical_Significance_DIV2K.ipynb
 /Benchmarks/Statistical_Significance_SIDD.ipynb
 /Benchmarks/test.py
+/Benchmarks/generate_denoised_image.ipynb
