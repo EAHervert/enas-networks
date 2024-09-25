@@ -111,11 +111,10 @@ for i in range(i_range):
         # Process one image crop
         i_end = args.crop_size
         j_end = args.crop_size
-        if i > i_range_min or j > j_range_min:
-            if height - i_range_min * args.crop_size != 0:
-                i_end = height - i_range_min * args.crop_size
-            if width - j_range_min * args.crop_size != 0:
-                j_end = width - j_range_min * args.crop_size
+        if i >= i_range_min:
+            i_end = height - i_range_min * args.crop_size
+        if j >= j_range_min:
+            j_end = width - j_range_min * args.crop_size
 
         gt_i_j = gt_pt[i, j, :, :i_end, :j_end].to(device_0).detach().unsqueeze(0)
         t_before = time.time()
