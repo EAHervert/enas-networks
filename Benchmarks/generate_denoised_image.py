@@ -148,7 +148,7 @@ for i in range(i_range):
 print('Time to process whole image: {:.6f}s'.format(t_final))
 
 # transform back to np array
-denoised = tensor_to_np_image(denoised_pt, crop_size=args.crop_size)
+denoised = tensor_to_np_image(denoised_pt, i_out=height, j_out=width, crop_size=args.crop_size)
 
 # Save the denoised image
 output_file = args.image_path[:-6] + 'dn_' + args.name + '.png'
