@@ -1,0 +1,65 @@
+{
+  "Description": "DHDN_Compare",
+  "Locations": {
+    "SIDD": {
+      "Validation_Noisy": "/data/ValidationNoisyBlocksSrgb.mat",
+      "Validation_GT": "/data/ValidationGtBlocksSrgb.mat",
+      "Benchmark": "/data/BenchmarkNoisyBlocksSrgb.mat",
+      "Output_File": "DHDN_SIDD_Vanilla"
+    },
+    "DIV2K_GSN_01": {
+      "Validation_Noisy": "/data/gsn_01/ValidationNoisyBlocks.mat",
+      "Validation_GT": "/data/gsn_01/ValidationGtBlocks.mat",
+      "Testing_Noisy": "/data/gsn_01/TestingNoisyBlocks.mat",
+      "Testing_GT": "/data/gsn_01/TestingGtBlocks.mat",
+      "Output_File": "DHDN_DIV2K_GSN_01_Vanilla"
+    },
+    "DIV2K_GSN_05": {
+      "Validation_Noisy": "/data/gsn_05/ValidationNoisyBlocks.mat",
+      "Validation_GT": "/data/gsn_05/ValidationGtBlocks.mat",
+      "Testing_Noisy": "/data/gsn_05/TestingNoisyBlocks.mat",
+      "Testing_GT": "/data/gsn_05/TestingGtBlocks.mat",
+      "Output_File": "DHDN_DIV2K_GSN_05_Vanilla"
+    },
+    "DIV2K_GSN_10": {
+      "Validation_Noisy": "/data/gsn_10/ValidationNoisyBlocks.mat",
+      "Validation_GT": "/data/gsn_10/ValidationGtBlocks.mat",
+      "Testing_Noisy": "/data/gsn_10/TestingNoisyBlocks.mat",
+      "Testing_GT": "/data/gsn_10/TestingGtBlocks.mat",
+      "Output_File": "DHDN_DIV2K_GSN_10_Vanilla"
+    },
+    "DIV2K_SNP_01": {
+      "Validation_Noisy": "/data/snp_01/ValidationNoisyBlocks.mat",
+      "Validation_GT": "/data/snp_01/ValidationGtBlocks.mat",
+      "Testing_Noisy": "/data/snp_01/TestingNoisyBlocks.mat",
+      "Testing_GT": "/data/snp_01/TestingGtBlocks.mat",
+      "Output_File": "DHDN_DIV2K_SNP_01_Vanilla"
+    },
+    "DIV2K_SNP_05": {
+      "Validation_Noisy": "/data/snp_05/ValidationNoisyBlocks.mat",
+      "Validation_GT": "/data/snp_05/ValidationGtBlocks.mat",
+      "Testing_Noisy": "/data/snp_05/TestingNoisyBlocks.mat",
+      "Testing_GT": "/data/snp_05/TestingGtBlocks.mat",
+      "Output_File": "DHDN_DIV2K_SNP_05_Vanilla"
+    },
+    "DIV2K_SNP_10": {
+      "Validation_Noisy": "/data/snp_10/ValidationNoisyBlocks.mat",
+      "Validation_GT": "/data/snp_10/ValidationGtBlocks.mat",
+      "Testing_Noisy": "/data/snp_10/TestingNoisyBlocks.mat",
+      "Testing_GT": "/data/snp_10/TestingGtBlocks.mat",
+      "Output_File": "DHDN_DIV2K_SNP_10_Vanilla"
+    }
+  },
+  "Training": {
+    "Learning_Rate": 1e-4,
+    "Train_Batch_Size": 16,
+    "Validation_Batch_Size": 16,
+    "Validation_Batch_Size_DIV2K": 6,
+    "Testing_Batch_Size": 32,
+    "Testing_Batch_Size_DIV2K": 12,
+    "Child_Grad_Bound": 0.5
+  },
+  "CUDA": {
+    "DataParallel": 0
+  }
+}
