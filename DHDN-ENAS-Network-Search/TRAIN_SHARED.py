@@ -35,6 +35,7 @@ parser.add_argument('--pre_train_epochs', type=int, default=-1)  # Pre-training 
 parser.add_argument('--cell_copy', default=False, type=lambda x: (str(x).lower() == 'true'))  # Full Or Reduced
 parser.add_argument('--whole_passes', type=int, default=1)
 parser.add_argument('--train_passes', type=int, default=-1)
+parser.add_argument('--k_value', type=int, default=3)  # Shared learning rate
 parser.add_argument('--shared_lr', type=float, default=1e-4)  # Shared learning rate
 parser.add_argument('--shared_lr_warm_start', type=float, default=1e-6)  # Shared learning rate for warm start
 parser.add_argument('--step_size', type=int, default=3)  # Steps needed to do the lr scheduling
@@ -72,6 +73,7 @@ def main():
     model_shared_path = '/models/' + args.model_shared_path
 
     config['Shared']['Child_Grad_Bound'] = args.grad_bound  # Update grad bound in the config
+    config['Shared']['K_Value'] = args.k_value  # Update k_value which controls network size
 
     if not os.path.exists(dir_current + '/models/'):
         os.makedirs(dir_current + '/models/')
