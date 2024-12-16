@@ -1,0 +1,58 @@
+--- E:\deep\ntire\ntire\srgb_conc_unet.py
++++ E:\deep\ntire\ntire\srgb_conc_unet.py
+@@ -2,14 +2,16 @@
+     def __init__(self, channel_in):
+         super(_M_block, self).__init__()
+ 
+-        self.conv_1 = nn.Conv2d(in_channels=channel_in, out_channels=int(channel_in / 2.), kernel_size=3, stride=1,
+-                                padding=1)
++        self.conv_1 = nn.Conv2d(in_channels=channel_in, out_channels=int(channel_in/2.), kernel_size=3, stride=1, padding=1)
+         self.relu1 = nn.PReLU()
+-        self.conv_2 = nn.Conv2d(in_channels=int(channel_in * 3 / 2.), out_channels=int(channel_in / 2.), kernel_size=3,
+-                                stride=1, padding=1)
++        self.conv_2 = nn.Conv2d(in_channels=int(channel_in*3/2.), out_channels=int(channel_in/2.), kernel_size=3, stride=1, padding=1)
+         self.relu2 = nn.PReLU()
+-        self.conv_3 = nn.Conv2d(in_channels=channel_in * 2, out_channels=channel_in, kernel_size=3, stride=1, padding=1)
++        self.conv_3 = nn.Conv2d(in_channels=channel_in*2, out_channels=channel_in, kernel_size=3, stride=1, padding=1)
+         self.relu3 = nn.PReLU()
++        #self.conv_4 = nn.Conv2d(in_channels=int(channel_in*5/2.), out_channels=32, kernel_size=3, stride=1, padding=1)
++        #self.conv_5 = nn.Conv2d(in_channels=channel_in, out_channels=32, kernel_size=3, stride=1, padding=1)
++        #self.conv_6 = nn.Conv2d(in_channels=224, out_channels=32, kernel_size=3, stride=1, padding=1)
++        #self.conv_7 = nn.Conv2d(in_channels=256, out_channels=channel_in, kernel_size=3, stride=1, padding=1)
+ 
+     def forward(self, x):
+         residual = x
+@@ -17,15 +19,30 @@
+         out = self.relu1(self.conv_1(x))
+ 
+         conc = torch.cat([x, out], 1)
++
+         out = self.relu2(self.conv_2(conc))
+ 
+         conc = torch.cat([conc, out], 1)
++
+         out = self.relu3(self.conv_3(conc))
++        '''
++        conc = torch.cat([conc, out], 1)
+ 
++        out = self.relu(self.conv_4(conc))
++
++        conc = torch.cat([conc, out], 1)
++
++        out = self.relu(self.conv_5(conc))
++
++        conc = torch.cat([conc, out], 1)
++
++        out = self.relu(self.conv_6(conc))
++
++        conc = torch.cat([conc, out], 1)
++
++        out = self.relu(self.conv_7(conc))        
++        '''
+         out = torch.add(out, residual)
+ 
+         return out
+ 
+-    def dump_patches(self):
+-        return 0
+-
