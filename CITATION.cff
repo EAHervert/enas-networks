@@ -1,0 +1,41 @@
+cff-version: 1.2.0
+message: "If you use this software or the associated paper, please cite as below."
+title: "Computationally Efficient Neural Architecture Search for Image Denoising"
+license: MIT
+repository-code: "https://github.com/EAHervert/enas-networks"
+authors:
+  - family-names: Hervert Hernandez
+    given-names: Esau A.
+    affiliation: "The University of Texas at Dallas"
+    orcid: "https://orcid.org/0009-0005-2226-903X"
+  - family-names: Cao
+    given-names: Yan
+    affiliation: "The University of Texas at Dallas"
+    orcid: "https://orcid.org/0000-0001-8619-7331"
+  - family-names: Kehtarnavaz
+    given-names: Nasser
+    affiliation: "The University of Texas at Dallas"
+    orcid: "https://orcid.org/0000-0001-5183-6359"
+preferred-citation:
+  type: article
+  title: "Computationally Efficient Neural Architecture Search for Image Denoising"
+  authors:
+    - family-names: Hervert Hernandez
+      given-names: Esau A.
+      affiliation: "The University of Texas at Dallas"
+      orcid: "https://orcid.org/0009-0005-2226-903X"
+    - family-names: Cao
+      given-names: Yan
+      affiliation: "The University of Texas at Dallas"
+      orcid: "https://orcid.org/0000-0001-8619-7331"
+    - family-names: Kehtarnavaz
+      given-names: Nasser
+      affiliation: "The University of Texas at Dallas"
+      orcid: "https://orcid.org/0000-0001-5183-6359"
+  journal: "IEEE Access"
+  volume: 13
+  start: 60743
+  end: 60762
+  year: 2025
+  doi: "10.1109/ACCESS.2025.3557691"
+  url: "https://ieeexplore.ieee.org/document/10948435"
