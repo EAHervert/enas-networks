@@ -143,3 +143,7 @@ dmypy.json
 /DHDN-Sensitivity-Analysis/SIDD/
 
 /utilities/tests/
+
+# macOS Finder metadata
+.DS_Store
+**/.DS_Store

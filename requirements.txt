@@ -1,14 +1,17 @@
-torch
-cv2
-matplotlib~=3.4.2
-numpy~=1.23.5
+torch~=1.12
 torchvision~=0.13.1
-dhdn~=1.0.8
-utilities~=1.0.0
+opencv-python
+numpy~=1.23.5
+scipy~=1.9.3
 scikit-image~=0.19.3
+matplotlib~=3.4.2
 pandas~=1.5.2
 plotly~=5.9.0
 visdom~=0.2.3
-scipy~=1.9.3
 tqdm~=4.66.1
 rawpy~=0.18.1
+# First-party packages (verify install source):
+dhdn~=1.0.8
+utilities~=1.0.0
+# research-tools is installed separately:
+#   pip install git+https://github.com/EAHervert/research-tools.git
